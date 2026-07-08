@@ -2821,7 +2821,7 @@ function BackupRestore() {
           style={{ flex: "1 1 160px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "13px", borderRadius: 11, border: `1.5px solid ${C.navy}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 14 }}>
           <RefreshCw size={16} /> 복원하기
         </button>
-        <input ref={fileRef} type="file" accept=".json,application/json" style={{ display: "none" }} onChange={onFile} />
+        <input ref={fileRef} type="file" accept="*/*" style={{ display: "none" }} onChange={onFile} />
       </div>
       {msg && <div style={{ fontSize: 12, color: "#1E7A6B", marginTop: 12, fontWeight: 700 }}>{msg}</div>}
       <div style={{ fontSize: 11, color: C.muted, marginTop: 12, lineHeight: 1.5 }}>
