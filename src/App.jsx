@@ -278,6 +278,51 @@ function careMessage(kind, c) {
   }
 }
 
+// 부류마다 보낼 문구 2가지 (골라서 발송) — {label, text}
+function careMessageVariants(kind, c) {
+  const B = `[${BRAND.name}]`, T = CONTACT_TAIL;
+  const j = (arr) => arr.concat(["", T]).join("\n");
+  const V = {
+    m2_contract: [
+      { label: "감사·재이용", text: j([`${B} 이사철 준비 시작하실 때죠! 지난번 맡겨주셔서 감사했습니다.`, `이번에도 이사+새집 청소 무료로 깔끔하게 도와드릴게요. 날짜 잡히시면 우선 배정해 드립니다.`]) },
+      { label: "단골·우선배정", text: j([`${B} 단골 고객님께 먼저 안내드려요. 이사+새집 청소 무료는 그대로입니다.`, `날짜만 알려주시면 좋은 팀으로 우선 배정해 드릴게요. 편히 연락주세요.`]) },
+    ],
+    m2_quote: [
+      { label: "재도전·비교", text: j([`${B} 지난번엔 인연이 안 닿았지만, 이번엔 꼭 잘 모시고 싶습니다.`, `이사+새집 청소 무료로 준비했어요. 비교해보시고 편히 연락주세요.`]) },
+      { label: "혜택 강조", text: j([`${B} 이사 준비 다시 시작하시나요? 저희는 이사에 새집 청소까지 무료입니다.`, `견적 한번 받아보시면 차이를 아실 거예요. 부담 없이 문의주세요.`]) },
+    ],
+    m3_contract: [
+      { label: "만기 선점", text: j([`${B} 어느새 전세 만기가 슬슬 다가오시죠? 이사 생각 있으시면`, `미리 좋은 날짜·견적 챙겨드릴게요. 지난번처럼 청소까지 무료로.`]) },
+      { label: "안부·정보", text: j([`${B} 잘 지내시죠? 이사 성수기 좋은 날짜는 미리 빠집니다.`, `만기 전에 여쭤보시면 일정·비용 편하게 안내드릴게요(청소 무료 그대로).`]) },
+    ],
+    m3_quote: [
+      { label: "안부·탈환", text: j([`${B} 예전에 이사 견적 문의 주셨던 해피데이입니다. 그때 이사는 잘 마치셨어요?`, `이번에 만기 다가오시면, 이번엔 저희가 청소까지 무료로 잘 모실게요.`]) },
+      { label: "재문의 유도", text: j([`${B} 다시 이사 준비하실 때가 되셨을까요? 예전 문의 감사했습니다.`, `이사+새집 청소 무료 조건으로 견적 다시 잡아드릴게요. 편히 연락주세요.`]) },
+    ],
+    life_1m: [
+      { label: "정착 안부", text: j([`${B} 이사하신 지 한 달 되셨네요. 새집 생활은 편안하신가요?`, `가구 배치 바꾸거나 추가 정리·이동 필요하면 편히 말씀 주세요. 재배치도 도와드립니다.`]) },
+      { label: "필요사항 확인", text: j([`${B} 새집 한 달, 불편한 곳은 없으셨나요?`, `짐 재배치나 추가로 손볼 곳 있으면 도와드릴게요. 언제든 연락주세요.`]) },
+    ],
+    life_3m: [
+      { label: "소개 부드럽게", text: j([`${B} 새집 3개월, 이제 좀 익숙해지셨죠? 잘 지내시는 모습 그려집니다 :)`, `주변에 이사 준비하는 분 계시면 저희를 살짝 떠올려 주세요(소개 감사 혜택).`]) },
+      { label: "안부 위주", text: j([`${B} 새집 생활 어떠세요? 늘 감사한 마음으로 기억하고 있습니다.`, `혹시 이사 준비하는 지인 있으면 소개 부탁드려요. 잘 모시겠습니다.`]) },
+    ],
+    life_12m: [
+      { label: "AS 만료 안내", text: j([`${B} 벌써 이사 1주년이네요! 설치·시공 AS 1년 보장이 이번 달로 마무리됩니다.`, `점검받고 싶은 곳 있으면 지금 연락주세요(무상 기간 내).`]) },
+      { label: "1주년 안부", text: j([`${B} 이사 1주년 축하드려요! 새집에서 잘 지내고 계시죠?`, `1년 AS 마무리 전에 점검 필요하면 편히 연락주세요.`]) },
+    ],
+    season_aircon: [
+      { label: "에어컨 점검", text: j([`${B} 더워지기 전 에어컨 한번 켜보셨어요? 이전 설치분 냉방이 시원치 않으면`, `협력업체 AS가 1년 보장이니 편히 연락주세요. 첫 여름 시원하게 나세요 :)`]) },
+      { label: "여름 안부", text: j([`${B} 무더위 잘 나고 계세요? 새집 첫 여름은 시원하셔야죠.`, `에어컨·설치 관련 문제 있으면 AS 도와드립니다. 편히 연락주세요.`]) },
+    ],
+    referral: [
+      { label: "커피 쿠폰", text: j([`${B} 이사 만족하셨다면 소개 부탁드려요 ☕`, `주변에 이사 준비하는 분 소개해주시면, 소개자·이용자 모두 커피 쿠폰을 드립니다.`]) },
+      { label: "감사·소개", text: j([`${B} 늘 감사한 마음입니다. 혹시 이사 준비하는 지인 있으신가요?`, `소개해주시면 양쪽 모두 감사 선물 드릴게요. 잘 모시겠습니다.`]) },
+    ],
+  };
+  return V[kind] || [{ label: "기본", text: careMessage(kind, c) }];
+}
+
 /* ── 폰 연락처 가져오기 (vCard / CSV) 해석기 ── */
 // 분기 표기 → 대략 날짜(분기 첫 달 1일). 예: "23-2Q","2023 2분기","23년2분기","2024/3"
 function guessMoveDate(text) {
@@ -1583,21 +1628,32 @@ function quarterLabel(md) {
 // 부류 상세: 묶음 문구 1개 + 이사 시기(분기)별 명단, 통신사 한도 고려해 나눠 발송
 function CareBucket({ kind, list }) {
   const [msgCopied, setMsgCopied] = useState(false);
+  const [vi, setVi] = useState(0);
+  const variants = useMemo(() => careMessageVariants(kind, {}), [kind]);
+  const cur = variants[Math.min(vi, variants.length - 1)];
   const CAP = 500; // 하루 발송 권장 묶음 크기(통신사·스팸 정책)
   const groups = useMemo(() => {
     const m = {};
     for (const c of list) { const q = quarterLabel(c.moveDate); (m[q] = m[q] || []).push(c); }
     return Object.entries(m).sort((a, b) => b[0].localeCompare(a[0])); // 최신 분기 먼저
   }, [list]);
-  const copyMsg = async () => { const ok = await copyText(careMessage(kind, {})); setMsgCopied(ok); setTimeout(() => setMsgCopied(false), 2000); };
+  const copyMsg = async () => { const ok = await copyText(cur.text); setMsgCopied(ok); setTimeout(() => setMsgCopied(false), 2000); };
   return (
     <div style={{ marginTop: 12 }}>
       <div style={{ fontSize: 12.5, color: "#8A2A1C", background: "#FDECEA", border: "1px solid #F0997B", borderRadius: 10, padding: "10px 12px", lineHeight: 1.6, marginBottom: 12 }}>
         <b>⚠ 하루에 다 보내지 마세요.</b> 통신사·스팸 정책상 하루 대량 발송은 차단됩니다. <b>아래 이사 시기(분기)별 묶음을 하루에 한 묶음씩(약 {CAP}명 이내)</b> 나눠 보내세요.
       </div>
       <div style={{ background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "12px 13px", marginBottom: 14 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, marginBottom: 6 }}>이 부류에 보낼 문구 (모두 동일)</div>
-        <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{careMessage(kind, {})}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>보낼 문구 고르기</span>
+          {variants.map((v, i) => (
+            <button key={i} className="hd-btn" onClick={() => setVi(i)}
+              style={{ padding: "6px 12px", borderRadius: 999, border: `1.5px solid ${vi === i ? C.coral : C.line}`, background: vi === i ? C.coral : "#fff", color: vi === i ? "#fff" : C.navy, fontWeight: 700, fontSize: 12.5 }}>
+              {v.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{cur.text}</div>
         <button className="hd-btn" onClick={copyMsg}
           style={{ marginTop: 10, padding: "11px 16px", borderRadius: 10, border: "none", background: msgCopied ? "#1E7A6B" : C.coral, color: "#fff", fontWeight: 800, fontSize: 14 }}>
           {msgCopied ? "문구 복사됨 — 카톡·문자에 붙여넣기" : "이 문구 복사"}
@@ -1636,11 +1692,18 @@ function QuarterGroup({ q, arr, cap }) {
         </button>
       </div>
       {open && (
-        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6, maxHeight: 300, overflowY: "auto" }}>
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6, maxHeight: 360, overflowY: "auto" }}>
           {arr.slice(0, 200).map((c) => (
-            <div key={c.id} style={{ fontSize: 13.5, color: C.text, padding: "7px 10px", border: `1px solid ${C.line}`, borderRadius: 8, display: "flex", gap: 8, alignItems: "center" }}>
-              <span style={{ fontWeight: 700, color: C.navy }}>{c.phone || "(번호없음)"}</span>
-              <span style={{ color: C.muted, fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.region && c.region + " "}{c.contractStatus || "계약"}{c.from || c.to ? ` · ${c.from || "?"}→${c.to || "?"}` : ""}</span>
+            <div key={c.id} style={{ fontSize: 13.5, color: C.text, padding: "9px 11px", border: `1px solid ${C.line}`, borderRadius: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontWeight: 800, color: C.navy, fontSize: 15 }}>{c.phone || "(번호없음)"}</span>
+                <span style={{ fontSize: 11.5, color: c.contractStatus === "견적" ? "#8A6418" : "#2563A8", background: c.contractStatus === "견적" ? "#FFF4E6" : "#E8F3FF", borderRadius: 999, padding: "2px 8px", fontWeight: 700 }}>{c.contractStatus || "계약"}</span>
+                {c.region && <span style={{ fontSize: 12, color: C.muted }}>{c.region}</span>}
+                {c.keyman && <span style={{ fontSize: 11, color: "#B7791F", fontWeight: 700 }}>★키맨</span>}
+              </div>
+              <div style={{ fontSize: 13, color: C.text, marginTop: 5, lineHeight: 1.5 }}>
+                <span style={{ color: C.muted }}>📍</span> {c.from || "(출발지 미상)"} <span style={{ color: C.coral, fontWeight: 800 }}>→</span> {c.to || "(도착지 미정)"}
+              </div>
             </div>
           ))}
           {arr.length > 200 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {arr.length - 200}명</div>}
