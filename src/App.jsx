@@ -139,6 +139,18 @@ function daysSinceMove(moveDate) {
   const now = new Date();
   return Math.floor((now.setHours(0, 0, 0, 0) - d.setHours(0, 0, 0, 0)) / 86400000);
 }
+// 지난주(월~일)에 이사했는지 — 오늘 기준. 후기 발송은 주 1회(지난주 이사 고객).
+function inLastWeek(moveDate) {
+  if (!moveDate) return false;
+  const d = new Date(moveDate); if (isNaN(d)) return false;
+  d.setHours(0, 0, 0, 0);
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const dow = (now.getDay() + 6) % 7; // 월=0 … 일=6
+  const thisMon = new Date(now); thisMon.setDate(now.getDate() - dow);
+  const lastMon = new Date(thisMon); lastMon.setDate(thisMon.getDate() - 7);
+  const lastSun = new Date(thisMon); lastSun.setDate(thisMon.getDate() - 1);
+  return d.getTime() >= lastMon.getTime() && d.getTime() <= lastSun.getTime();
+}
 // 재타깃 판정: 18개월 이상 지났으면 대상. 18~24개월이 재이사 적기(프라임).
 function retargetTier(moveDate) {
   const m = monthsSinceMove(moveDate);
@@ -1562,7 +1574,7 @@ function computeMonthlyPlan(crm, base) {
     const outM = nextRemoveMonthsOut(c.moveDate);
     if (outM === 2) out[isQuote ? "m2_quote" : "m2_contract"].push(c);
     else if (outM === 3) out[isQuote ? "m3_quote" : "m3_contract"].push(c);
-    if (c.contractStatus === "계약") { const ds = daysSinceMove(c.moveDate); if (ds !== null && ds >= 3 && ds <= 10) out.life_review.push(c); }
+    if (c.contractStatus === "계약" && inLastWeek(c.moveDate)) out.life_review.push(c);
     if (ms === 1) out.life_1m.push(c);
     if (ms === 3 && c.contractStatus === "계약") out.life_3m.push(c);
     if (ms === 12) out.life_12m.push(c);
@@ -2643,11 +2655,17 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
   const [copiedPub, setCopiedPub] = useState(false);
   const MIN_PUBLIC = 5;
   const [tgCopied, setTgCopied] = useState(false);
-  const weekTargets = useMemo(() => (crm || []).filter((c) => {
-    if (c.contractStatus !== "계약") return false;
-    const d = daysSinceMove(c.moveDate);
-    return d !== null && d >= 3 && d <= 10;
-  }).sort((a, b) => String(b.moveDate || "").localeCompare(String(a.moveDate || ""))), [crm]);
+  const weekTargets = useMemo(() => (crm || []).filter((c) => c.contractStatus === "계약" && inLastWeek(c.moveDate)).sort((a, b) => String(b.moveDate || "").localeCompare(String(a.moveDate || ""))), [crm]);
+  const reviewedByPhone = useMemo(() => {
+    const m = {};
+    for (const r of reviews) { const p = normPhone(r.name); if (p) m[p] = r; }
+    return m;
+  }, [reviews]);
+  const targetsWithStatus = useMemo(() => weekTargets.map((c) => {
+    const rev = reviewedByPhone[normPhone(c.phone)];
+    return { c, done: !!rev, score: rev ? rev.scores.reduce((a, b) => a + b, 0) / 7 : null };
+  }), [weekTargets, reviewedByPhone]);
+  const respondedCount = targetsWithStatus.filter((t) => t.done).length;
   const copyTargetPhones = async () => { const p = weekTargets.filter((c) => c.phone).map((c) => c.phone).join(", "); if (await copyText(p)) { setTgCopied(true); setTimeout(() => setTgCopied(false), 1600); } };
 
   const msg = msgReview({ region: rvRegion });
@@ -2693,6 +2711,41 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
           후기 <b>요청 문자 발송은 [달력] 탭</b>에서 합니다(모든 문자 발송을 한 곳에서). 여기 [평가]에서는 <b>손님이 답장한 점수를 입력</b>하고, 통계를 보고, <b>그 평가로 후기 글쓰기</b>를 합니다.
         </div>
       </Panel>
+
+      {/* 후기 대상·응답 현황 (추적) */}
+      <div style={{ marginTop: 14 }}>
+        <Panel>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+            <Users size={18} color={C.teal} />
+            <span style={{ fontSize: 16, fontWeight: 800 }}>후기 대상 · 응답 현황</span>
+            {weekTargets.length > 0 && <span style={{ fontSize: 13, fontWeight: 800, color: C.teal }}>{weekTargets.length}명 중 {respondedCount}명 응답 ({Math.round((respondedCount / weekTargets.length) * 100)}%)</span>}
+          </div>
+          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 12 }}>
+            이사 후 <b>3~10일</b> 지난 계약 고객(달력에서 후기 문자 보낸 대상)입니다. 점수를 입력하면 <b>완료</b>로 바뀝니다. 누가 답했고 누가 아직인지 한눈에 보세요.
+          </div>
+          {weekTargets.length === 0
+            ? <div style={{ fontSize: 13, color: C.muted, padding: "8px 0" }}>이번 주 후기 대상이 없습니다. (최신 DB를 넣으면 최근 이사 고객이 잡힙니다.)</div>
+            : <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 340, overflowY: "auto" }}>
+                {targetsWithStatus.slice(0, 100).map(({ c, done, score }) => {
+                  const r = routeOf(c);
+                  return (
+                    <div key={c.id} style={{ border: `1px solid ${done ? "#9FE1CB" : C.line}`, background: done ? "#F1FBF7" : "#fff", borderRadius: 8, padding: "9px 11px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: 800, color: C.navy, fontSize: 15 }}>📅 {c.moveDate || "이사일 미상"}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700 }}>📞 {c.phone || "(번호없음)"}</span>
+                        <div style={{ flex: 1 }} />
+                        {done
+                          ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0F6E56", background: "#E1F5EE", borderRadius: 999, padding: "3px 11px" }}>완료 ✓ {score.toFixed(1)}점</span>
+                          : <span style={{ fontSize: 12.5, fontWeight: 700, color: C.muted, background: "#F1F3F6", borderRadius: 999, padding: "3px 11px" }}>대기중</span>}
+                      </div>
+                      <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4, lineHeight: 1.5, wordBreak: "break-all" }}>📍 {r.from || "(출발지 미상)"} → {r.to || "(도착지 미정)"}</div>
+                    </div>
+                  );
+                })}
+                {targetsWithStatus.length > 100 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {targetsWithStatus.length - 100}명</div>}
+              </div>}
+        </Panel>
+      </div>
 
       {/* 2. 받은 점수 입력 */}
       <div style={{ marginTop: 14 }}>
