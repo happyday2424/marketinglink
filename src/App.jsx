@@ -1585,14 +1585,22 @@ function computeSchedule(crm, base, CAP) {
     const groups = groupCohorts(list, unit);
     const keys = Object.keys(groups).sort().reverse(); // 최신 시기 먼저
     let day = k.day;
+    const leftover = [];
     for (const key of keys) {
       const g = groups[key];
       const parts = Math.max(1, Math.ceil(g.list.length / CAP));
       for (let p = 0; p < parts; p++) {
-        const d = Math.min(day, daysInMonth);
-        (schedule[d] = schedule[d] || []).push({ kind: k.key, label: k.label, cohort: g.label + (parts > 1 ? ` (${p + 1}/${parts})` : ""), tone: k.tone, bg: k.bg, list: g.list.slice(p * CAP, (p + 1) * CAP) });
-        day++;
+        const sub = g.list.slice(p * CAP, (p + 1) * CAP);
+        if (day <= daysInMonth) {
+          (schedule[day] = schedule[day] || []).push({ kind: k.key, label: k.label, cohort: g.label + (parts > 1 ? ` (${p + 1}/${parts})` : ""), tone: k.tone, bg: k.bg, list: sub });
+          day++;
+        } else {
+          for (const c of sub) leftover.push(c);
+        }
       }
+    }
+    if (leftover.length) {
+      (schedule[daysInMonth] = schedule[daysInMonth] || []).push({ kind: k.key, label: k.label, cohort: "오래된 고객 · 이번 달 제외 권장", old: true, tone: "#8A94A3", bg: "#F1F3F6", list: leftover });
     }
   }
   return schedule;
@@ -1622,12 +1630,15 @@ function CareCalendar({ crm }) {
         <div style={{ fontSize: 12.5, color: C.muted, marginTop: 8, lineHeight: 1.6 }}>
           큰 부류는 <b>이사 시기(월·분기)별로, 하루 발송 인원 안에서 여러 날짜에 자동으로 나뉩니다</b>. <b>그날 칸을 눌러 그날치만 복사·발송</b>하세요. 최신 시기가 앞 날짜, 오래된 시기는 뒤 날짜라 <b>오래된 고객은 그 날짜를 건너뛰면</b> 됩니다. 등록 {crm.length.toLocaleString()}명 기준.
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, flexWrap: "wrap", background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap", background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px" }}>
           <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>하루 발송 인원</span>
-          <input type="number" min={10} max={500} value={cap} onChange={(e) => setCap(Math.max(10, Math.min(500, parseInt(e.target.value) || 10)))}
-            style={{ width: 90, padding: "9px 11px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 15, fontWeight: 700, textAlign: "center" }} />
-          <span style={{ fontSize: 12, color: C.muted }}>명</span>
-          <span style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.4 }}>개인폰이면 100 이하 권장(업무 문자 여유분·스팸 차단 방지). 발송 대행사 쓰면 크게.</span>
+          {[30, 50, 100, 150, 200, 300].map((v) => (
+            <button key={v} className="hd-btn" onClick={() => setCap(v)}
+              style={{ padding: "7px 13px", borderRadius: 999, border: `1.5px solid ${cap === v ? C.coral : C.line}`, background: cap === v ? C.coral : "#fff", color: cap === v ? "#fff" : C.navy, fontWeight: 800, fontSize: 13.5 }}>
+              {v}명
+            </button>
+          ))}
+          <span style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.4 }}>개인폰이면 100 이하 권장(업무 문자 여유분·차단 방지). 대행사 쓰면 크게.</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5, marginTop: 14 }}>
           {["일", "월", "화", "수", "목", "금", "토"].map((w) => (
