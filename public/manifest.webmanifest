@@ -1,0 +1,13 @@
+{
+  "name": "마케팅링크",
+  "short_name": "마케팅링크",
+  "description": "24LINK 마케팅 자동화 — AI 글·카드뉴스·릴스·고객평가",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EAEEF3",
+  "theme_color": "#15243B",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
