@@ -1611,8 +1611,16 @@ function pickUnit(list, availableDays, CAP) {
 function computeSchedule(crm, base, CAP) {
   const plan = computeMonthlyPlan(crm, base);
   const daysInMonth = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+  const today = base.getDate();
   const schedule = {};
+  // 후기(life_review)는 주 1회·소수라, 오늘 칸에 "최우선"으로 먼저 배치해 안 가려지게 한다.
+  const rev = plan.life_review || [];
+  if (rev.length) {
+    const rk = CARE_KINDS.find((x) => x.key === "life_review");
+    (schedule[today] = schedule[today] || []).push({ kind: "life_review", label: rk.label, cohort: "지난주 이사 고객", tone: rk.tone, bg: rk.bg, list: [...rev].sort((a, b) => String(b.moveDate || "").localeCompare(String(a.moveDate || ""))) });
+  }
   for (const k of CARE_KINDS) {
+    if (k.key === "life_review") continue; // 위에서 오늘 칸에 이미 배치
     const list = plan[k.key] || [];
     if (!list.length) continue;
     const availableDays = Math.max(1, daysInMonth - k.day + 1);
