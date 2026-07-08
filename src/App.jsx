@@ -2627,7 +2627,7 @@ function Reels() {
   );
 }
 
-function Reviews({ reviews, addReview, removeReview, writeFromReview, brand }) {
+function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm }) {
   const [name, setName] = useState("");
   const [scores, setScores] = useState([0, 0, 0, 0, 0, 0, 0]);
   const [memo, setMemo] = useState("");
