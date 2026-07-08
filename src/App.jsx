@@ -1144,6 +1144,8 @@ function Retarget({ crm, addCust, updateCust, removeCust, importCusts }) {
   const [phone, setPhone] = useState("");
   const [memo, setMemo] = useState("");
   const [cstatus, setCstatus] = useState("계약");
+  const [qPhone, setQPhone] = useState("");
+  const [qDate, setQDate] = useState("");
 
   const code = makeCustCode(moveDate, from, to);
   const canAdd = (from.trim() || to.trim());
@@ -1239,13 +1241,39 @@ function Retarget({ crm, addCust, updateCust, removeCust, importCusts }) {
         <Note tone="tip"><Clock size={15} style={{ flexShrink: 0, marginTop: 1 }} /> <span>재이사 임박(3개월 내) <b>{imminent.toLocaleString()}명</b> · 곧 다가옴(4~6개월) <b>{soon.toLocaleString()}명</b>. <b>이번 달 실제 접촉 명단은 [달력] 탭</b>에서 날짜별로 확인하세요.</span></Note>
       )}
 
-      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ marginTop: 16 }}>
         {crm.length === 0
           ? <Empty title="아직 등록한 고객이 없습니다" body="이사 마친 고객을 추가하거나, 아래에서 예전 DB(엑셀/CSV)를 불러오면 후기요청·재타깃·쿠폰 문구를 바로 만들 수 있습니다." />
-          : (<>
-              {crm.length > 200 && <Note tone="tip"><ListChecks size={15} style={{ flexShrink: 0, marginTop: 1 }} /> <span>등록 고객 <b>{crm.length.toLocaleString()}명</b> 중 최근 <b>200명</b>만 표시합니다. (대량은 재연락 시기 위주로 나눠 관리하세요)</span></Note>}
-              {crm.slice(0, 200).map((c) => <CustCard key={c.id} c={c} updateCust={updateCust} removeCust={removeCust} repeatCount={c.phone ? (phoneCounts[c.phone] || 1) : 1} />)}
-            </>)}
+          : (() => {
+              const qp = normPhone(qPhone), qd = qDate.trim();
+              const searching = !!(qp || qd);
+              const results = searching
+                ? crm.filter((c) => (!qp || normPhone(c.phone).includes(qp)) && (!qd || (c.moveDate || "").includes(qd)))
+                : crm.slice(0, 200);
+              return (
+                <>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 11, padding: "12px 13px", marginBottom: 12 }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>고객 찾기</span>
+                    <input value={qPhone} onChange={(e) => setQPhone(e.target.value)} inputMode="numeric" placeholder="전화번호 (뒷자리만도 OK)"
+                      style={{ flex: "1 1 150px", padding: "10px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14 }} />
+                    <input value={qDate} onChange={(e) => setQDate(e.target.value)} placeholder="이사일 (예: 2026-07 또는 2026-07-04)"
+                      style={{ flex: "1 1 170px", padding: "10px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14 }} />
+                    {searching && (
+                      <button className="hd-btn" onClick={() => { setQPhone(""); setQDate(""); }}
+                        style={{ padding: "10px 13px", borderRadius: 9, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 700, fontSize: 13 }}>지우기</button>
+                    )}
+                  </div>
+                  {searching
+                    ? <Note tone="tip"><ListChecks size={15} style={{ flexShrink: 0, marginTop: 1 }} /> <span>검색 결과 <b>{results.length.toLocaleString()}명</b> (전체 {crm.length.toLocaleString()}명 중). 번호가 바뀐 고객은 <b>이사일</b>로 찾으세요.</span></Note>
+                    : (crm.length > 200 && <Note tone="tip"><ListChecks size={15} style={{ flexShrink: 0, marginTop: 1 }} /> <span>등록 고객 <b>{crm.length.toLocaleString()}명</b> 중 최근 <b>200명</b>만 표시합니다. 특정 고객은 위 <b>전화번호·이사일</b>로 찾으세요.</span></Note>)}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+                    {results.slice(0, 300).map((c) => <CustCard key={c.id} c={c} updateCust={updateCust} removeCust={removeCust} repeatCount={c.phone ? (phoneCounts[c.phone] || 1) : 1} />)}
+                    {results.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "16px 0" }}>맞는 고객이 없습니다. 번호 뒷자리나 이사일(월까지만)로 다시 찾아보세요.</div>}
+                    {results.length > 300 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {(results.length - 300).toLocaleString()}명 (검색을 더 좁혀주세요)</div>}
+                  </div>
+                </>
+              );
+            })()}
       </div>
     </div>
   );
