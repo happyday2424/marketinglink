@@ -1542,9 +1542,9 @@ function CareCalendar({ crm }) {
             return (
               <button key={d} className="hd-btn" disabled={!k} onClick={() => k && setSel(k.key)}
                 style={{ minHeight: 58, borderRadius: 9, padding: "5px 6px", textAlign: "left",
-                  border: `1px solid ${isToday ? C.navy : C.line}`, background: k ? k.bg : "#FAFBFC",
+                  border: `${isToday ? 2 : 1}px solid ${isToday ? C.coral : C.line}`, background: k ? k.bg : "#FAFBFC",
                   cursor: k ? "pointer" : "default", outline: sel && k && k.key === sel ? `2px solid ${C.navy}` : "none" }}>
-                <div style={{ fontSize: 12, fontWeight: isToday ? 800 : 600, color: isToday ? C.navy : C.text }}>{d}</div>
+                <div style={{ fontSize: 12, fontWeight: isToday ? 800 : 600, color: isToday ? C.coral : C.text }}>{d}{isToday ? " ·오늘" : ""}</div>
                 {k && <div style={{ fontSize: 10, color: k.tone, marginTop: 3, lineHeight: 1.25, fontWeight: 700 }}>{k.label}</div>}
                 {k && <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{n}명</div>}
               </button>
@@ -1565,41 +1565,87 @@ function CareCalendar({ crm }) {
           </div>
           {selList.length === 0
             ? <div style={{ fontSize: 13, color: C.muted, marginTop: 12 }}>이번 달 이 부류에 해당하는 고객이 없습니다.</div>
-            : <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8, maxHeight: 420, overflowY: "auto" }}>
-                {selList.slice(0, 100).map((c) => <CareRow key={c.id} c={c} kind={selKind.key} />)}
-                {selList.length > 100 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {selList.length - 100}명 (상위 100명 표시)</div>}
-              </div>}
+            : <CareBucket kind={selKind.key} list={selList} />}
         </Panel>
       )}
     </div>
   );
 }
 
-function CareRow({ c, kind }) {
-  const [done, setDone] = useState(false);
-  const copy = async () => {
-    const ok = await copyText(careMessage(kind, c));
-    setDone(ok); setTimeout(() => setDone(false), 2000);
+// 이사일 → "2024년 2분기"
+function quarterLabel(md) {
+  if (!md) return "시기 미상";
+  const d = new Date(md);
+  if (isNaN(d)) return "시기 미상";
+  return `${d.getFullYear()}년 ${Math.floor(d.getMonth() / 3) + 1}분기`;
+}
+
+// 부류 상세: 묶음 문구 1개 + 이사 시기(분기)별 명단, 통신사 한도 고려해 나눠 발송
+function CareBucket({ kind, list }) {
+  const [msgCopied, setMsgCopied] = useState(false);
+  const CAP = 500; // 하루 발송 권장 묶음 크기(통신사·스팸 정책)
+  const groups = useMemo(() => {
+    const m = {};
+    for (const c of list) { const q = quarterLabel(c.moveDate); (m[q] = m[q] || []).push(c); }
+    return Object.entries(m).sort((a, b) => b[0].localeCompare(a[0])); // 최신 분기 먼저
+  }, [list]);
+  const copyMsg = async () => { const ok = await copyText(careMessage(kind, {})); setMsgCopied(ok); setTimeout(() => setMsgCopied(false), 2000); };
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ fontSize: 12.5, color: "#8A2A1C", background: "#FDECEA", border: "1px solid #F0997B", borderRadius: 10, padding: "10px 12px", lineHeight: 1.6, marginBottom: 12 }}>
+        <b>⚠ 하루에 다 보내지 마세요.</b> 통신사·스팸 정책상 하루 대량 발송은 차단됩니다. <b>아래 이사 시기(분기)별 묶음을 하루에 한 묶음씩(약 {CAP}명 이내)</b> 나눠 보내세요.
+      </div>
+      <div style={{ background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "12px 13px", marginBottom: 14 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, marginBottom: 6 }}>이 부류에 보낼 문구 (모두 동일)</div>
+        <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{careMessage(kind, {})}</div>
+        <button className="hd-btn" onClick={copyMsg}
+          style={{ marginTop: 10, padding: "11px 16px", borderRadius: 10, border: "none", background: msgCopied ? "#1E7A6B" : C.coral, color: "#fff", fontWeight: 800, fontSize: 14 }}>
+          {msgCopied ? "문구 복사됨 — 카톡·문자에 붙여넣기" : "이 문구 복사"}
+        </button>
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, marginBottom: 8 }}>이사 시기별 발송 묶음 ({groups.length}개)</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {groups.map(([q, arr]) => <QuarterGroup key={q} q={q} arr={arr} cap={CAP} />)}
+      </div>
+    </div>
+  );
+}
+
+function QuarterGroup({ q, arr, cap }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const over = arr.length > cap;
+  const copyPhones = async () => {
+    const phones = arr.filter((c) => c.phone).map((c) => c.phone).join("\n");
+    const ok = await copyText(phones); setCopied(ok); setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <div style={{ border: `1px solid ${C.line}`, borderRadius: 10, padding: "13px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: C.navy, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {c.code} {c.keyman && <span style={{ color: "#B7791F" }}>★키맨</span>}
-        </div>
-        <div style={{ fontSize: 14, color: C.text, marginTop: 3 }}>
-          {c.region && `${c.region} · `}{c.contractStatus || "계약"}{c.phone ? ` · ${c.phone}` : ""}
-        </div>
-        {(c.from || c.to) && (
-          <div style={{ fontSize: 13, color: C.muted, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {c.from || "(출발지 미상)"} → {c.to || "(도착지 미정)"}
-          </div>
-        )}
+    <div style={{ border: `1px solid ${over ? "#F0997B" : C.line}`, borderRadius: 12, padding: "12px 14px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{q}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: over ? "#B23A2E" : C.teal }}>{arr.length}명</span>
+        {over && <span style={{ fontSize: 11.5, color: "#B23A2E" }}>· 한도 초과, 2일 나눠</span>}
+        <div style={{ flex: 1 }} />
+        <button className="hd-btn" onClick={copyPhones}
+          style={{ padding: "9px 13px", borderRadius: 9, border: "none", background: copied ? "#1E7A6B" : C.navy, color: "#fff", fontWeight: 800, fontSize: 13 }}>
+          {copied ? "복사됨" : "전화번호 복사"}
+        </button>
+        <button className="hd-btn" onClick={() => setOpen(!open)}
+          style={{ padding: "9px 13px", borderRadius: 9, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 700, fontSize: 13 }}>
+          {open ? "명단 닫기" : "명단 보기"}
+        </button>
       </div>
-      <button className="hd-btn" onClick={copy}
-        style={{ padding: "12px 16px", borderRadius: 10, border: "none", background: done ? "#1E7A6B" : C.coral, color: "#fff", fontWeight: 800, fontSize: 15, whiteSpace: "nowrap" }}>
-        {done ? "복사됨" : "문구 복사"}
-      </button>
+      {open && (
+        <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6, maxHeight: 300, overflowY: "auto" }}>
+          {arr.slice(0, 200).map((c) => (
+            <div key={c.id} style={{ fontSize: 13.5, color: C.text, padding: "7px 10px", border: `1px solid ${C.line}`, borderRadius: 8, display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{ fontWeight: 700, color: C.navy }}>{c.phone || "(번호없음)"}</span>
+              <span style={{ color: C.muted, fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.region && c.region + " "}{c.contractStatus || "계약"}{c.from || c.to ? ` · ${c.from || "?"}→${c.to || "?"}` : ""}</span>
+            </div>
+          ))}
+          {arr.length > 200 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {arr.length - 200}명</div>}
+        </div>
+      )}
     </div>
   );
 }
