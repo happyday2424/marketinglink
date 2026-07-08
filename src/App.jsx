@@ -129,6 +129,13 @@ function monthsSinceMove(moveDate) {
   const now = new Date();
   return (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
 }
+function daysSinceMove(moveDate) {
+  if (!moveDate) return null;
+  const d = new Date(moveDate);
+  if (isNaN(d)) return null;
+  const now = new Date();
+  return Math.floor((now.setHours(0, 0, 0, 0) - d.setHours(0, 0, 0, 0)) / 86400000);
+}
 // 재타깃 판정: 18개월 이상 지났으면 대상. 18~24개월이 재이사 적기(프라임).
 function retargetTier(moveDate) {
   const m = monthsSinceMove(moveDate);
@@ -159,13 +166,13 @@ function couponCode() {
 function msgReview(c) {
   const region = (c.region || "").trim();
   const anchor = region
-    ? `※ 답장에 "${region} 어느 동네에서 뭐가 좋았는지" 한 줄만 더 적어주시면 큰 힘이 됩니다.`
-    : `※ 답장에 "어느 동네에서 뭐가 좋았는지" 한 줄만 더 적어주시면 큰 힘이 됩니다.`;
+    ? `괜찮으시면 '${region} 어느 동네에서 뭐가 좋았는지' 한 줄만 남겨주시면 더 감사하겠습니다.`
+    : `괜찮으시면 '어느 동네에서 뭐가 좋았는지' 한 줄만 남겨주시면 더 감사하겠습니다.`;
   return [
-    `[${BRAND.name}] 이사 잘 마치셨나요? 다음 손님을 위해 후기 부탁드립니다 🙏`,
-    ``,
-    `아래 7가지를 5점 만점으로, 숫자만 이어서 답장해 주세요. (예: 5 5 4 5 5 5 5)`,
-    `1)시간약속 2)포장 3)가구가전 4)주방정리 5)방정리 6)청소 7)추천의향`,
+    `[${BRAND.name}] 이사 잘 마치셨나요? 정리하시느라 고생 많으셨습니다.`,
+    `저희가 더 잘하고 싶어 여쭤봅니다. 아래 7가지를 5점 만점으로, 숫자만 이어서 답장 주시면 큰 힘이 됩니다 🙏`,
+    `(예: 5 5 4 5 5 5 5)`,
+    `①시간약속 ②포장상태 ③가구·가전 작동 ④주방정리 ⑤방정리 ⑥청소상태 ⑦지인 추천의향`,
     ``,
     anchor,
     `— ${BRAND.slogan} · ${BRAND.phone}`,
@@ -1100,7 +1107,7 @@ export default function App() {
         {tab === "calendar" && <Calendar queue={queue} />}
         {tab === "keywords" && <KeywordManager keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} noteKeyword={noteKeyword} />}
         {tab === "reels" && <Reels />}
-        {tab === "reviews" && <Reviews reviews={reviews} addReview={addReview} removeReview={removeReview} writeFromReview={writeFromReview} brand={brand} />}
+        {tab === "reviews" && <Reviews reviews={reviews} addReview={addReview} removeReview={removeReview} writeFromReview={writeFromReview} brand={brand} crm={crm} />}
         {tab === "retarget" && <Retarget crm={crm} addCust={addCust} updateCust={updateCust} removeCust={removeCust} importCusts={importCusts} />}
         {tab === "care" && <CareCalendar crm={crm} />}
         {tab === "settings" && <BrandSettings brand={brand} updateBrand={updateBrand} />}
@@ -1550,7 +1557,7 @@ function computeMonthlyPlan(crm, base) {
     else if (outM === 3) out[isQuote ? "m3_quote" : "m3_contract"].push(c);
     if (ms === 0) out.life_review.push(c);
     if (ms === 1) out.life_1m.push(c);
-    if (ms === 3) out.life_3m.push(c);
+    if (ms === 3 && c.contractStatus === "계약") out.life_3m.push(c);
     if (ms === 12) out.life_12m.push(c);
     if (seasonBucket(c.moveDate, base)) out.season.push(c);
     if (c.contractStatus === "계약" && ms !== null && ms >= 2 && ms <= 24) out.referral.push(c);
@@ -1768,14 +1775,14 @@ function CareBucket({ kind, label, cohort, over, list }) {
             return (
               <div key={c.id} style={{ fontSize: 13.5, color: C.text, padding: "9px 11px", border: `1px solid ${C.line}`, borderRadius: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontWeight: 800, color: C.navy, fontSize: 15 }}>{c.phone || "(번호없음)"}</span>
+                  <span style={{ fontWeight: 800, color: C.navy, fontSize: 15 }}>📅 {c.moveDate || "이사일 미상"}</span>
                   <span style={{ fontSize: 11.5, color: c.contractStatus === "견적" ? "#8A6418" : "#2563A8", background: c.contractStatus === "견적" ? "#FFF4E6" : "#E8F3FF", borderRadius: 999, padding: "2px 8px", fontWeight: 700 }}>{c.contractStatus || "계약"}</span>
                   {c.region && <span style={{ fontSize: 12, color: C.muted }}>{c.region}</span>}
                   {c.keyman && <span style={{ fontSize: 11, color: "#B7791F", fontWeight: 700 }}>★키맨</span>}
-                  <span style={{ marginLeft: "auto", fontSize: 12, color: C.muted }}>이사 {c.moveDate || "미상"}</span>
                 </div>
-                <div style={{ fontSize: 13, color: C.text, marginTop: 5, lineHeight: 1.5 }}>
-                  <span style={{ color: C.muted }}>📍</span> {r.from || "(출발지 미상)"} <span style={{ color: C.coral, fontWeight: 800 }}>→</span> {r.to || "(도착지 미정)"}
+                <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginTop: 5 }}>📞 {c.phone || "(번호없음)"}</div>
+                <div style={{ fontSize: 13, color: C.text, marginTop: 4, lineHeight: 1.55, wordBreak: "break-all" }}>
+                  📍 {r.from || "(출발지 미상)"} <span style={{ color: C.coral, fontWeight: 800 }}>→</span> {r.to || "(도착지 미정)"}
                 </div>
               </div>
             );
@@ -2628,15 +2635,15 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand }) {
   const [copied, setCopied] = useState(false);
   const [copiedPub, setCopiedPub] = useState(false);
   const MIN_PUBLIC = 5;
+  const [tgCopied, setTgCopied] = useState(false);
+  const weekTargets = useMemo(() => (crm || []).filter((c) => {
+    if (c.contractStatus !== "계약") return false;
+    const d = daysSinceMove(c.moveDate);
+    return d !== null && d >= 3 && d <= 10;
+  }).sort((a, b) => String(b.moveDate || "").localeCompare(String(a.moveDate || ""))), [crm]);
+  const copyTargetPhones = async () => { const p = weekTargets.filter((c) => c.phone).map((c) => c.phone).join(", "); if (await copyText(p)) { setTgCopied(true); setTimeout(() => setTgCopied(false), 1600); } };
 
-  const msg = `[${brand.name}] 오늘 이사는 만족스러우셨나요?
-아래 7가지를 순서대로 점수만 답장해 주세요 🙏
-(5 아주좋음 · 4 좋음 · 3 보통 · 2 아쉬움 · 1 별로)
-① 시간약속 ② 포장 ③ 가구가전 ④ 주방정리 ⑤ 방정리 ⑥ 청소 ⑦ 추천
-예) 5 5 5 4 5 5 5
-괜찮으시면 '어느 동네에서 어떤 점이 좋았는지' 한 줄만 남겨주세요.
-(예: 세종 도담동, 이사하고 청소까지 해줘서 새집 같았어요)
-소중한 의견은 더 나은 서비스로 보답하겠습니다. 감사합니다!`;
+  const msg = msgReview({ region: rvRegion });
 
   const copyMsg = async () => { if (await copyText(msg)) { setCopied(true); setTimeout(() => setCopied(false), 1600); } };
 
@@ -2685,6 +2692,44 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand }) {
         </button>
       </Panel>
 
+      {/* 1-b. 이번 주 후기 대상 (자동) */}
+      <div style={{ marginTop: 14 }}>
+        <Panel>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+            <Users size={18} color={C.teal} />
+            <span style={{ fontSize: 16, fontWeight: 800 }}>이번 주 후기 대상</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>{weekTargets.length}명</span>
+            <div style={{ flex: 1 }} />
+            {weekTargets.length > 0 && (
+              <button className="hd-btn" onClick={copyTargetPhones}
+                style={{ padding: "8px 13px", borderRadius: 9, border: "none", background: tgCopied ? "#1E7A6B" : C.navy, color: "#fff", fontWeight: 800, fontSize: 13 }}>
+                {tgCopied ? "복사됨" : "전화번호 전체 복사"}
+              </button>
+            )}
+          </div>
+          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 12 }}>
+            이사 후 <b>3~10일</b> 지난 계약 고객을 자동으로 불러옵니다(주 1회 발송용). 위 문자를 복사해 이 번호들로 보내세요.
+          </div>
+          {weekTargets.length === 0
+            ? <div style={{ fontSize: 13, color: C.muted, padding: "8px 0" }}>이번 주 후기 보낼 대상이 없습니다. (최신 DB를 넣으면 최근 이사 고객이 잡힙니다.)</div>
+            : <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
+                {weekTargets.slice(0, 100).map((c) => {
+                  const r = routeOf(c);
+                  return (
+                    <div key={c.id} style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: "9px 11px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: 800, color: C.navy, fontSize: 15 }}>📅 {c.moveDate || "이사일 미상"}</span>
+                        <span style={{ fontSize: 15, fontWeight: 700 }}>📞 {c.phone || "(번호없음)"}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: C.text, marginTop: 4, lineHeight: 1.55, wordBreak: "break-all" }}>📍 {r.from || "(출발지 미상)"} <span style={{ color: C.coral, fontWeight: 800 }}>→</span> {r.to || "(도착지 미정)"}</div>
+                    </div>
+                  );
+                })}
+                {weekTargets.length > 100 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {weekTargets.length - 100}명</div>}
+              </div>}
+        </Panel>
+      </div>
+
       {/* 2. 받은 점수 입력 */}
       <div style={{ marginTop: 14 }}>
         <Panel>
@@ -2693,13 +2738,13 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand }) {
             <span style={{ fontSize: 16, fontWeight: 800 }}>받은 점수 입력</span>
           </div>
           <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
-            손님이 "5 5 4 5 5 5" 답장하면, 고객 코드와 점수를 입력해 저장하세요. (나중에 ERP 고객리스트로 옮길 수 있게 쌓입니다.)
+            손님이 "5 5 4 5 5 5 5" 답장하면, <b>그 손님 전화번호</b>와 점수를 입력해 저장하세요. (위 [이번 주 후기 대상]에서 번호를 보고 넣으면 됩니다.)
           </div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, marginBottom: 6 }}>고객 코드 <span style={{ fontWeight: 500, color: C.muted }}>(실명·전화번호 대신)</span></div>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="예: 20250630중촌현대범지기3"
-            style={{ width: "100%", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, marginBottom: 6 }} />
+          <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, marginBottom: 6 }}>전화번호 <span style={{ fontWeight: 500, color: C.muted }}>(숫자만 눌러도 자동 정리)</span></div>
+          <input value={name} inputMode="numeric" maxLength={13} onChange={(e) => setName(formatPhoneLive(e.target.value))} placeholder="010-0000-1234"
+            style={{ width: "100%", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 15, fontWeight: 600, marginBottom: 6 }} />
           <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.55, marginBottom: 14 }}>
-            폰에 저장하는 방식 그대로 <b>날짜+출발단지+도착단지</b> (예: 20250630중촌현대→범지기3단지). 실명·번호를 안 써서 개인정보 안전하고, 같은 코드 흐름으로 <b>재이사(단골) 이력</b>도 추적됩니다.
+            전화번호로 저장하면 손님이 문자·전화로 답할 때 바로 매칭됩니다. 같은 번호로 여러 번 평가해도 각각 한 건씩 쌓여 통계는 정확합니다.
           </div>
 
           {REVIEW_Q.map((q, i) => (
