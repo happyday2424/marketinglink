@@ -1549,21 +1549,68 @@ function computeMonthlyPlan(crm, base) {
   return out;
 }
 
+// 이사일 → 시기 코호트 키/라벨 (월/분기/년)
+function cohortKeyLabel(md, unit) {
+  const d = md ? new Date(md) : null;
+  if (!md || !d || isNaN(d)) return { key: "0000-00", label: "시기 미상" };
+  const y = d.getFullYear(), m = d.getMonth();
+  if (unit === "month") return { key: `${y}-${String(m + 1).padStart(2, "0")}`, label: `${y}년 ${m + 1}월 이사` };
+  if (unit === "quarter") return { key: `${y}-Q${Math.floor(m / 3) + 1}`, label: `${y}년 ${Math.floor(m / 3) + 1}분기 이사` };
+  return { key: `${y}`, label: `${y}년 이사` };
+}
+function groupCohorts(list, unit) {
+  const m = {};
+  for (const c of list) { const { key, label } = cohortKeyLabel(c.moveDate, unit); if (!m[key]) m[key] = { label, list: [] }; m[key].list.push(c); }
+  return m;
+}
+// 날짜 칸 수 안에 들어오는 가장 촘촘한 단위(월>분기>년) 선택 (CAP 분할 포함 일수 기준)
+function pickUnit(list, availableDays, CAP) {
+  for (const u of ["month", "quarter", "year"]) {
+    const g = groupCohorts(list, u);
+    const daysNeeded = Object.values(g).reduce((s, o) => s + Math.max(1, Math.ceil(o.list.length / CAP)), 0);
+    if (daysNeeded <= availableDays) return u;
+  }
+  return "year";
+}
+// 부류별로 시기 코호트(월/분기/년)를 최신순으로, 하루 CAP명 이내로 나눠 날짜 배정
+function computeSchedule(crm, base, CAP) {
+  const plan = computeMonthlyPlan(crm, base);
+  const daysInMonth = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+  const schedule = {};
+  for (const k of CARE_KINDS) {
+    const list = plan[k.key] || [];
+    if (!list.length) continue;
+    const availableDays = Math.max(1, daysInMonth - k.day + 1);
+    const unit = pickUnit(list, availableDays, CAP);
+    const groups = groupCohorts(list, unit);
+    const keys = Object.keys(groups).sort().reverse(); // 최신 시기 먼저
+    let day = k.day;
+    for (const key of keys) {
+      const g = groups[key];
+      const parts = Math.max(1, Math.ceil(g.list.length / CAP));
+      for (let p = 0; p < parts; p++) {
+        const d = Math.min(day, daysInMonth);
+        (schedule[d] = schedule[d] || []).push({ kind: k.key, label: k.label, cohort: g.label + (parts > 1 ? ` (${p + 1}/${parts})` : ""), tone: k.tone, bg: k.bg, list: g.list.slice(p * CAP, (p + 1) * CAP) });
+        day++;
+      }
+    }
+  }
+  return schedule;
+}
+
 function CareCalendar({ crm }) {
   const base = new Date();
-  const [sel, setSel] = useState(null);
-  const plan = useMemo(() => computeMonthlyPlan(crm, base), [crm]);
+  const [cap, setCap] = useState(100); // 하루 발송 인원 (개인폰 한도 고려, 대표님 조정)
+  const [selDay, setSelDay] = useState(null);
+  const schedule = useMemo(() => computeSchedule(crm, base, cap), [crm, cap]);
   const y = base.getFullYear(), mo = base.getMonth();
   const first = new Date(y, mo, 1).getDay();
   const days = new Date(y, mo + 1, 0).getDate();
   const today = base.getDate();
-  const kindByDay = {};
-  CARE_KINDS.forEach((k) => { kindByDay[k.day] = k; });
   const cells = [];
   for (let i = 0; i < first; i++) cells.push(null);
   for (let d = 1; d <= days; d++) cells.push(d);
-  const selKind = sel ? CARE_KINDS.find((k) => k.key === sel) : null;
-  const selList = sel ? (plan[sel] || []) : [];
+  const selEntries = selDay ? (schedule[selDay] || []) : [];
 
   if (crm.length === 0) {
     return <div className="hd-fade"><Empty title="고객이 없어 달력이 비어 있습니다" body="먼저 [고객관리] 탭에서 예전 DB(CSV)를 불러오면, 이번 달 접촉할 고객이 이 달력에 자동으로 채워집니다." /></div>;
@@ -1573,7 +1620,14 @@ function CareCalendar({ crm }) {
       <Panel>
         <Label>고객관리 달력 <span style={{ color: C.muted, fontWeight: 500 }}>· {y}년 {mo + 1}월 (자동)</span></Label>
         <div style={{ fontSize: 12.5, color: C.muted, marginTop: 8, lineHeight: 1.6 }}>
-          이번 달 접촉할 고객이 <b>부류·날짜별</b>로 자동 배치됩니다. 색칸을 누르면 <b>대상 명단과 문구</b>가 아래에 뜹니다. 등록 {crm.length.toLocaleString()}명 기준.
+          큰 부류는 <b>이사 시기(월·분기)별로, 하루 발송 인원 안에서 여러 날짜에 자동으로 나뉩니다</b>. <b>그날 칸을 눌러 그날치만 복사·발송</b>하세요. 최신 시기가 앞 날짜, 오래된 시기는 뒤 날짜라 <b>오래된 고객은 그 날짜를 건너뛰면</b> 됩니다. 등록 {crm.length.toLocaleString()}명 기준.
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, flexWrap: "wrap", background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px" }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>하루 발송 인원</span>
+          <input type="number" min={10} max={500} value={cap} onChange={(e) => setCap(Math.max(10, Math.min(500, parseInt(e.target.value) || 10)))}
+            style={{ width: 90, padding: "9px 11px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 15, fontWeight: 700, textAlign: "center" }} />
+          <span style={{ fontSize: 12, color: C.muted }}>명</span>
+          <span style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.4 }}>개인폰이면 100 이하 권장(업무 문자 여유분·스팸 차단 방지). 발송 대행사 쓰면 크게.</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5, marginTop: 14 }}>
           {["일", "월", "화", "수", "목", "금", "토"].map((w) => (
@@ -1581,36 +1635,38 @@ function CareCalendar({ crm }) {
           ))}
           {cells.map((d, i) => {
             if (d === null) return <div key={"e" + i} />;
-            const k = kindByDay[d];
-            const n = k ? (plan[k.key] || []).length : 0;
+            const ent = schedule[d] || [];
+            const has = ent.length > 0;
+            const e0 = ent[0];
+            const n = ent.reduce((s, e) => s + e.list.length, 0);
             const isToday = d === today;
             return (
-              <button key={d} className="hd-btn" disabled={!k} onClick={() => k && setSel(k.key)}
-                style={{ minHeight: 58, borderRadius: 9, padding: "5px 6px", textAlign: "left",
-                  border: `${isToday ? 2 : 1}px solid ${isToday ? C.coral : C.line}`, background: k ? k.bg : "#FAFBFC",
-                  cursor: k ? "pointer" : "default", outline: sel && k && k.key === sel ? `2px solid ${C.navy}` : "none" }}>
+              <button key={d} className="hd-btn" disabled={!has} onClick={() => has && setSelDay(d)}
+                style={{ minHeight: 60, borderRadius: 9, padding: "5px 6px", textAlign: "left",
+                  border: `${isToday ? 2 : 1}px solid ${isToday ? C.coral : C.line}`, background: has ? e0.bg : "#FAFBFC",
+                  cursor: has ? "pointer" : "default", outline: selDay === d ? `2px solid ${C.navy}` : "none" }}>
                 <div style={{ fontSize: 12, fontWeight: isToday ? 800 : 600, color: isToday ? C.coral : C.text }}>{d}{isToday ? " ·오늘" : ""}</div>
-                {k && <div style={{ fontSize: 10, color: k.tone, marginTop: 3, lineHeight: 1.25, fontWeight: 700 }}>{k.label}</div>}
-                {k && <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>{n}명</div>}
+                {has && <div style={{ fontSize: 10, color: e0.tone, marginTop: 3, lineHeight: 1.2, fontWeight: 700 }}>{e0.label}{ent.length > 1 ? " 외" : ""}</div>}
+                {has && <div style={{ fontSize: 9.5, color: C.muted, marginTop: 1, lineHeight: 1.2 }}>{e0.cohort}</div>}
+                {has && <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{n}명</div>}
               </button>
             );
           })}
         </div>
         <div style={{ fontSize: 11, color: C.muted, marginTop: 10, lineHeight: 1.5 }}>
-          만기=재이사(2·4·6년), 생애주기=이사 후 경과, 계절=현재 계절, 소개유도=만족 계약고객. 한 부류가 많으면 며칠에 나눠 발송(한도·스팸 방지).
+          만기=재이사(2·4·6년), 생애주기=이사 후 경과, 계절=현재 계절, 소개유도=만족 계약고객. 큰 부류(계절·소개)는 하루 발송 인원 안에서 여러 날에 자동 분산됩니다.
         </div>
       </Panel>
-      {selKind && (
+      {selDay && selEntries.length > 0 && (
         <Panel>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{selKind.label}</span>
-            <Chip>{selList.length}명</Chip>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+            <span style={{ fontSize: 16, fontWeight: 800, color: C.navy }}>{mo + 1}월 {selDay}일 발송</span>
             <div style={{ flex: 1 }} />
-            <Act onClick={() => setSel(null)} color={C.muted} bg="#EEF2F7">닫기</Act>
+            <Act onClick={() => setSelDay(null)} color={C.muted} bg="#EEF2F7">닫기</Act>
           </div>
-          {selList.length === 0
-            ? <div style={{ fontSize: 13, color: C.muted, marginTop: 12 }}>이번 달 이 부류에 해당하는 고객이 없습니다.</div>
-            : <CareBucket kind={selKind.key} list={selList} />}
+          {selEntries.map((e, i) => (
+            <CareBucket key={i} kind={e.kind} label={e.label} cohort={e.cohort} over={e.over} list={e.list} />
+          ))}
         </Panel>
       )}
     </div>
@@ -1626,87 +1682,85 @@ function quarterLabel(md) {
 }
 
 // 부류 상세: 묶음 문구 1개 + 이사 시기(분기)별 명단, 통신사 한도 고려해 나눠 발송
-function CareBucket({ kind, list }) {
+function routeOf(c) {
+  // 저장된 출발/도착이 있으면 사용, 없으면 고객코드(YYMMDD-출발-도착)에서 동네 추출
+  const f = (c.from || "").trim(), t = (c.to || "").trim();
+  if (f || t) return { from: f, to: t };
+  const m = String(c.code || "").match(/^\d{6}-([^-]+)-(.+)$/);
+  if (m) return { from: m[1], to: m[2] };
+  return { from: "", to: "" };
+}
+
+function CareBucket({ kind, label, cohort, over, list }) {
   const [msgCopied, setMsgCopied] = useState(false);
+  const [phCopied, setPhCopied] = useState(false);
   const [vi, setVi] = useState(0);
+  const [msgText, setMsgText] = useState("");
+  const [open, setOpen] = useState(false);
   const variants = useMemo(() => careMessageVariants(kind, {}), [kind]);
   const cur = variants[Math.min(vi, variants.length - 1)];
-  const CAP = 500; // 하루 발송 권장 묶음 크기(통신사·스팸 정책)
-  const groups = useMemo(() => {
-    const m = {};
-    for (const c of list) { const q = quarterLabel(c.moveDate); (m[q] = m[q] || []).push(c); }
-    return Object.entries(m).sort((a, b) => b[0].localeCompare(a[0])); // 최신 분기 먼저
-  }, [list]);
-  const copyMsg = async () => { const ok = await copyText(cur.text); setMsgCopied(ok); setTimeout(() => setMsgCopied(false), 2000); };
+  useEffect(() => { setMsgText(cur.text); }, [cur.text]);
+  const copyMsg = async () => { const ok = await copyText(msgText); setMsgCopied(ok); setTimeout(() => setMsgCopied(false), 2000); };
+  const copyPhones = async () => { const p = list.filter((c) => c.phone).map((c) => c.phone).join(", "); const ok = await copyText(p); setPhCopied(ok); setTimeout(() => setPhCopied(false), 2000); };
   return (
-    <div style={{ marginTop: 12 }}>
-      <div style={{ fontSize: 12.5, color: "#8A2A1C", background: "#FDECEA", border: "1px solid #F0997B", borderRadius: 10, padding: "10px 12px", lineHeight: 1.6, marginBottom: 12 }}>
-        <b>⚠ 하루에 다 보내지 마세요.</b> 통신사·스팸 정책상 하루 대량 발송은 차단됩니다. <b>아래 이사 시기(분기)별 묶음을 하루에 한 묶음씩(약 {CAP}명 이내)</b> 나눠 보내세요.
+    <div style={{ border: `1px solid ${C.line}`, borderRadius: 12, padding: "14px", marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{label}</span>
+        {cohort && <span style={{ fontSize: 12, fontWeight: 700, color: "#4A429E", background: "#EEEDFE", borderRadius: 999, padding: "3px 10px" }}>{cohort}</span>}
+        <span style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>{list.length}명</span>
+        {over && <span style={{ fontSize: 11.5, fontWeight: 700, color: "#B23A2E", background: "#FDECEA", borderRadius: 999, padding: "3px 9px" }}>500 초과 · 이틀 나눠 보내세요</span>}
       </div>
-      <div style={{ background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "12px 13px", marginBottom: 14 }}>
+      <div style={{ background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "12px 13px", marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>보낼 문구 고르기</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>보낼 문구</span>
           {variants.map((v, i) => (
             <button key={i} className="hd-btn" onClick={() => setVi(i)}
               style={{ padding: "6px 12px", borderRadius: 999, border: `1.5px solid ${vi === i ? C.coral : C.line}`, background: vi === i ? C.coral : "#fff", color: vi === i ? "#fff" : C.navy, fontWeight: 700, fontSize: 12.5 }}>
               {v.label}
             </button>
           ))}
+          <span style={{ fontSize: 11.5, color: C.muted }}>· 직접 고쳐도 됩니다</span>
         </div>
-        <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{cur.text}</div>
+        <textarea value={msgText} onChange={(e) => setMsgText(e.target.value)}
+          style={{ width: "100%", minHeight: 120, padding: "11px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 13.5, lineHeight: 1.7, fontFamily: "inherit", color: C.text }} />
         <button className="hd-btn" onClick={copyMsg}
           style={{ marginTop: 10, padding: "11px 16px", borderRadius: 10, border: "none", background: msgCopied ? "#1E7A6B" : C.coral, color: "#fff", fontWeight: 800, fontSize: 14 }}>
-          {msgCopied ? "문구 복사됨 — 카톡·문자에 붙여넣기" : "이 문구 복사"}
+          {msgCopied ? "문구 복사됨 — 붙여넣기" : "① 이 문구 복사"}
         </button>
       </div>
-      <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, marginBottom: 8 }}>이사 시기별 발송 묶음 ({groups.length}개)</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {groups.map(([q, arr]) => <QuarterGroup key={q} q={q} arr={arr} cap={CAP} />)}
-      </div>
-    </div>
-  );
-}
-
-function QuarterGroup({ q, arr, cap }) {
-  const [open, setOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const over = arr.length > cap;
-  const copyPhones = async () => {
-    const phones = arr.filter((c) => c.phone).map((c) => c.phone).join("\n");
-    const ok = await copyText(phones); setCopied(ok); setTimeout(() => setCopied(false), 2000);
-  };
-  return (
-    <div style={{ border: `1px solid ${over ? "#F0997B" : C.line}`, borderRadius: 12, padding: "12px 14px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{q}</span>
-        <span style={{ fontSize: 13, fontWeight: 700, color: over ? "#B23A2E" : C.teal }}>{arr.length}명</span>
-        {over && <span style={{ fontSize: 11.5, color: "#B23A2E" }}>· 한도 초과, 2일 나눠</span>}
-        <div style={{ flex: 1 }} />
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button className="hd-btn" onClick={copyPhones}
-          style={{ padding: "9px 13px", borderRadius: 9, border: "none", background: copied ? "#1E7A6B" : C.navy, color: "#fff", fontWeight: 800, fontSize: 13 }}>
-          {copied ? "복사됨" : "전화번호 복사"}
+          style={{ flex: "1 1 160px", padding: "12px 14px", borderRadius: 10, border: "none", background: phCopied ? "#1E7A6B" : C.navy, color: "#fff", fontWeight: 800, fontSize: 14 }}>
+          {phCopied ? "번호 복사됨" : `② 전화번호 ${list.length}개 복사`}
         </button>
         <button className="hd-btn" onClick={() => setOpen(!open)}
-          style={{ padding: "9px 13px", borderRadius: 9, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 700, fontSize: 13 }}>
-          {open ? "명단 닫기" : "명단 보기"}
+          style={{ padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 700, fontSize: 13.5 }}>
+          {open ? "명단 닫기" : "명단·주소 보기"}
         </button>
+      </div>
+      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+        발송법: ① 문구 복사 → 문자앱 본문에 붙여넣기 · ② 전화번호 복사 → 받는사람 칸에 붙여넣기 → 전송. (많으면 발송 대행사 이용)
       </div>
       {open && (
         <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6, maxHeight: 360, overflowY: "auto" }}>
-          {arr.slice(0, 200).map((c) => (
-            <div key={c.id} style={{ fontSize: 13.5, color: C.text, padding: "9px 11px", border: `1px solid ${C.line}`, borderRadius: 8 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontWeight: 800, color: C.navy, fontSize: 15 }}>{c.phone || "(번호없음)"}</span>
-                <span style={{ fontSize: 11.5, color: c.contractStatus === "견적" ? "#8A6418" : "#2563A8", background: c.contractStatus === "견적" ? "#FFF4E6" : "#E8F3FF", borderRadius: 999, padding: "2px 8px", fontWeight: 700 }}>{c.contractStatus || "계약"}</span>
-                {c.region && <span style={{ fontSize: 12, color: C.muted }}>{c.region}</span>}
-                {c.keyman && <span style={{ fontSize: 11, color: "#B7791F", fontWeight: 700 }}>★키맨</span>}
+          {list.slice(0, 200).map((c) => {
+            const r = routeOf(c);
+            return (
+              <div key={c.id} style={{ fontSize: 13.5, color: C.text, padding: "9px 11px", border: `1px solid ${C.line}`, borderRadius: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 800, color: C.navy, fontSize: 15 }}>{c.phone || "(번호없음)"}</span>
+                  <span style={{ fontSize: 11.5, color: c.contractStatus === "견적" ? "#8A6418" : "#2563A8", background: c.contractStatus === "견적" ? "#FFF4E6" : "#E8F3FF", borderRadius: 999, padding: "2px 8px", fontWeight: 700 }}>{c.contractStatus || "계약"}</span>
+                  {c.region && <span style={{ fontSize: 12, color: C.muted }}>{c.region}</span>}
+                  {c.keyman && <span style={{ fontSize: 11, color: "#B7791F", fontWeight: 700 }}>★키맨</span>}
+                  <span style={{ marginLeft: "auto", fontSize: 12, color: C.muted }}>이사 {c.moveDate || "미상"}</span>
+                </div>
+                <div style={{ fontSize: 13, color: C.text, marginTop: 5, lineHeight: 1.5 }}>
+                  <span style={{ color: C.muted }}>📍</span> {r.from || "(출발지 미상)"} <span style={{ color: C.coral, fontWeight: 800 }}>→</span> {r.to || "(도착지 미정)"}
+                </div>
               </div>
-              <div style={{ fontSize: 13, color: C.text, marginTop: 5, lineHeight: 1.5 }}>
-                <span style={{ color: C.muted }}>📍</span> {c.from || "(출발지 미상)"} <span style={{ color: C.coral, fontWeight: 800 }}>→</span> {c.to || "(도착지 미정)"}
-              </div>
-            </div>
-          ))}
-          {arr.length > 200 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {arr.length - 200}명</div>}
+            );
+          })}
+          {list.length > 200 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {list.length - 200}명</div>}
         </div>
       )}
     </div>
