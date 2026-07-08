@@ -635,6 +635,41 @@ function cardSlides(title, body) {
 }
 
 /* ----------------------------- API ------------------------------- */
+// AI 호출 — 배포에선 서버 프록시(/api/generate), 미리보기(claude.ai)에선 직접 호출로 자동 폴백
+async function aiComplete({ messages, max_tokens = 2000, system }) {
+  // 1) 배포 서버 프록시
+  let serverErr = null;
+  try {
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-5", max_tokens, system, messages }),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      if (d && d.content) return d;
+    } else if (res.status !== 404) {
+      let em = ""; try { const ed = await res.json(); em = ed.error || ed.message || ""; } catch {}
+      serverErr = new Error("SERVER:" + (em || ("HTTP " + res.status)));
+    }
+  } catch { /* fetch 실패 → 아래 폴백 */ }
+  // 2) claude.ai 아티팩트(미리보기) 직접 호출 — 키 불필요
+  try {
+    const res2 = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens, system, messages }),
+    });
+    if (res2.ok) {
+      const d2 = await res2.json();
+      if (d2 && d2.content) return d2;
+    }
+  } catch { /* 미리보기 아님 */ }
+  // 서버가 명확한 오류를 준 경우 그 메시지를 우선 노출, 아니면 연결 실패
+  if (serverErr) throw serverErr;
+  throw new Error("CONNECT");
+}
+
 async function generateDraft(axis, hint, extra = {}) {
   const foodFacts = axis.food
     ? `\n[식당 정보 — 이 사실만 사용하고 나머지는 지어내지 말 것]\n- 식당명: ${extra.restaurant && extra.restaurant.trim() ? extra.restaurant.trim() : "(미입력 — 상호는 '이 집' 정도로만 표현)"}\n- 먹은 메뉴: ${extra.menu && extra.menu.trim() ? extra.menu.trim() : "(미입력)"}\n- 직원이 직접 느낀 맛/코멘트: ${extra.taste && extra.taste.trim() ? extra.taste.trim() : "(미입력 — 맛 평가 자리는 '> (여기에 직접 느낀 맛 한 줄)'로 비워둘 것)"}\n- 위 코멘트를 기초 자료로 살을 붙여 생생하게 쓰되, 주어지지 않은 가격·다른 메뉴는 절대 지어내지 말 것.`
@@ -704,24 +739,10 @@ BODY:
       ]
     : prompt;
 
-  let res;
-  try {
-    res = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 2400,
-        messages: [{ role: "user", content }],
-      }),
-    });
-  } catch {
-    throw new Error("CONNECT");
-  }
-  if (!res.ok) throw new Error("CONNECT");
-
   let data;
-  try { data = await res.json(); } catch { throw new Error("CONNECT"); }
+  try {
+    data = await aiComplete({ messages: [{ role: "user", content }], max_tokens: 2400 });
+  } catch (e) { throw e; }
 
   const text = (data.content || [])
     .filter((b) => b && b.type === "text")
@@ -778,22 +799,10 @@ CAPTION: (인스타 릴스 게시 캡션 2문장, 이모지 약간)
 HASHTAGS: #해시1, #해시2, #해시3, #해시4
 GUIDE: 촬영 장면 순서 3~5개를 " | "로 구분 (무엇을 어떻게 찍을지)`;
 
-  let res;
-  try {
-    res = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-5",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-  } catch { throw new Error("CONNECT"); }
-  if (!res.ok) throw new Error("CONNECT");
-
   let data;
-  try { data = await res.json(); } catch { throw new Error("CONNECT"); }
+  try {
+    data = await aiComplete({ messages: [{ role: "user", content: prompt }], max_tokens: 1000 });
+  } catch (e) { throw e; }
   const text = (data.content || []).filter((b) => b && b.type === "text").map((b) => b.text).join("\n");
   if (!text) throw new Error("FORMAT");
 
@@ -1834,9 +1843,12 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
       const r = await generateDraft(axis, hint, { restaurant, menu, taste, memo, images, region: (regionEtc.trim() || region) });
       setDraft({ ...r, axis: axisId });
     } catch (e) {
+      const em = e && e.message ? e.message : "";
       setError(
-        e && e.message === "CONNECT"
-          ? "생성 서버에 연결하지 못했습니다. 인터넷을 확인하고 잠시 후 다시 눌러 주세요."
+        em === "CONNECT"
+          ? "AI 서버에 연결하지 못했습니다. (미리보기 화면에서는 AI가 원래 작동하지 않습니다. 배포된 주소 marketinglink.vercel.app에서 시도하세요.)"
+          : em.startsWith("SERVER:")
+          ? "서버 응답 오류 — " + em.slice(7) + " (키 미설정이면 'ANTHROPIC_API_KEY' 확인, 크레딧 관련이면 결제 필요)"
           : "초안은 받았는데 형식이 살짝 어긋났습니다. [초안 생성]을 한 번 더 눌러 주세요."
       );
     } finally {
