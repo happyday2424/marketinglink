@@ -99,6 +99,9 @@ const STORE_KEY = "happyday:queue:v1";
 const REVIEW_KEY = "happyday:reviews:v1";
 const REVIEW_Q = ["시간 약속", "포장", "가구가전 (손상 없이)", "주방 정리정돈", "방 정리정돈", "청소", "추천 의향"];
 const REVIEW_SHORT = ["시간약속", "포장", "가구가전", "주방정리", "방정리", "청소", "추천"];
+// 통계 항목별 색 (빨강 계열 제외 — 눈 피로 방지)
+const REVIEW_COLORS = ["#1E7A6B", "#2563A8", "#534AB7", "#639922", "#B7791F", "#0F766E", "#7A3EA8"];
+const REVIEW_LOW = "#B7791F"; // 낮은 점수 경고색(호박색, 빨강 아님)
 
 // 릴스(숏폼) 주제
 const MOVING_REGIONS = ["대전", "세종", "계룡", "공주", "옥천", "금산", "논산", "부여", "영동", "청주"];
@@ -656,7 +659,11 @@ async function aiComplete({ messages, max_tokens = 2000, system }) {
       const d = await res.json();
       if (d && d.content) return d;
     } else if (res.status !== 404) {
-      let em = ""; try { const ed = await res.json(); em = ed.error || ed.message || ""; } catch {}
+      let em = "";
+      try {
+        const ed = await res.json();
+        em = (ed.error && (ed.error.message || (typeof ed.error === "string" ? ed.error : ""))) || ed.message || (ed.type ? String(ed.type) : "");
+      } catch {}
       serverErr = new Error("SERVER:" + (em || ("HTTP " + res.status)));
     }
   } catch { /* fetch 실패 → 아래 폴백 */ }
@@ -1555,7 +1562,7 @@ function computeMonthlyPlan(crm, base) {
     const outM = nextRemoveMonthsOut(c.moveDate);
     if (outM === 2) out[isQuote ? "m2_quote" : "m2_contract"].push(c);
     else if (outM === 3) out[isQuote ? "m3_quote" : "m3_contract"].push(c);
-    if (ms === 0) out.life_review.push(c);
+    if (c.contractStatus === "계약") { const ds = daysSinceMove(c.moveDate); if (ds !== null && ds >= 3 && ds <= 10) out.life_review.push(c); }
     if (ms === 1) out.life_1m.push(c);
     if (ms === 3 && c.contractStatus === "계약") out.life_3m.push(c);
     if (ms === 12) out.life_12m.push(c);
@@ -2676,59 +2683,16 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
 
   return (
     <div className="hd-fade">
-      {/* 1. 평가 요청 문자 */}
+      {/* 안내: 발송은 달력에서 일원화 */}
       <Panel>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-          <MessageSquare size={18} color={C.coral} />
-          <span style={{ fontSize: 16, fontWeight: 800 }}>평가 요청 문자</span>
+          <Star size={18} color={C.gold} />
+          <span style={{ fontSize: 16, fontWeight: 800 }}>고객 평가</span>
         </div>
-        <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 12 }}>
-          링크 없이 <b>숫자만 답장</b>받는 방식입니다. (스팸·피싱 의심을 피하려고 URL을 넣지 않습니다.) 복사해서 손님에게 문자·카톡으로 보내세요.
+        <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.7 }}>
+          후기 <b>요청 문자 발송은 [달력] 탭</b>에서 합니다(모든 문자 발송을 한 곳에서). 여기 [평가]에서는 <b>손님이 답장한 점수를 입력</b>하고, 통계를 보고, <b>그 평가로 후기 글쓰기</b>를 합니다.
         </div>
-        <div style={{ background: "#F7F9FC", border: `1.5px solid ${C.line}`, borderRadius: 11, padding: "13px 15px", fontSize: 13.5, lineHeight: 1.7, whiteSpace: "pre-wrap", color: C.text }}>{msg}</div>
-        <button className="hd-btn" onClick={copyMsg}
-          style={{ marginTop: 10, width: "100%", padding: "12px", borderRadius: 11, border: "none", background: copied ? "#1E7A6B" : C.navy, color: "#fff", fontWeight: 800, fontSize: 13.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
-          {copied ? <><Check size={16} /> 복사됨</> : <><Copy size={16} /> 문자 복사</>}
-        </button>
       </Panel>
-
-      {/* 1-b. 이번 주 후기 대상 (자동) */}
-      <div style={{ marginTop: 14 }}>
-        <Panel>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
-            <Users size={18} color={C.teal} />
-            <span style={{ fontSize: 16, fontWeight: 800 }}>이번 주 후기 대상</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>{weekTargets.length}명</span>
-            <div style={{ flex: 1 }} />
-            {weekTargets.length > 0 && (
-              <button className="hd-btn" onClick={copyTargetPhones}
-                style={{ padding: "8px 13px", borderRadius: 9, border: "none", background: tgCopied ? "#1E7A6B" : C.navy, color: "#fff", fontWeight: 800, fontSize: 13 }}>
-                {tgCopied ? "복사됨" : "전화번호 전체 복사"}
-              </button>
-            )}
-          </div>
-          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 12 }}>
-            이사 후 <b>3~10일</b> 지난 계약 고객을 자동으로 불러옵니다(주 1회 발송용). 위 문자를 복사해 이 번호들로 보내세요.
-          </div>
-          {weekTargets.length === 0
-            ? <div style={{ fontSize: 13, color: C.muted, padding: "8px 0" }}>이번 주 후기 보낼 대상이 없습니다. (최신 DB를 넣으면 최근 이사 고객이 잡힙니다.)</div>
-            : <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
-                {weekTargets.slice(0, 100).map((c) => {
-                  const r = routeOf(c);
-                  return (
-                    <div key={c.id} style={{ border: `1px solid ${C.line}`, borderRadius: 8, padding: "9px 11px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontWeight: 800, color: C.navy, fontSize: 15 }}>📅 {c.moveDate || "이사일 미상"}</span>
-                        <span style={{ fontSize: 15, fontWeight: 700 }}>📞 {c.phone || "(번호없음)"}</span>
-                      </div>
-                      <div style={{ fontSize: 13, color: C.text, marginTop: 4, lineHeight: 1.55, wordBreak: "break-all" }}>📍 {r.from || "(출발지 미상)"} <span style={{ color: C.coral, fontWeight: 800 }}>→</span> {r.to || "(도착지 미정)"}</div>
-                    </div>
-                  );
-                })}
-                {weekTargets.length > 100 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {weekTargets.length - 100}명</div>}
-              </div>}
-        </Panel>
-      </div>
 
       {/* 2. 받은 점수 입력 */}
       <div style={{ marginTop: 14 }}>
@@ -2813,19 +2777,20 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
             <>
               <div style={{ textAlign: "center", marginBottom: 16 }}>
                 <div style={{ fontSize: 12, color: C.muted, fontWeight: 700 }}>전체 평균</div>
-                <div style={{ fontSize: 34, fontWeight: 800, color: C.coral }}>{overall.toFixed(2)}<span style={{ fontSize: 16, color: C.muted }}> / 5</span></div>
+                <div style={{ fontSize: 34, fontWeight: 800, color: C.navy }}>{overall.toFixed(2)}<span style={{ fontSize: 16, color: C.muted }}> / 5</span></div>
               </div>
               {REVIEW_Q.map((q, i) => {
                 const a = avg(i), pct = (a / 5) * 100;
                 const low = a < 3.5;
+                const col = REVIEW_COLORS[i % REVIEW_COLORS.length];
                 return (
                   <div key={i} style={{ marginBottom: 11 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}>
                       <span style={{ fontWeight: 700, color: C.text }}>{q}</span>
-                      <span style={{ fontWeight: 800, color: low ? C.coralDark : C.navy }}>{a.toFixed(2)}{low && " ⚠"}</span>
+                      <span style={{ fontWeight: 800, color: low ? REVIEW_LOW : col }}>{a.toFixed(2)}{low && " ⚠"}</span>
                     </div>
                     <div style={{ height: 9, background: "#EEF1F5", borderRadius: 99, overflow: "hidden" }}>
-                      <div style={{ width: `${pct}%`, height: "100%", background: low ? C.coralDark : C.coral, borderRadius: 99 }} />
+                      <div style={{ width: `${pct}%`, height: "100%", background: low ? REVIEW_LOW : col, borderRadius: 99 }} />
                     </div>
                   </div>
                 );
