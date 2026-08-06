@@ -16,6 +16,10 @@ import {
   Users, Gift, Globe, Clock, Plus,
 } from "lucide-react";
 
+// ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
+//   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
+const APP_VER = "v2.0 · 2026-08-06";
+
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
 /*  내부 운영 도구: AI 초안 생성 → 검수 큐 → 발행 캘린더               */
@@ -1185,6 +1189,12 @@ export default function App() {
         {tab === "care" && <CareCalendar crm={crm} />}
         {tab === "settings" && <BrandSettings brand={brand} updateBrand={updateBrand} />}
       </main>
+
+      <footer style={{ maxWidth: 1080, margin: "0 auto", padding: "2px 22px 22px", textAlign: "center" }}>
+        <span style={{ fontSize: 11, color: C.muted, letterSpacing: ".02em" }}>
+          마케팅링크 {APP_VER} · 24LINK
+        </span>
+      </footer>
     </div>
   );
 }
