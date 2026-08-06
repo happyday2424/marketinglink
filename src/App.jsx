@@ -96,12 +96,50 @@ const STATUS = {
 const STORE_KEY = "happyday:queue:v1";
 
 // 고객 평가(후기) — 데이터는 나중에 ERP 고객리스트로 이관
+// ★ 항목 순서·뜻은 후기봇(review.happyday24.com)의 RATING_LABELS 와 1:1 이다. 바꾸면 옛 데이터와 뜻이 어긋난다.
 const REVIEW_KEY = "happyday:reviews:v1";
-const REVIEW_Q = ["시간 약속", "포장", "가구가전 (손상 없이)", "주방 정리정돈", "방 정리정돈", "청소", "추천 의향"];
-const REVIEW_SHORT = ["시간약속", "포장", "가구가전", "주방정리", "방정리", "청소", "추천"];
+const REVIEW_Q = ["시간 약속", "포장", "설치·조립 (세탁기·건조기·냉장고)", "주방 정리정돈", "방 정리정돈", "청소", "친절도"];
+const REVIEW_SHORT = ["시간약속", "포장", "설치조립", "주방정리", "방정리", "청소", "친절도"];
 // 통계 항목별 색 (빨강 계열 제외 — 눈 피로 방지)
 const REVIEW_COLORS = ["#1E7A6B", "#2563A8", "#534AB7", "#639922", "#B7791F", "#0F766E", "#7A3EA8"];
 const REVIEW_LOW = "#B7791F"; // 낮은 점수 경고색(호박색, 빨강 아님)
+
+// 후기봇 시트에서 고객이 직접 입력한 평가를 읽어오는 문 (후기링크와 같은 GAS 웹앱)
+const REVIEW_GAS_URL = "https://script.google.com/macros/s/AKfycbyWsA3xlY3z1I9uJgzbpMsL0uYwym9OMlUlLgPj6FzFYanmiwHkwZdUpheg4WdHAHfQxg/exec";
+const REVIEW_GAS_KEY = "happyday2424"; // 후기봇 OFFICE_KEY — 평가 목록 조회용
+
+// 후기봇 시트 한 줄 → 마케팅링크 평가 객체로 변환
+function mapSheetRating(row) {
+  if (!row || !row.customer_code) return null;
+  const scores = [1, 2, 3, 4, 5, 6, 7].map((i) => {
+    const v = Number(row["score_" + i]);
+    return Number.isFinite(v) ? v : 0; // 빈 칸(예: 청소 미시행)은 0 → 통계에서 자동 제외
+  });
+  const av = (row.score_avg !== "" && row.score_avg != null) ? Number(row.score_avg) : NaN;
+  return {
+    id: "sheet:" + row.customer_code,
+    fromSheet: true,
+    name: row.customer_code,        // 고객코드 = 이사일6 + 연락처뒤8
+    date: row.review_date || row.created_at || "",
+    scores,
+    avgSheet: Number.isFinite(av) ? av : null,
+    recommend: (row.recommend || "").toUpperCase(), // Y / N
+    memo: row.memo || row.low_reason || "",
+    region: row.region || "",
+  };
+}
+// 평가 한 건의 평균 — 시트가 계산해 둔 값 우선, 없으면 1점 이상만으로 계산
+function reviewAvg(r) {
+  if (r && r.avgSheet != null) return r.avgSheet;
+  const vals = (r && r.scores ? r.scores : []).filter((v) => v >= 1);
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+}
+// 시트 평가(원본) + 기기 입력 평가(보조) 합치기 — 같은 고객코드는 시트를 우선
+function mergeReviews(sheetList, localList) {
+  const seen = new Set(sheetList.map((r) => r.name));
+  const localKept = (localList || []).filter((r) => !r.fromSheet && !seen.has(r.name));
+  return [...sheetList, ...localKept];
+}
 
 // 릴스(숏폼) 주제
 const MOVING_REGIONS = ["대전", "세종", "계룡", "공주", "옥천", "금산", "논산", "부여", "영동", "청주"];
@@ -767,7 +805,7 @@ BODY:
 
   let data;
   try {
-    data = await aiComplete({ messages: [{ role: "user", content }], max_tokens: 2400 });
+    data = await aiComplete({ messages: [{ role: "user", content }], max_tokens: 8000 });
   } catch (e) { throw e; }
 
   const text = (data.content || [])
@@ -920,10 +958,21 @@ export default function App() {
         const b = await window.storage.get(BRAND_KEY);
         if (b) { const v = { ...BRAND, ...JSON.parse(b.value) }; Object.assign(BRAND, v); applyIndustry(v.industry, (v.axisEdits || {})[v.industry]); setBrand(v); }
       } catch { /* 기본값 유지 */ }
+      let localReviews = [];
       try {
         const rv = await window.storage.get(REVIEW_KEY);
-        if (rv) setReviews(JSON.parse(rv.value));
+        if (rv) localReviews = JSON.parse(rv.value) || [];
       } catch { /* 없으면 빈 목록 */ }
+      setReviews(localReviews.filter((r) => !r.fromSheet)); // 시트분은 항상 새로 받아온다
+      // 후기봇 시트에서 고객이 직접 넣은 평가를 읽어와 합침 (시트=원본, 기기 입력=보조)
+      try {
+        const resp = await fetch(REVIEW_GAS_URL + "?tab=rating&key=" + encodeURIComponent(REVIEW_GAS_KEY));
+        const j = await resp.json();
+        if (j && j.ok && Array.isArray(j.rows)) {
+          const sheetReviews = j.rows.map(mapSheetRating).filter(Boolean);
+          setReviews((prev) => mergeReviews(sheetReviews, prev));
+        }
+      } catch { /* 시트를 못 읽으면 기기 저장분만 사용 */ }
       try {
         const cm = await window.storage.get(CRM_KEY);
         if (cm) setCrm(JSON.parse(cm.value));
@@ -937,7 +986,7 @@ export default function App() {
     if (ready) { try { window.storage.set(KW_KEY, JSON.stringify(keywords)); } catch {} }
   }, [keywords, ready]);
   useEffect(() => {
-    if (ready) { try { window.storage.set(REVIEW_KEY, JSON.stringify(reviews)); } catch {} }
+    if (ready) { try { window.storage.set(REVIEW_KEY, JSON.stringify(reviews.filter((r) => !r.fromSheet))); } catch {} }
   }, [reviews, ready]);
   useEffect(() => {
     if (!ready) return;
@@ -985,12 +1034,14 @@ export default function App() {
   }, []);
   // 평가 한 건을 "고객 후기" 축 글쓰기 소재로 넘김 (점수 + 코멘트, 고객코드/개인정보는 제외)
   const writeFromReview = useCallback((rev) => {
-    const avg = (rev.scores.reduce((a, b) => a + b, 0) / rev.scores.length).toFixed(1);
-    const perItem = REVIEW_SHORT.map((s, i) => `${s} ${rev.scores[i]}점`).join(", ");
+    const avg = reviewAvg(rev).toFixed(1);
+    const perItem = REVIEW_SHORT.map((s, i) => `${s} ${rev.scores[i] >= 1 ? rev.scores[i] + "점" : "(해당없음)"}`).join(", ");
+    const rec = rev.recommend === "Y" ? "예(주변에 추천하겠다고 함)" : rev.recommend === "N" ? "아니오" : "";
     const lines = [
       `[실제 고객 평가 기반 후기 — 아래 사실만 소재로 쓰고 지어내지 말 것]`,
       `- 항목별 점수(5점 만점): ${perItem}`,
       `- 전체 평균: ${avg}점`,
+      rec ? `- 추천 의향: ${rec}` : `- 추천 의향: (미표시)`,
       rev.memo ? `- 고객이 남긴 말: "${rev.memo}"` : `- 고객 코멘트: (없음 — 점수만 근거로, 없는 칭찬은 지어내지 말 것)`,
       `- 첨부한 사진은 이 고객의 실제 현장 사진이다. 사진 속 작업 전/후 상태·정리 상태를 구체적으로 묘사하되, 사진에 없는 것은 지어내지 말 것.`,
       `- 개인정보(이름·연락처)는 절대 쓰지 말 것. 특정 단지·호수 노출 금지.`,
@@ -2699,7 +2750,7 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
   }, [reviews]);
   const targetsWithStatus = useMemo(() => weekTargets.map((c) => {
     const rev = reviewedByPhone[normPhone(c.phone)];
-    return { c, done: !!rev, score: rev ? rev.scores.reduce((a, b) => a + b, 0) / 7 : null };
+    return { c, done: !!rev, score: rev ? reviewAvg(rev) : null };
   }), [weekTargets, reviewedByPhone]);
   const respondedCount = targetsWithStatus.filter((t) => t.done).length;
   const copyTargetPhones = async () => { const p = weekTargets.filter((c) => c.phone).map((c) => c.phone).join(", "); if (await copyText(p)) { setTgCopied(true); setTimeout(() => setTgCopied(false), 1600); } };
@@ -2715,16 +2766,20 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
     setName(""); setScores([0, 0, 0, 0, 0, 0, 0]); setMemo(""); setRvRegion("");
   };
 
-  // 통계
+  // 통계 — 빈 점수(0, 예: 청소 미시행)는 평균에서 제외한다
   const n = reviews.length;
-  const avg = (i) => n ? reviews.reduce((s, r) => s + (r.scores[i] || 0), 0) / n : 0;
-  const overall = n ? reviews.reduce((s, r) => s + r.scores.reduce((a, b) => a + b, 0) / 7, 0) / n : 0;
+  const avg = (i) => {
+    const vals = reviews.map((r) => r.scores[i]).filter((v) => v >= 1);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  };
+  const overall = n ? reviews.reduce((s, r) => s + reviewAvg(r), 0) / n : 0;
 
   const exportCSV = () => {
-    const head = ["고객코드", "날짜", ...REVIEW_SHORT, "평균", "메모"];
+    const head = ["고객코드", "날짜", ...REVIEW_SHORT, "평균", "추천", "메모"];
     const rows = reviews.map((r) => [
-      r.name, r.date, ...r.scores,
-      (r.scores.reduce((a, b) => a + b, 0) / 7).toFixed(2),
+      r.name, r.date, ...r.scores.map((v) => (v >= 1 ? v : "")),
+      reviewAvg(r).toFixed(2),
+      r.recommend || "",
       (r.memo || "").replace(/[\n,]/g, " "),
     ]);
     const csv = "\uFEFF" + [head, ...rows].map((row) => row.join(",")).join("\n");
@@ -2840,7 +2895,7 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
             style={{ marginTop: 14, width: "100%", padding: "13px", borderRadius: 11, border: "none", background: canSave ? C.coral : "#C7CED7", color: "#fff", fontWeight: 800, fontSize: 14.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: canSave ? "pointer" : "default" }}>
             <Check size={17} /> 평가 저장
           </button>
-          {!canSave && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center", marginTop: 8 }}>고객명과 6개 항목 점수를 모두 입력하세요.</div>}
+          {!canSave && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center", marginTop: 8 }}>전화번호와 7개 항목 점수를 모두 입력하세요.</div>}
         </Panel>
       </div>
 
@@ -2924,18 +2979,21 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
           <SectionTitle icon={Star}>받은 평가 {n}건</SectionTitle>
           <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
             {reviews.map((r) => {
-              const a = (r.scores.reduce((x, y) => x + y, 0) / 7).toFixed(1);
+              const a = reviewAvg(r).toFixed(1);
               return (
                 <div key={r.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 11, padding: "12px 14px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 800, fontSize: 14, color: C.navy }}>{r.name}</span>
+                    {r.fromSheet && <span style={{ fontSize: 10.5, fontWeight: 800, color: "#0F6E56", background: "#E1F5EE", borderRadius: 999, padding: "2px 8px" }}>고객 직접입력</span>}
                     <span style={{ fontSize: 11.5, color: C.muted }}>{r.date}</span>
                     <span style={{ fontSize: 12.5, fontWeight: 800, color: C.coral }}>★ {a}</span>
+                    {r.recommend === "Y" && <span style={{ fontSize: 11, fontWeight: 800, color: "#0F6E56" }}>👍 추천</span>}
+                    {r.recommend === "N" && <span style={{ fontSize: 11, fontWeight: 800, color: REVIEW_LOW }}>추천 안 함</span>}
                     <div style={{ flex: 1 }} />
-                    <button className="hd-btn" onClick={() => removeReview(r.id)} style={{ border: "none", background: "transparent", color: C.muted, padding: 4 }}><Trash2 size={15} /></button>
+                    {!r.fromSheet && <button className="hd-btn" onClick={() => removeReview(r.id)} style={{ border: "none", background: "transparent", color: C.muted, padding: 4 }}><Trash2 size={15} /></button>}
                   </div>
                   <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>
-                    {REVIEW_SHORT.map((s, i) => `${s} ${r.scores[i]}`).join(" · ")}
+                    {REVIEW_SHORT.map((s, i) => `${s} ${r.scores[i] >= 1 ? r.scores[i] : "-"}`).join(" · ")}
                   </div>
                   {r.memo && <div style={{ fontSize: 12.5, color: C.text, marginTop: 6, lineHeight: 1.5 }}>“{r.memo}”</div>}
                   <button className="hd-btn" onClick={() => writeFromReview(r)}
