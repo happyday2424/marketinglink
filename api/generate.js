@@ -7,7 +7,7 @@ const ALLOWED_MODELS = new Set([
   "claude-haiku-4-5-20251001",
 ]);
 const DEFAULT_MODEL = "claude-sonnet-5";
-const MAX_TOKENS_CEILING = 3000; // 클라이언트가 아무리 크게 요청해도 이 값을 넘지 못함
+const MAX_TOKENS_CEILING = 8000; // 클라이언트가 아무리 크게 요청해도 이 값을 넘지 못함
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
