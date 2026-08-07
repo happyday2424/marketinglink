@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v2.1 · 2026-08-06";
+const APP_VER = "v2.2 · 2026-08-06";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -2777,6 +2777,17 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
   const [copiedPub, setCopiedPub] = useState(false);
   const MIN_PUBLIC = 5;
   const [tgCopied, setTgCopied] = useState(false);
+  // 후기 카드: 이 평가를 1080x1080 이미지 한 장으로 저장 (사진 없는 날 시각 자료)
+  const downloadReviewCard = useCallback(async (r) => {
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch {}
+    const c = document.createElement("canvas");
+    c.width = 1080; c.height = 1080;
+    drawReviewCard(c, r);
+    const a = document.createElement("a");
+    a.download = `후기카드_${String(r.name || "고객").replace(/[^0-9A-Za-z가-힣_-]/g, "")}.png`;
+    a.href = c.toDataURL("image/png");
+    a.click();
+  }, []);
   const weekTargets = useMemo(() => (crm || []).filter((c) => c.contractStatus === "계약" && inLastWeek(c.moveDate)).sort((a, b) => String(b.moveDate || "").localeCompare(String(a.moveDate || ""))), [crm]);
   const reviewedByPhone = useMemo(() => {
     const m = {};
@@ -3031,10 +3042,17 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
                     {REVIEW_SHORT.map((s, i) => `${s} ${r.scores[i] >= 1 ? r.scores[i] : "-"}`).join(" · ")}
                   </div>
                   {r.memo && <div style={{ fontSize: 12.5, color: C.text, marginTop: 6, lineHeight: 1.5 }}>“{r.memo}”</div>}
-                  <button className="hd-btn" onClick={() => writeFromReview(r)}
-                    style={{ marginTop: 10, width: "100%", padding: "9px", borderRadius: 9, border: `1.5px solid ${C.coral}`, background: "#fff", color: C.coralDark, fontWeight: 800, fontSize: 12.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-                    <Sparkles size={14} /> 이 평가로 후기 글쓰기
-                  </button>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    <button className="hd-btn" onClick={() => writeFromReview(r)}
+                      style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${C.coral}`, background: "#fff", color: C.coralDark, fontWeight: 800, fontSize: 12.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      <Sparkles size={14} /> 이 평가로 후기 글쓰기
+                    </button>
+                    <button className="hd-btn" onClick={() => downloadReviewCard(r)}
+                      style={{ flex: "0 0 auto", padding: "9px 14px", borderRadius: 9, border: `1.5px solid ${C.line}`, background: C.navy, color: "#fff", fontWeight: 800, fontSize: 12.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                      title="사진 없는 날 — 이 후기를 이미지 카드 한 장으로 저장">
+                      <ImageIcon size={14} /> 후기 카드
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -3258,6 +3276,80 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r);
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
+}
+
+// 후기 카드 1080x1080 — 고객 별점·항목·한 줄 후기를 이미지 한 장으로 (사진 없는 날 시각 자료)
+function drawReviewCard(canvas, r) {
+  const S = 1080, footerH = 120;
+  const ctx = canvas.getContext("2d");
+  const navy = "#15243B", coral = "#F25C4A", ink = "#1B2A41", muted = "#6C7A8C", soft = "#F4F7FB";
+  const font = (s, w = 800) => `${w} ${s}px 'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif`;
+  const wrap = (text, maxW, f) => {
+    ctx.font = f; const out = []; let line = "";
+    for (const ch of String(text)) {
+      if (ctx.measureText(line + ch).width <= maxW) line += ch;
+      else { if (line) out.push(line); line = ch; }
+    }
+    if (line) out.push(line); return out;
+  };
+
+  ctx.clearRect(0, 0, S, S);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, S, S);
+  ctx.save(); ctx.globalAlpha = 0.08; ctx.fillStyle = coral; ctx.beginPath(); ctx.arc(S, 0, 260, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  // 출처 라벨 (정직성 — '실제 고객 평가'임을 명시)
+  ctx.font = font(30, 800); ctx.fillStyle = coral; ctx.fillText("실제 고객이 남긴 평가", 64, 132);
+  ctx.fillStyle = coral; ctx.fillRect(64, 150, 84, 8);
+  const sub = [r.region, r.date].filter(Boolean).join("   ·   ");
+  if (sub) { ctx.font = font(26, 600); ctx.fillStyle = muted; ctx.fillText(sub, 64, 196); }
+
+  // 큰 별점
+  const nums = (r.scores || []).filter((v) => v >= 1);
+  const avg = (r.avgSheet != null ? r.avgSheet : (nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0)).toFixed(1);
+  ctx.font = font(150, 800); ctx.fillStyle = navy; ctx.fillText(avg, 64, 360);
+  const aw = ctx.measureText(avg).width;
+  ctx.font = font(40, 800); ctx.fillStyle = coral; ctx.fillText("★", 64 + aw + 26, 300);
+  ctx.font = font(28, 700); ctx.fillStyle = muted; ctx.fillText("5점 만점", 64 + aw + 26, 344);
+  if (r.recommend === "Y") {
+    ctx.font = font(30, 800); ctx.fillStyle = "#0F6E56";
+    ctx.fillText("\uD83D\uDC4D 주변에 추천하겠다", 64 + aw + 130, 344);
+  }
+
+  // 항목 점수 (2열)
+  const labels = ["시간약속", "포장", "설치조립", "주방정리", "방정리", "청소", "친절도"];
+  const colX = [64, 580]; let gy = 452;
+  labels.forEach((lb, i) => {
+    const x = colX[i < 4 ? 0 : 1];
+    const y = gy + (i < 4 ? i : i - 4) * 62;
+    const v = (r.scores && r.scores[i] >= 1) ? r.scores[i] : null;
+    ctx.font = font(30, 600); ctx.fillStyle = ink; ctx.textAlign = "left"; ctx.fillText(lb, x, y);
+    ctx.font = font(30, 800); ctx.fillStyle = v == null ? muted : coral; ctx.textAlign = "right";
+    ctx.fillText(v == null ? "-" : (v + "점"), x + 420, y);
+  });
+  ctx.textAlign = "left";
+
+  // 한 줄 후기 (큰따옴표 인용 박스)
+  if (r.memo) {
+    const boxY = 730, boxX = 64, boxW = S - 128;
+    const lines = wrap("\u201C" + r.memo + "\u201D", boxW - 100, font(34, 600)).slice(0, 3);
+    const boxH = 60 + lines.length * 50;
+    ctx.fillStyle = soft; roundRect(ctx, boxX, boxY, boxW, boxH, 24); ctx.fill();
+    ctx.fillStyle = coral; ctx.fillRect(boxX, boxY, 10, boxH);
+    ctx.font = font(34, 600); ctx.fillStyle = ink;
+    lines.forEach((ln, i) => ctx.fillText(ln, boxX + 44, boxY + 60 + i * 50));
+  }
+
+  // 브랜드 띠
+  const fy = S - footerH;
+  ctx.fillStyle = "#F2F4F7"; ctx.fillRect(0, fy, S, footerH);
+  ctx.fillStyle = coral; ctx.fillRect(0, fy, 12, footerH);
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left"; ctx.font = font(34, 800); ctx.fillStyle = coral;
+  ctx.fillText(BRAND.slogan, 56, fy + footerH / 2 - 14);
+  ctx.font = font(24, 600); ctx.fillStyle = "#6C7A8C"; ctx.fillText(BRAND.name, 56, fy + footerH / 2 + 24);
+  ctx.textAlign = "right"; ctx.font = font(40, 800); ctx.fillStyle = navy;
+  ctx.fillText("\uD83D\uDCDE " + BRAND.phone, S - 56, fy + footerH / 2);
 }
 
 function drawSlide(canvas, slide, idx = 0, total = 1) {
