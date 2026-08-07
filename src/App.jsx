@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v2.0 · 2026-08-06";
+const APP_VER = "v2.1 · 2026-08-06";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -780,6 +780,12 @@ ${BRAND.facts && BRAND.facts.trim() ? BRAND.facts.trim() : "(미입력)"}${foodF
 - 제목은 핵심 키워드를 앞쪽에 배치
 - 직접 경험·구체적 정보 중심, "최고/1위" 같은 과장 금지
 - 고객 질문에 정면으로 답하는 정보형 구조
+${axis.id === "review" ? `
+[후기 축 안전 규칙 — 필수·법적]
+- 글쓴이는 항상 '해피데이 익스프레스(업체)'다. 절대 고객인 척 1인칭("제가 이사했는데", "저희 가족이 만족")으로 쓰지 말 것. 이는 후기 조작으로 표시광고법 위반이다.
+- 고객이 실제로 남긴 말은 반드시 큰따옴표(" ")로 감싸 '고객이 한 말'임을 드러낸다. 그 말을 업체 서술로 바꿔 쓰지 말 것.
+- 점수·코멘트는 [현장 메모]에 주어진 사실만 쓰고, 없는 만족·칭찬을 지어내지 말 것. 낮은 점수 항목을 높은 것처럼 왜곡하지 말 것.
+- "고객님이 남겨주신 실제 평가"임을 글 안에서 한 번 명시해 출처를 밝힌다.` : ""}
 
 [사실 안전 규칙 — 매우 중요]
 - 법규·허가·자격·비용·수치처럼 틀리면 치명적인 정보는, 위 [회사 사실 정보]에 없으면 절대 지어내지 말 것.
@@ -2375,10 +2381,26 @@ function QueueCard({ d, update, remove }) {
   const titleHasKw = kwTokens.length > 0 && kwTokens.some((t) => (d.blogTitle || "").includes(t));
   const minLen = axis.quick ? 500 : 1500;
   const minImg = axis.quick ? 3 : 5;
+  // ── 내용 안전 점검: '글자수'가 아니라 '무엇을 어떻게 쓰는가'를 본다 ──
+  const _body = d.blogBody || "";
+  const _title = d.blogTitle || "";
+  // 금지 표현: '이사 후 청소'(→사이·당일청소), 별표 강조(**, 네이버서 깨짐), '입주청소 포함 금액'(공짜인데 포함이라 하면 오해)
+  const banned = /이사\s*후\s*청소/.test(_body) || /\*\*/.test(_body) || /입주청소[^.\n]{0,10}포함[^.\n]{0,8}(금액|비용|가격)/.test(_body);
+  // 고객 사칭: 업체 글에 고객인 척하는 1인칭 (표시광고법 위험)
+  const impersonation = /(제가|저는|저희\s*가족|우리\s*가족)[^.\n]{0,22}(이사했|이사하고|만족|추천하|맡겼|이용했|좋았)/.test(_body);
+  // 후기 소재인데 고객 말을 인용부호로 처리했는지
+  const mentionsCustomer = axis.id === "review" || /(고객님|후기|평가|남겨주신|말씀)/.test(_body);
+  const hasQuote = /["“][^"”]{4,}["”]/.test(_body);
+  // 제목 질문형(GEO)
+  const titleQ = /[?？]/.test(_title);
   const checks = [
     { ok: bodyLen >= minLen, label: `본문 ${minLen.toLocaleString()}자 이상`, now: `${bodyLen.toLocaleString()}자` },
     { ok: imgCount >= minImg, label: `원본 사진 ${minImg}장 이상`, now: `${imgCount}장` },
     { ok: titleHasKw, label: "제목에 키워드 포함", now: titleHasKw ? "포함" : "없음" },
+    { ok: !banned, label: "금지 표현 없음(이사후청소·별표·청소포함금액)", now: banned ? "발견 ⚠" : "깨끗" },
+    { ok: !impersonation, label: "고객 사칭 없음 (글쓴이=업체여야)", now: impersonation ? "1인칭 의심 ⚠" : "정상" },
+    { ok: !mentionsCustomer || hasQuote, label: "고객 말은 큰따옴표로 인용", now: !mentionsCustomer ? "해당없음" : (hasQuote ? "인용됨" : "확인 필요") },
+    { ok: titleQ, label: "제목 질문형 (GEO)", now: titleQ ? "예" : "아니오" },
   ];
   const readyCount = checks.filter((c) => c.ok).length;
 
@@ -2449,7 +2471,7 @@ function QueueCard({ d, update, remove }) {
               ))}
             </div>
             <div style={{ fontSize: 11, color: C.muted, marginTop: 10, lineHeight: 1.5 }}>
-              {minLen.toLocaleString()}자는 최소 바닥선입니다(목표 아님). 사진은 인터넷·펌이 아닌 <b>직접 촬영한 원본</b>이어야 점수가 오릅니다.
+              {minLen.toLocaleString()}자는 최소 바닥선입니다(목표 아님). 사진은 인터넷·펌이 아닌 <b>직접 촬영한 원본</b>이어야 점수가 오릅니다. <b>고객 후기는 반드시 업체 화자로 쓰고, 고객 말은 큰따옴표로 인용</b>하세요(고객인 척 1인칭 금지).
             </div>
           </div>
 
