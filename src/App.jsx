@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v2.2 · 2026-08-06";
+const APP_VER = "v2.4 · 2026-08-06";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -120,16 +120,28 @@ function mapSheetRating(row) {
     return Number.isFinite(v) ? v : 0; // 빈 칸(예: 청소 미시행)은 0 → 통계에서 자동 제외
   });
   const av = (row.score_avg !== "" && row.score_avg != null) ? Number(row.score_avg) : NaN;
+  // 고객코드 앞 6자리(YYMMDD)에서 이사일 추출
+  const code = String(row.customer_code || "");
+  const md = code.match(/(\d{2})(\d{2})(\d{2})/);
+  let moveDate = "";
+  if (md) {
+    const mm = +md[2], dd = +md[3];
+    if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) moveDate = `20${md[1]}-${md[2]}-${md[3]}`;
+  }
+  // 견적 시트 미매칭 시 지역칸에 들어오는 내부 안내 문구는 공개용에서 제거
+  let region = row.region || "";
+  if (/코드|시트|없음|없는|미매칭|^\s*\(/.test(region)) region = "";
   return {
     id: "sheet:" + row.customer_code,
     fromSheet: true,
     name: row.customer_code,        // 고객코드 = 이사일6 + 연락처뒤8
     date: row.review_date || row.created_at || "",
+    moveDate,                        // 이사일 (코드에서 추출)
     scores,
     avgSheet: Number.isFinite(av) ? av : null,
     recommend: (row.recommend || "").toUpperCase(), // Y / N
     memo: row.memo || row.low_reason || "",
-    region: row.region || "",
+    region,
   };
 }
 // 평가 한 건의 평균 — 시트가 계산해 둔 값 우선, 없으면 1점 이상만으로 계산
@@ -3301,24 +3313,37 @@ function drawReviewCard(canvas, r) {
   // 출처 라벨 (정직성 — '실제 고객 평가'임을 명시)
   ctx.font = font(30, 800); ctx.fillStyle = coral; ctx.fillText("실제 고객이 남긴 평가", 64, 132);
   ctx.fillStyle = coral; ctx.fillRect(64, 150, 84, 8);
-  const sub = [r.region, r.date].filter(Boolean).join("   ·   ");
-  if (sub) { ctx.font = font(26, 600); ctx.fillStyle = muted; ctx.fillText(sub, 64, 196); }
+  // 이사일 + 후기작성일 = 신빙성 (시차가 나는 게 오히려 자연스러움). 내부 코드 문구는 안 넣는다.
+  const dateParts = [];
+  if (r.region) dateParts.push(r.region + " 이사");
+  if (r.moveDate) dateParts.push("이사일 " + r.moveDate);
+  if (r.date) dateParts.push("후기작성 " + r.date);
+  if (dateParts.length) { ctx.font = font(25, 600); ctx.fillStyle = muted; ctx.fillText(dateParts.join("   ·   "), 64, 196); }
 
-  // 큰 별점
+  // 별점 — 별 5개를 평균만큼 채운다 (빈 별 위에 채운 별을 비율만큼 클립)
   const nums = (r.scores || []).filter((v) => v >= 1);
-  const avg = (r.avgSheet != null ? r.avgSheet : (nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0)).toFixed(1);
-  ctx.font = font(150, 800); ctx.fillStyle = navy; ctx.fillText(avg, 64, 360);
-  const aw = ctx.measureText(avg).width;
-  ctx.font = font(40, 800); ctx.fillStyle = coral; ctx.fillText("★", 64 + aw + 26, 300);
-  ctx.font = font(28, 700); ctx.fillStyle = muted; ctx.fillText("5점 만점", 64 + aw + 26, 344);
+  const avgN = r.avgSheet != null ? r.avgSheet : (nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0);
+  const val = Math.max(0, Math.min(5, avgN));
+  const sx = 64, sy = 332;
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.font = font(92, 800);
+  const starStr = "\u2605\u2605\u2605\u2605\u2605";
+  const starW = ctx.measureText(starStr).width;
+  ctx.fillStyle = "#E2E7EF"; ctx.fillText(starStr, sx, sy);                 // 빈 별 5개(바탕)
+  ctx.save(); ctx.beginPath(); ctx.rect(sx, sy - 86, starW * (val / 5), 120); ctx.clip();
+  ctx.fillStyle = coral; ctx.fillText(starStr, sx, sy); ctx.restore();       // 평균만큼 채운 별
+  const numX = sx + starW + 40;
+  ctx.font = font(90, 800); ctx.fillStyle = navy; ctx.fillText(val.toFixed(1), numX, sy);
+  const numW = ctx.measureText(val.toFixed(1)).width;
+  ctx.font = font(30, 700); ctx.fillStyle = muted; ctx.fillText("/ 5점", numX + numW + 16, sy - 4);
   if (r.recommend === "Y") {
     ctx.font = font(30, 800); ctx.fillStyle = "#0F6E56";
-    ctx.fillText("\uD83D\uDC4D 주변에 추천하겠다", 64 + aw + 130, 344);
+    ctx.fillText("\uD83D\uDC4D 주변에 추천하겠다", sx, sy + 56);
   }
 
   // 항목 점수 (2열)
   const labels = ["시간약속", "포장", "설치조립", "주방정리", "방정리", "청소", "친절도"];
-  const colX = [64, 580]; let gy = 452;
+  const colX = [64, 580]; let gy = 470;
   labels.forEach((lb, i) => {
     const x = colX[i < 4 ? 0 : 1];
     const y = gy + (i < 4 ? i : i - 4) * 62;
