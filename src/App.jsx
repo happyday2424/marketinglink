@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v2.4 · 2026-08-06";
+const APP_VER = "v2.5 · 2026-08-06";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -3294,7 +3294,7 @@ function roundRect(ctx, x, y, w, h, r) {
 function drawReviewCard(canvas, r) {
   const S = 1080, footerH = 120;
   const ctx = canvas.getContext("2d");
-  const navy = "#15243B", coral = "#F25C4A", ink = "#1B2A41", muted = "#6C7A8C", soft = "#F4F7FB";
+  const navy = "#15243B", coral = "#F25C4A", ink = "#12203A", muted = "#3E4C60", soft = "#EEF2F8";
   const font = (s, w = 800) => `${w} ${s}px 'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif`;
   const wrap = (text, maxW, f) => {
     ctx.font = f; const out = []; let line = "";
@@ -3318,7 +3318,7 @@ function drawReviewCard(canvas, r) {
   if (r.region) dateParts.push(r.region + " 이사");
   if (r.moveDate) dateParts.push("이사일 " + r.moveDate);
   if (r.date) dateParts.push("후기작성 " + r.date);
-  if (dateParts.length) { ctx.font = font(25, 600); ctx.fillStyle = muted; ctx.fillText(dateParts.join("   ·   "), 64, 196); }
+  if (dateParts.length) { ctx.font = font(27, 700); ctx.fillStyle = muted; ctx.fillText(dateParts.join("   ·   "), 64, 196); }
 
   // 별점 — 별 5개를 평균만큼 채운다 (빈 별 위에 채운 별을 비율만큼 클립)
   const nums = (r.scores || []).filter((v) => v >= 1);
@@ -3329,13 +3329,13 @@ function drawReviewCard(canvas, r) {
   ctx.font = font(92, 800);
   const starStr = "\u2605\u2605\u2605\u2605\u2605";
   const starW = ctx.measureText(starStr).width;
-  ctx.fillStyle = "#E2E7EF"; ctx.fillText(starStr, sx, sy);                 // 빈 별 5개(바탕)
+  ctx.fillStyle = "#CFD7E2"; ctx.fillText(starStr, sx, sy);                 // 빈 별 5개(바탕)
   ctx.save(); ctx.beginPath(); ctx.rect(sx, sy - 86, starW * (val / 5), 120); ctx.clip();
   ctx.fillStyle = coral; ctx.fillText(starStr, sx, sy); ctx.restore();       // 평균만큼 채운 별
   const numX = sx + starW + 40;
   ctx.font = font(90, 800); ctx.fillStyle = navy; ctx.fillText(val.toFixed(1), numX, sy);
   const numW = ctx.measureText(val.toFixed(1)).width;
-  ctx.font = font(30, 700); ctx.fillStyle = muted; ctx.fillText("/ 5점", numX + numW + 16, sy - 4);
+  ctx.font = font(30, 800); ctx.fillStyle = muted; ctx.fillText("/ 5점", numX + numW + 16, sy - 4);
   if (r.recommend === "Y") {
     ctx.font = font(30, 800); ctx.fillStyle = "#0F6E56";
     ctx.fillText("\uD83D\uDC4D 주변에 추천하겠다", sx, sy + 56);
@@ -3348,7 +3348,7 @@ function drawReviewCard(canvas, r) {
     const x = colX[i < 4 ? 0 : 1];
     const y = gy + (i < 4 ? i : i - 4) * 62;
     const v = (r.scores && r.scores[i] >= 1) ? r.scores[i] : null;
-    ctx.font = font(30, 600); ctx.fillStyle = ink; ctx.textAlign = "left"; ctx.fillText(lb, x, y);
+    ctx.font = font(30, 700); ctx.fillStyle = ink; ctx.textAlign = "left"; ctx.fillText(lb, x, y);
     ctx.font = font(30, 800); ctx.fillStyle = v == null ? muted : coral; ctx.textAlign = "right";
     ctx.fillText(v == null ? "-" : (v + "점"), x + 420, y);
   });
@@ -3357,11 +3357,11 @@ function drawReviewCard(canvas, r) {
   // 한 줄 후기 (큰따옴표 인용 박스)
   if (r.memo) {
     const boxY = 730, boxX = 64, boxW = S - 128;
-    const lines = wrap("\u201C" + r.memo + "\u201D", boxW - 100, font(34, 600)).slice(0, 3);
+    const lines = wrap("\u201C" + r.memo + "\u201D", boxW - 100, font(34, 700)).slice(0, 3);
     const boxH = 60 + lines.length * 50;
     ctx.fillStyle = soft; roundRect(ctx, boxX, boxY, boxW, boxH, 24); ctx.fill();
     ctx.fillStyle = coral; ctx.fillRect(boxX, boxY, 10, boxH);
-    ctx.font = font(34, 600); ctx.fillStyle = ink;
+    ctx.font = font(34, 700); ctx.fillStyle = ink;
     lines.forEach((ln, i) => ctx.fillText(ln, boxX + 44, boxY + 60 + i * 50));
   }
 
@@ -3372,7 +3372,7 @@ function drawReviewCard(canvas, r) {
   ctx.textBaseline = "middle";
   ctx.textAlign = "left"; ctx.font = font(34, 800); ctx.fillStyle = coral;
   ctx.fillText(BRAND.slogan, 56, fy + footerH / 2 - 14);
-  ctx.font = font(24, 600); ctx.fillStyle = "#6C7A8C"; ctx.fillText(BRAND.name, 56, fy + footerH / 2 + 24);
+  ctx.font = font(24, 700); ctx.fillStyle = "#465063"; ctx.fillText(BRAND.name, 56, fy + footerH / 2 + 24);
   ctx.textAlign = "right"; ctx.font = font(40, 800); ctx.fillStyle = navy;
   ctx.fillText("\uD83D\uDCDE " + BRAND.phone, S - 56, fy + footerH / 2);
 }
