@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v2.9 · 0809-2030";
+const APP_VER = "v3.1 · 0809-2056";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -100,6 +100,7 @@ const STATUS = {
 const STORE_KEY = "happyday:queue:v1";
 // 발행 히스토리 — 무엇이 넘쳐도 안 날아가게 '별도의 작은 저장소'에 둔다(제목·날짜·지역·축·채널)
 const HISTORY_KEY = "happyday:history:v1";
+const DRAFT_KEY = "happyday:draft:v1"; // 검수로 넘기기 전 초안 자동 임시저장(안 날아가게)
 const AXIS_LABEL = { info: "정보", story: "이사하면서", review: "후기", food: "맛집" };
 async function logPublish(rec) {
   try {
@@ -108,6 +109,20 @@ async function logPublish(rec) {
     list.unshift({ id: uid(), at: todayStr(), ...rec });
     await window.storage.set(HISTORY_KEY, JSON.stringify(list.slice(0, 800)));
   } catch {}
+}
+// 발행 대장(초안) — 후기와 같은 GAS 웹앱에 저장/조회 (폰·PC 어디서든 같은 목록)
+async function savePostToSheet(post) {
+  try { await fetch(REVIEW_GAS_URL, { method: "POST", body: JSON.stringify({ kind: "post", data: post }) }); } catch {}
+}
+async function updatePostOnSheet(patch) {
+  try { await fetch(REVIEW_GAS_URL, { method: "POST", body: JSON.stringify({ kind: "post_update", data: patch }) }); } catch {}
+}
+async function fetchPostsFromSheet() {
+  try {
+    const r = await fetch(REVIEW_GAS_URL + "?tab=posts&key=" + encodeURIComponent(REVIEW_GAS_KEY));
+    const j = await r.json();
+    return (j && j.ok && Array.isArray(j.rows)) ? j.rows : [];
+  } catch { return []; }
 }
 
 // 고객 평가(후기) — 데이터는 나중에 ERP 고객리스트로 이관
@@ -1200,6 +1215,7 @@ export default function App() {
               { id: "generate", label: "초안 생성", Icon: Sparkles },
               { id: "queue", label: "검수 큐", Icon: Inbox },
               { id: "calendar", label: "발행 캘린더", Icon: CalendarDays },
+              { id: "publish", label: "발행 대장", Icon: Send },
               { id: "keywords", label: "키워드", Icon: Tag },
               { id: "reels", label: "릴스", Icon: Video },
               { id: "reviews", label: "평가", Icon: Star },
@@ -1235,6 +1251,7 @@ export default function App() {
         {tab === "generate" && <Generate seed={genSeed} keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} onSave={(d) => { setQueue((q) => [d, ...q]); setTab("queue"); }} />}
         {tab === "queue" && <Queue queue={queue} update={update} remove={remove} go={() => setTab("generate")} />}
         {tab === "calendar" && <Calendar queue={queue} />}
+        {tab === "publish" && <PublishBoard />}
         {tab === "keywords" && <KeywordManager keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} noteKeyword={noteKeyword} />}
         {tab === "reels" && <Reels />}
         {tab === "reviews" && <Reviews reviews={reviews} addReview={addReview} removeReview={removeReview} writeFromReview={writeFromReview} brand={brand} crm={crm} />}
@@ -2009,6 +2026,16 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
     }
   }, [seed && seed.at]);
 
+  // 초안 자동 임시저장: 만들면 곧바로 저장, 새로고침·탭 이동에도 안 사라짐(검수로 넘기기 전 안전장치)
+  useEffect(() => {
+    (async () => {
+      try { const r = await window.storage.get(DRAFT_KEY); if (r) { const d = JSON.parse(r.value); if (d && (d.blogTitle || d.blogBody)) setDraft(d); } } catch {}
+    })();
+  }, []);
+  useEffect(() => {
+    try { if (draft) window.storage.set(DRAFT_KEY, JSON.stringify(draft)); } catch {}
+  }, [draft]);
+
   // 필수 입력: 맛집(식당명·메뉴·코멘트) / 후기(현장 메모)
   const ready =
     axis.food ? Boolean(restaurant.trim() && menu.trim() && taste.trim())
@@ -2036,7 +2063,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
   };
 
   const save = () => {
-    onSave({
+    const item = {
       id: uid(), axis: axisId, status: "검수중", createdAt: todayStr(),
       scheduledDate: "", keyword: draft.keyword || "",
       blogTitle: draft.blogTitle || "", blogBody: draft.blogBody || "",
@@ -2044,7 +2071,17 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
       hashtags: draft.hashtags || [], fieldNote: draft.fieldNote || "", imageCount: images.length,
       covers: draft.covers || [], thread: draft.thread || "",
       region: (regionEtc.trim() || region) || "",
+    };
+    onSave(item);
+    // 발행 대장(시트)에도 저장 → 폰·PC 공유
+    savePostToSheet({
+      id: item.id, region: item.region, axis: AXIS_LABEL[axisId] || axisId,
+      keyword: item.keyword, title: item.blogTitle, body: item.blogBody,
+      insta_caption: item.instaCaption, hashtags: item.hashtags, covers: item.covers,
+      thread: item.thread, status: "검수중",
     });
+    try { if (window.storage.delete) window.storage.delete(DRAFT_KEY); else window.storage.set(DRAFT_KEY, ""); } catch {}
+    setDraft(null);
   };
 
   return (
@@ -2266,6 +2303,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
 
       {draft && (
         <div className="hd-fade" style={{ marginTop: 18 }}>
+          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10, lineHeight: 1.5 }}>이 초안은 <b>자동 임시저장</b>됩니다(새로고침·탭 이동에도 안 사라짐). 보관하려면 아래 <b>[검수 큐에 담기]</b>를 누르세요. — 단, 폰↔PC는 저장소가 달라 서로 안 보입니다.</div>
           <DraftView draft={draft} axis={axis} />
           <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
             <button className="hd-btn" onClick={save}
@@ -3768,6 +3806,92 @@ function ManualCopy({ title, body }) {
 
 
 const primaryBtn = { padding: "12px 18px", borderRadius: 12, border: "none", background: C.navy, color: "#fff", fontWeight: 800, fontSize: 14, display: "inline-flex", alignItems: "center", gap: 8 };
+
+function PublishBoard() {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [openId, setOpenId] = useState("");
+  useEffect(() => { (async () => { setLoading(true); const r = await fetchPostsFromSheet(); setPosts(r); setLoading(false); })(); }, []);
+  const reload = async () => { setLoading(true); setPosts(await fetchPostsFromSheet()); setLoading(false); };
+  const splitPipe = (s) => (s ? String(s).split("|").map((t) => t.trim()).filter(Boolean) : []);
+  const markCh = async (post, label) => {
+    const field = { "블로그": "ch_blog", "인스타": "ch_insta", "릴스": "ch_reels", "스레드": "ch_thread" }[label];
+    setPosts((v) => v.map((x) => x.id === post.id ? { ...x, [field]: "Y", status: "발행" } : x));
+    await updatePostOnSheet({ id: post.id, [field]: "Y", status: "발행" });
+    logPublish({ title: post.title || "(제목 없음)", region: post.region || "", axis: post.axis || "", channel: label });
+  };
+  return (
+    <div className="hd-fade">
+      <Panel>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>발행 대장</div>
+          <span style={{ fontSize: 12, color: C.muted, marginLeft: 10 }}>시트 저장 · 폰·PC 공유</span>
+          <button className="hd-btn" onClick={reload} style={{ marginLeft: "auto", ...pubBtn(), padding: "8px 12px" }}><RefreshCw size={15} /> 새로고침</button>
+        </div>
+        <div style={{ fontSize: 12, color: C.muted, marginBottom: 14, lineHeight: 1.5 }}>초안을 만들어 <b>[검수 큐에 담기]</b>를 누르면 여기(구글 시트)에 저장됩니다. 어느 기기에서 만들었든 같은 목록이 보이고, 여기서 모든 채널로 발행합니다.</div>
+        {loading ? (
+          <div style={{ textAlign: "center", color: C.muted, padding: 30 }}>불러오는 중…</div>
+        ) : posts.length === 0 ? (
+          <div style={{ textAlign: "center", color: C.muted, padding: 30, lineHeight: 1.6 }}>아직 발행 대장에 글이 없습니다.<br />초안을 만들어 검수 큐에 담아보세요.</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {posts.map((p) => {
+              const open = openId === p.id;
+              const done = (c) => p[c] === "Y";
+              return (
+                <div key={p.id} style={{ border: `1px solid ${C.line}`, borderRadius: 12, overflow: "hidden" }}>
+                  <button className="hd-btn" onClick={() => setOpenId(open ? "" : p.id)} style={{ width: "100%", textAlign: "left", background: "#fff", border: "none", padding: "12px 14px", cursor: "pointer" }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{p.title || "(제목 없음)"}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>
+                      {(p.created_at || "").slice(0, 10)}{p.region ? " · " + p.region : ""}{p.axis ? " · " + p.axis : ""}{"   "}
+                      {done("ch_blog") ? "📗" : ""}{done("ch_insta") ? "📸" : ""}{done("ch_reels") ? "🎬" : ""}{done("ch_thread") ? "🧵" : ""}
+                    </div>
+                  </button>
+                  {open && (
+                    <div style={{ padding: "0 14px 14px", borderTop: `1px solid ${C.line}` }}>
+                      <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <CopyButton getText={() => p.title || ""} label="제목 복사" />
+                        <CopyButton getText={() => toNaverBody(p.body || "")} label="본문 복사" />
+                        <CopyButton getText={() => (p.insta_caption || "") + "\n\n" + splitPipe(p.hashtags).map((h) => h.startsWith("#") ? h : "#" + h).join(" ")} label="인스타 캡션 복사" />
+                        {p.thread ? <CopyButton getText={() => p.thread} label="스레드 복사" /> : null}
+                      </div>
+                      {splitPipe(p.covers).length > 0 && (
+                        <div style={{ marginTop: 10 }}>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: C.navy, marginBottom: 5 }}>카드뉴스 표지 문구</div>
+                          {splitPipe(p.covers).map((cv, i) => (
+                            <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 5 }}>
+                              <div style={{ flex: 1, fontSize: 12.5, background: "#F4F7FB", border: `1px solid ${C.line}`, borderRadius: 8, padding: "7px 10px" }}>{cv}</div>
+                              <CopyButton getText={() => cv} label="복사" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                        <a href="https://blog.naver.com/happyday2424?Redirect=Write" target="_blank" rel="noreferrer" style={pubBtn()}>📗 네이버 글쓰기</a>
+                        <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" style={pubBtn()}>📸 인스타 열기</a>
+                        <a href="https://www.threads.net/" target="_blank" rel="noreferrer" style={pubBtn()}>🧵 스레드 열기</a>
+                        <a href="https://www.instagram.com/reels/" target="_blank" rel="noreferrer" style={pubBtn()}>🎬 릴스</a>
+                      </div>
+                      <div style={{ marginTop: 12, fontSize: 12, fontWeight: 800, color: C.navy, marginBottom: 6 }}>올린 채널 체크 (시트에 기록)</div>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {[["블로그", "ch_blog"], ["인스타", "ch_insta"], ["릴스", "ch_reels"], ["스레드", "ch_thread"]].map((pair) => (
+                          <button key={pair[1]} className="hd-btn" onClick={() => markCh(p, pair[0])}
+                            style={{ padding: "8px 14px", borderRadius: 999, border: `1.5px solid ${done(pair[1]) ? "#2E9E8F" : C.line}`, background: done(pair[1]) ? "#E7F6F1" : "#fff", color: done(pair[1]) ? "#1E7A6B" : C.navy, fontWeight: 800, fontSize: 12.5 }}>
+                            {done(pair[1]) ? "✓ " : "+ "}{pair[0]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Panel>
+    </div>
+  );
+}
 
 function Panel({ children }) {
   return <div style={{ background: C.card, borderRadius: 18, border: `1px solid ${C.line}`, padding: 20, boxShadow: "0 1px 3px rgba(21,36,59,.04)" }}>{children}</div>;
