@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v2.5 · 2026-08-06";
+const APP_VER = "v2.7 · 0809-1920";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -814,8 +814,10 @@ ${spec}
 KEYWORD: (롱테일 키워드 한 개)
 TITLE: (키워드를 앞에 둔 제목)
 TAGS: #태그1, #태그2, #태그3
-CAPTION: (인스타 캡션 2~3문장, 이모지 약간)
-HASHTAGS: #해시1, #해시2
+CAPTION: (인스타 캡션. 아래 구조를 지켜라 ─ 블로그 축소판이 아니라 인스타답게: 1) 첫 줄은 스크롤을 멈추게 하는 후킹 한 줄(질문·공감·놀람) 2) 줄바꿈으로 끊어 3~4줄, 이모지를 줄 구분·강조에 자연스럽게 3) 마지막 줄은 행동 유도(예: "견적은 프로필 링크·전화로", "이사·입주청소 궁금하면 저장해두세요"). 과장 금지, 슬로건·지역 자연스럽게)
+HASHTAGS: (해시태그 12개. 반드시 지역 태그 3~4개 포함 ─ 예: #이번글지역이사 #이번글지역포장이사 #이번글지역입주청소. 나머지는 업종·상황·브랜드 태그로. 실제 지역명으로 바꿔 쓸 것. #으로 시작, 쉼표로 구분)
+COVER: 인스타 카드뉴스 표지 문구 3개를 " | "로 구분. 각각 다른 앵글 ─ ①충격(놀라운 사실·숫자) ②변화(지금 바꾸면 달라진다) ③궁금증(왜?·진짜?). 짧고 한눈에 읽히게.
+THREAD: 스레드(Threads)용 짧은 글. 2~3문장, 말하듯 자연스럽게, 이모지 약간. 마지막에 가벼운 행동 유도. 해시태그는 1~2개만.
 FIELDNOTE: (대표가 보태면 좋을 현장 경험 한 줄)
 BODY:
 (여기에 완성 본문)`;
@@ -855,6 +857,8 @@ BODY:
     blogTags: splitTags(get("TAGS")),
     instaCaption: get("CAPTION"),
     hashtags: splitTags(get("HASHTAGS")),
+    covers: (get("COVER") ? get("COVER").split("|").map((t) => t.trim()).filter(Boolean) : []),
+    thread: get("THREAD"),
     fieldNote: get("FIELDNOTE"),
     blogBody,
   };
@@ -884,13 +888,13 @@ ${memo && memo.trim() ? `[현장 메모] ${memo.trim()}` : ""}
 HOOK: (첫 2초에 뜨는 강한 한 줄 자막)
 CAPTIONS: 장면별 화면 자막 3~5개를 " | "로 구분 (짧고 임팩트 있게)
 NARRATION: (영상 위에 깔 멘트/자막 낭독용 2~3문장)
-CAPTION: (인스타 릴스 게시 캡션 2문장, 이모지 약간)
-HASHTAGS: #해시1, #해시2, #해시3, #해시4
+CAPTION: (인스타 릴스 게시 캡션 2~3문장, 이모지 약간. 마지막 문장은 행동 유도 ─ 예: "견적은 프로필·전화로 편하게")
+HASHTAGS: (해시태그 10개. 지역 태그 3개 필수 ─ 예: #지역이사 #지역포장이사 #지역입주청소. 나머지는 업종·상황·브랜드. 실제 지역명으로, #으로 시작, 쉼표로 구분)
 GUIDE: 촬영 장면 순서 3~5개를 " | "로 구분 (무엇을 어떻게 찍을지)`;
 
   let data;
   try {
-    data = await aiComplete({ messages: [{ role: "user", content: prompt }], max_tokens: 1000 });
+    data = await aiComplete({ messages: [{ role: "user", content: prompt }], max_tokens: 1500 });
   } catch (e) { throw e; }
   const text = (data.content || []).filter((b) => b && b.type === "text").map((b) => b.text).join("\n");
   if (!text) throw new Error("FORMAT");
@@ -2007,6 +2011,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
       blogTitle: draft.blogTitle || "", blogBody: draft.blogBody || "",
       blogTags: draft.blogTags || [], instaCaption: draft.instaCaption || "",
       hashtags: draft.hashtags || [], fieldNote: draft.fieldNote || "", imageCount: images.length,
+      covers: draft.covers || [], thread: draft.thread || "",
       region: (regionEtc.trim() || region) || "",
     });
   };
@@ -2502,6 +2507,38 @@ function QueueCard({ d, update, remove }) {
             </button>
           </div>
           {cards && <CardNews title={d.blogTitle} body={d.blogBody} />}
+
+          {/* ── 발행 센터: 밤에 탭 몇 번으로 4채널 ── */}
+          <Divider />
+          <SectionTitle icon={Send}>발행 센터 <span style={{ fontWeight: 600, color: C.muted }}>· 밤에 탭 몇 번</span></SectionTitle>
+          {d.covers && d.covers.length > 0 && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 6 }}>인스타 카드뉴스 표지 문구 (3개 중 하나 고르기)</div>
+              {d.covers.map((cv, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
+                  <div style={{ flex: 1, fontSize: 13, color: C.text, background: "#F4F7FB", border: `1px solid ${C.line}`, borderRadius: 9, padding: "8px 11px" }}>{cv}</div>
+                  <CopyButton getText={() => cv} label="복사" />
+                </div>
+              ))}
+            </div>
+          )}
+          {d.thread && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 6 }}>스레드 글</div>
+              <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6, background: "#F4F7FB", border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px", whiteSpace: "pre-wrap" }}>{d.thread}</div>
+              <div style={{ marginTop: 8 }}><CopyButton getText={() => d.thread} label="스레드 글 복사" full /></div>
+            </div>
+          )}
+          <div style={{ marginTop: 13, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>앱 열기 (위에서 복사 → 여기서 열기 → 붙여넣기)</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <a href="https://blog.naver.com/happyday2424?Redirect=Write" target="_blank" rel="noreferrer" style={pubBtn()}>📗 네이버 글쓰기</a>
+            <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" style={pubBtn()}>📸 인스타 열기</a>
+            <a href="https://www.threads.net/" target="_blank" rel="noreferrer" style={pubBtn()}>🧵 스레드 열기</a>
+            <a href="https://www.instagram.com/reels/" target="_blank" rel="noreferrer" style={pubBtn()}>🎬 릴스(영상 첨부)</a>
+          </div>
+          <div style={{ fontSize: 11, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+            블로그·인스타·스레드는 <b>복사→열기→붙여넣기</b>면 끝. 인스타는 카드뉴스(위)나 후기 카드 이미지를, 릴스는 폰으로 찍은 영상을 올린 뒤 캡션을 붙여넣으세요.
+          </div>
 
           {d.fieldNote && <Note tone="tip"><Lightbulb size={15} style={{ flexShrink: 0, marginTop: 1 }} /> <span><b>현장 추가 포인트</b> — {d.fieldNote}</span></Note>}
 
@@ -3288,6 +3325,11 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, r);
   ctx.arcTo(x, y, x + w, y, r);
   ctx.closePath();
+}
+
+// 발행 센터 '앱 열기' 버튼 공통 스타일
+function pubBtn() {
+  return { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px 8px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 13, textDecoration: "none", cursor: "pointer" };
 }
 
 // 후기 카드 1080x1080 — 고객 별점·항목·한 줄 후기를 이미지 한 장으로 (사진 없는 날 시각 자료)
