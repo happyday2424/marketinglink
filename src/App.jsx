@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v2.7 · 0809-1920";
+const APP_VER = "v2.9 · 0809-2110";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -98,6 +98,17 @@ const STATUS = {
 };
 
 const STORE_KEY = "happyday:queue:v1";
+// 발행 히스토리 — 무엇이 넘쳐도 안 날아가게 '별도의 작은 저장소'에 둔다(제목·날짜·지역·축·채널)
+const HISTORY_KEY = "happyday:history:v1";
+const AXIS_LABEL = { info: "정보", story: "이사하면서", review: "후기", food: "맛집" };
+async function logPublish(rec) {
+  try {
+    const r = await window.storage.get(HISTORY_KEY);
+    const list = r ? JSON.parse(r.value) : [];
+    list.unshift({ id: uid(), at: todayStr(), ...rec });
+    await window.storage.set(HISTORY_KEY, JSON.stringify(list.slice(0, 800)));
+  } catch {}
+}
 
 // 고객 평가(후기) — 데이터는 나중에 ERP 고객리스트로 이관
 // ★ 항목 순서·뜻은 후기봇(review.happyday24.com)의 RATING_LABELS 와 1:1 이다. 바꾸면 옛 데이터와 뜻이 어긋난다.
@@ -664,15 +675,34 @@ async function copyText(text) {
   } catch { return false; }
 }
 
-// 사진 파일 → { media_type, data(base64), url(미리보기) }
+// 사진 파일 → { media_type, data(base64), url(미리보기) } · 폰 대용량 사진은 1280px/JPEG로 자동 압축(413 방지)
 function fileToImage(file) {
   return new Promise((resolve, reject) => {
     const r = new FileReader();
     r.onload = () => {
-      const res = String(r.result);
-      const data = res.split(",")[1] || "";
-      const mt = (res.match(/^data:(.*?);base64/) || [])[1] || file.type || "image/jpeg";
-      resolve({ media_type: mt, data, url: res });
+      const res0 = String(r.result);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const MAX = 1280;
+          let w = img.width, h = img.height;
+          if (Math.max(w, h) > MAX) {
+            const s = MAX / Math.max(w, h);
+            w = Math.round(w * s); h = Math.round(h * s);
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w; canvas.height = h;
+          canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+          const url = canvas.toDataURL("image/jpeg", 0.8);
+          resolve({ media_type: "image/jpeg", data: url.split(",")[1] || "", url });
+        } catch (e) {
+          // 압축 실패 시 원본으로 폴백
+          const mt = (res0.match(/^data:(.*?);base64/) || [])[1] || file.type || "image/jpeg";
+          resolve({ media_type: mt, data: res0.split(",")[1] || "", url: res0 });
+        }
+      };
+      img.onerror = () => reject(new Error("img"));
+      img.src = res0;
     };
     r.onerror = () => reject(new Error("read"));
     r.readAsDataURL(file);
@@ -760,7 +790,8 @@ async function generateDraft(axis, hint, extra = {}) {
     ? `\n[이번 글 지역 — 매우 중요] "${extra.region.trim()}". 제목 앞쪽과 본문에 이 지역명을 자연스럽게 넣고, 키워드도 이 지역 기준으로 만들 것. 단, 실제로 겪지 않은 이 지역의 구체 사실(단지명·상호 등)은 지어내지 말 것.`
     : "";
   const spec = axis.food
-    ? `- 식당에서 밥 먹으며 폰으로 바로 올리는 생생한 현장 맛집 글. 1,000~1,300자로 충실하게. 최소 900자 이상 반드시 채우고, 짧게 끝내지 말 것.
+    ? `- 식당에서 밥 먹으며 폰으로 바로 올리는 생생한 현장 맛집 글. [분량·필수] 공백 포함 1,400자 이상(공백 제외 1,000자 이상)으로 충실하게 쓴다. 이보다 짧으면 실패한 글이다.
+- '## 소제목' 3~4개를 만들고, 각 소제목 아래 문단을 2개 이상 둔다. 다 썼다고 느끼면 글자 수를 스스로 세어, 공백 제외 1,000자에 못 미치면 문단을 더 추가해 채운 뒤 마무리한다.
 - 위 [식당 정보]의 식당명·메뉴·코멘트를 기초로 쓴다. 코멘트가 풍부하면 그만큼 길고 생생하게.
 - 마지막에 그 지역 이사도 해피데이라고 자연스럽게 연결한다.
 - 맛 평가가 미입력이면 "> (여기에 직접 느낀 맛 한 줄)" 자리를 1~2개 비워둔다.
@@ -2100,7 +2131,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
                 const files = Array.from(e.target.files || []);
                 const loaded = [];
                 for (const f of files) { try { loaded.push(await fileToImage(f)); } catch {} }
-                setImages((prev) => [...prev, ...loaded].slice(0, 5));
+                setImages((prev) => [...prev, ...loaded].slice(0, 10));
                 e.target.value = "";
               }} />
             {images.length > 0 && (
@@ -2115,7 +2146,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
               </div>
             )}
             <div style={{ fontSize: 11, color: C.muted, marginTop: 7, lineHeight: 1.5 }}>
-              사진을 올리면 AI가 실제 비주얼을 보고 더 생생하게 씁니다. (최대 5장) 안 올려도 텍스트로 작성됩니다.
+              사진을 올리면 AI가 실제 비주얼을 보고 더 생생하게 씁니다. (최대 10장, 많을수록 AI가 더 생생하게 씁니다) 안 올려도 텍스트로 작성됩니다.
             </div>
           </div>
         )}
@@ -2143,7 +2174,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
                 const files = Array.from(e.target.files || []);
                 const loaded = [];
                 for (const f of files) { try { loaded.push(await fileToImage(f)); } catch {} }
-                setImages((prev) => [...prev, ...loaded].slice(0, 5));
+                setImages((prev) => [...prev, ...loaded].slice(0, 10));
                 e.target.value = "";
               }} />
             {images.length > 0 && (
@@ -2158,7 +2189,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
               </div>
             )}
             <div style={{ fontSize: 11, color: C.muted, marginTop: 7, lineHeight: 1.5 }}>
-              그 고객 작업 때 찍어둔 사진을 직접 골라 올리세요. (최대 5장) 사진 없이 글만도 됩니다.
+              그 고객 작업 때 찍어둔 사진을 직접 골라 올리세요. (최대 10장, 많을수록 좋아요) 사진 없이 글만도 됩니다.
             </div>
 
             {/* [지역 선택 UI] 대전 1시간 반경 — 칩 + 직접입력 (누락돼 있던 부분 복구) */}
@@ -2359,6 +2390,7 @@ function QueueCard({ d, update, remove }) {
   const [open, setOpen] = useState(false);
   const [flash, setFlash] = useState("");
   const [cards, setCards] = useState(false);
+  const [logged, setLogged] = useState([]);
   const [wpBusy, setWpBusy] = useState(false);
 
   // 워드프레스 자동발행 — 설정에 사이트 정보가 있으면 버튼이 켜진다. 안전하게 '임시글(draft)'로 올린다.
@@ -2397,7 +2429,7 @@ function QueueCard({ d, update, remove }) {
   const kwTokens = (d.keyword || "").split(/\s+/).filter((t) => t.length >= 2);
   const titleHasKw = kwTokens.length > 0 && kwTokens.some((t) => (d.blogTitle || "").includes(t));
   const minLen = axis.quick ? 500 : 1500;
-  const minImg = axis.quick ? 3 : 5;
+  const minImg = 5; // 권장 기준(강제 아님) — 전 축 동일
   // ── 내용 안전 점검: '글자수'가 아니라 '무엇을 어떻게 쓰는가'를 본다 ──
   const _body = d.blogBody || "";
   const _title = d.blogTitle || "";
@@ -2412,7 +2444,7 @@ function QueueCard({ d, update, remove }) {
   const titleQ = /[?？]/.test(_title);
   const checks = [
     { ok: bodyLen >= minLen, label: `본문 ${minLen.toLocaleString()}자 이상`, now: `${bodyLen.toLocaleString()}자` },
-    { ok: imgCount >= minImg, label: `원본 사진 ${minImg}장 이상`, now: `${imgCount}장` },
+    { ok: true, label: `사진 (권장 ${minImg}장 · 강제 아님)`, now: imgCount >= minImg ? `${imgCount}장 · 충분` : `${imgCount}장 · 더 넣으면 좋아요` },
     { ok: titleHasKw, label: "제목에 키워드 포함", now: titleHasKw ? "포함" : "없음" },
     { ok: !banned, label: "금지 표현 없음(이사후청소·별표·청소포함금액)", now: banned ? "발견 ⚠" : "깨끗" },
     { ok: !impersonation, label: "고객 사칭 없음 (글쓴이=업체여야)", now: impersonation ? "1인칭 의심 ⚠" : "정상" },
@@ -2539,6 +2571,19 @@ function QueueCard({ d, update, remove }) {
           <div style={{ fontSize: 11, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
             블로그·인스타·스레드는 <b>복사→열기→붙여넣기</b>면 끝. 인스타는 카드뉴스(위)나 후기 카드 이미지를, 릴스는 폰으로 찍은 영상을 올린 뒤 캡션을 붙여넣으세요.
           </div>
+          <div style={{ marginTop: 14, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>올린 채널 기록 <span style={{ fontWeight: 600, color: C.muted }}>· 발행 히스토리에 저장(주제 안 겹치게)</span></div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {["블로그", "인스타", "릴스", "스레드"].map((ch) => {
+              const on = logged.includes(ch);
+              return (
+                <button key={ch} className="hd-btn" onClick={() => { logPublish({ title: d.blogTitle || "(제목 없음)", region: d.region || "", axis: AXIS_LABEL[d.axis] || d.axis || "", channel: ch }); setLogged((v) => v.includes(ch) ? v : [...v, ch]); }}
+                  style={{ padding: "8px 14px", borderRadius: 999, border: `1.5px solid ${on ? "#2E9E8F" : C.line}`, background: on ? "#E7F6F1" : "#fff", color: on ? "#1E7A6B" : C.navy, fontWeight: 800, fontSize: 12.5 }}>
+                  {on ? "✓ " : "+ "}{ch}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 11, color: C.muted, marginTop: 7 }}>올린 채널을 눌러두면 <b>발행 캘린더 → 발행 히스토리</b>에 제목·지역·축과 함께 남습니다.</div>
 
           {d.fieldNote && <Note tone="tip"><Lightbulb size={15} style={{ flexShrink: 0, marginTop: 1 }} /> <span><b>현장 추가 포인트</b> — {d.fieldNote}</span></Note>}
 
@@ -2604,6 +2649,9 @@ function QueueCard({ d, update, remove }) {
 function Calendar({ queue }) {
   const [cur, setCur] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
   const scheduled = useMemo(() => queue.filter((d) => d.scheduledDate), [queue]);
+  const [history, setHistory] = useState([]);
+  useEffect(() => { (async () => { try { const r = await window.storage.get(HISTORY_KEY); if (r) setHistory(JSON.parse(r.value) || []); } catch {} })(); }, []);
+  const delHist = async (id) => { const nx = history.filter((h) => h.id !== id); setHistory(nx); try { await window.storage.set(HISTORY_KEY, JSON.stringify(nx)); } catch {} };
 
   const first = new Date(cur.y, cur.m, 1);
   const startPad = first.getDay();
@@ -2619,6 +2667,23 @@ function Calendar({ queue }) {
 
   return (
     <div className="hd-fade">
+      {history.length > 0 && (
+        <Panel>
+          <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>발행 히스토리</div>
+          <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>지금까지 발행한 주제 — 다음 주제를 겹치지 않게 정할 때 참고하세요.</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {history.map((h) => (
+              <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "#FAFBFD", border: `1px solid ${C.line}`, borderRadius: 11 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: C.navy, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
+                  <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>{h.at}{h.region ? " · " + h.region : ""}{h.axis ? " · " + h.axis : ""}{h.channel ? " · " + h.channel : ""}</div>
+                </div>
+                <button className="hd-btn" onClick={() => delHist(h.id)} style={{ border: "none", background: "transparent", color: C.muted, padding: 4 }}><Trash2 size={15} /></button>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      )}
       <Panel>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 14 }}>
           <div style={{ fontSize: 17, fontWeight: 800 }}>{cur.y}년 {cur.m + 1}월</div>
@@ -3578,12 +3643,22 @@ function KeywordManager({ keywords, addKeyword, removeKeyword, noteKeyword }) {
     <div className="hd-fade" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 14, padding: "14px 15px" }}>
         <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6, marginBottom: 10 }}>
-          자주 쓰는 키워드를 축마다 저장해두면, <b>초안 생성에서 탭 한 번</b>으로 넣을 수 있습니다. 실제 검색량은 네이버 키워드도구에서 확인하세요.
+          <b>실제 검색량·경쟁도를 보고</b> 키워드를 고르세요. 아래 지역 키워드를 복사해 도구에 붙여넣으면 <b>월 검색량·문서수·포화도</b>가 보입니다. (검색량 많고 문서수 적은 = 블루오션)
         </div>
-        <a href="https://searchad.naver.com" target="_blank" rel="noreferrer"
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 800, color: "#03C75A", background: "#fff", border: "1.5px solid #03C75A", borderRadius: 10, padding: "8px 13px", textDecoration: "none" }}>
-          네이버 키워드도구 열기 ↗
-        </a>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
+          {["대전 이사", "세종 이사", "대전 포장이사", "세종 입주청소", "대전 이사청소", "옥천 이사", "금산 이사", "논산 이사"].map((k) => (
+            <CopyButton key={k} getText={() => k} label={k} />
+          ))}
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <a href="https://blackkiwi.net/" target="_blank" rel="noreferrer" style={pubBtn()}>🥝 블랙키위 (검색량·포화도)</a>
+          <a href="https://keywordmaster.org/" target="_blank" rel="noreferrer" style={pubBtn()}>🧩 키워드마스터</a>
+          <a href="https://datalab.naver.com/keyword/trendSearch.naver" target="_blank" rel="noreferrer" style={pubBtn()}>📈 네이버 데이터랩</a>
+          <a href="https://searchad.naver.com" target="_blank" rel="noreferrer" style={pubBtn()}>🟢 네이버 키워드도구</a>
+        </div>
+        <div style={{ fontSize: 11, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+          위 지역 키워드를 <b>복사</b> → 도구 열고 <b>붙여넣기</b>. 블랙키위·키워드마스터는 무료 조회 횟수 제한이 있어요. 좋은 키워드는 아래 축별로 저장하면 초안 생성에서 바로 쓸 수 있습니다.
+        </div>
       </div>
       {AXES.map((a) => (
         <AxisKeywords key={a.id} axis={a} list={keywords[a.id] || []} addKeyword={addKeyword} removeKeyword={removeKeyword} noteKeyword={noteKeyword} />
