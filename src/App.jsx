@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v3.6 · 0810-2125";
+const APP_VER = "v3.8 · 0810-2140";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -812,6 +812,36 @@ const CONTENT_RULES = `[반드시 지킬 표현 규칙]
 4. 과장·거짓 금지. [회사 사실]과 [현장 메모]에 없는 수치·후기·사례를 지어내지 말 것.
 5. 고객을 1인칭으로 사칭하지 말 것. 후기를 인용할 때는 큰따옴표를 쓰고 화자를 밝힐 것.`;
 
+// 라벨 응답 파서 — 모델이 라벨 앞에 **, -, 공백 등을 붙여도 읽어낸다
+function labelReader(raw) {
+  // 코드펜스·머리말 제거
+  const FENCE = new RegExp(String.fromCharCode(96, 96, 96) + "[a-zA-Z]*\\n?", "g");
+  const text = String(raw || "").replace(FENCE, "");
+  const get = (label) => {
+    const m = text.match(new RegExp(`^[\\s\\-*>#]*${label}\\s*[:\uFF1A]\\s*(.*)$`, "mi"));
+    return m ? stripMd(m[1].trim()) : "";
+  };
+  const splitPipe = (v) => (v ? v.split("|").map((t) => t.trim()).filter(Boolean) : []);
+  const splitSlash = (v) => (v ? v.split("/").map((t) => t.trim()).filter(Boolean) : []);
+  const splitTags = (v) => (v ? v.split(/[,\n]/).map((t) => t.trim()).filter(Boolean) : []);
+  return { text, get, splitPipe, splitSlash, splitTags };
+}
+
+// 형식이 어긋나면 한 번 더 시도한다 (모델이 라벨을 빠뜨리는 경우가 있어서)
+async function aiLabeled(prompt, max_tokens, ok) {
+  for (let i = 0; i < 2; i++) {
+    const extra = i === 0 ? "" : "\n\n[재시도] 앞선 응답의 형식이 어긋났습니다. 설명·머리말·후보 목록을 일절 쓰지 말고, 첫 줄부터 라벨로만 출력하세요.";
+    const data = await aiComplete({ messages: [{ role: "user", content: prompt + extra }], max_tokens });
+    const raw = (data.content || []).filter((b) => b && b.type === "text").map((b) => b.text).join("\n");
+    if (raw) {
+      const R = labelReader(raw);
+      const built = ok(R);
+      if (built) return built;
+    }
+  }
+  throw new Error("FORMAT");
+}
+
 // 마케팅 문안 공통 규칙 (2026-08-10 제정 · 전 채널 공통)
 const STYLE_RULES = `[마케팅 문안 공통 규칙 — 전 채널 공통]
 S1. 첫 줄에서 잡고, 마지막 줄에서 남긴다. 중간이 좋고 첫 줄이 밋밋하면 실패한 글이다.
@@ -959,6 +989,15 @@ function fileToImage(file) {
 }
 
 // 카드뉴스 하단 고정 띠에 들어가는 브랜드 정보 (여기 한 곳만 고치면 전부 반영)
+// 화면 글자 크기 — 폰·PC 각각 따로 기억한다 (PC 모니터는 멀어서 더 커야 한다)
+const UI_SCALE_KEY = "happyday:uiscale:v1";
+const SCALE_STEPS = [1, 1.15, 1.3, 1.5, 1.75];
+const scaleLabel = (v) => ({ 1: "보통", 1.15: "크게", 1.3: "더 크게", 1.5: "아주 크게", 1.75: "최대" })[v] || "보통";
+// 처음 여는 기기의 기본값 — 폰은 보통, PC는 한 단계 크게
+function defaultScale() {
+  try { return (window.innerWidth >= 1024) ? 1.3 : 1; } catch { return 1; }
+}
+
 const BRAND_KEY = "happyday:brand:v1";
 const BRAND = {
   name: "해피데이 익스프레스",
@@ -1192,11 +1231,15 @@ ${SHOOTABLE}
 12. 결과를 먼저 보여준다. 포장→운반→완료 순서로 찍되 편집은 완성된 장면부터 시작한다. 시간순 편집 금지.
 13. 고정 댓글(PINNED)에만 링크·연락을 넣는다. ${BRAND.linkUrl && BRAND.linkUrl.trim() ? "안내할 주소: " + BRAND.linkUrl.trim() : "주소가 없으면 '프로필 링크'와 전화번호로 안내한다."}
 
-반드시 아래 라벨 형식으로만, 각 라벨을 한 줄씩 출력하세요(설명·군더더기·코드펜스 금지).
+[출력 형식 — 어기면 결과를 쓸 수 없습니다]
+· 첫 줄부터 바로 라벨로 시작한다. 인사말·설명·머리말을 절대 앞에 쓰지 않는다.
+· 각 라벨은 한 줄씩. 라벨 이름 앞뒤에 별표·하이픈 같은 기호를 붙이지 않는다.
+· 생각 과정이나 후보 목록은 출력하지 않는다. 최종 결과만 라벨에 담는다.
+· 코드블록 기호로 감싸지 않는다.
 
 FIRSTFRAME: (영상의 첫 프레임을 무엇으로 시작할지 한 줄 지시. 카메라 위치·피사체까지 구체적으로)
 HOOK: (첫 2초 화면에 뜨는 자막 · 12자 이내 · 물음표·느낌표 금지)
-HOOK3: 훅 후보를 속으로 10개 만든 뒤 가장 센 3개만 " | "로 구분해 출력 (각 12자 이내, 위 HOOK 포함)
+HOOK3: 가장 센 훅 3개를 " | "로 구분 (각 12자 이내, 위 HOOK 포함. 나머지 후보는 출력하지 않는다)
 HOOKWHY: 3개를 고른 이유를 각각 한 줄로 " | "로 구분
 CAPTIONS: 장면별 화면 자막 3~5개를 " | "로 구분 (각 12자 이내)
 NARRATION: (영상 위에 깔 멘트 2~3문장)
@@ -1208,34 +1251,25 @@ GUIDE: 촬영 장면 순서 3~5개를 " | "로 구분 (무엇을 어떻게 찍�
 CROSS: (이 릴스를 알리려고 스레드에 올릴 한 줄)
 BESTTIME: (이 릴스를 올리기 좋은 요일·시간 한 줄 · 한국 시간 기준)`;
 
-  const data = await aiComplete({ messages: [{ role: "user", content: prompt }], max_tokens: 2000 });
-  const text = (data.content || []).filter((b) => b && b.type === "text").map((b) => b.text).join("\n");
-  if (!text) throw new Error("FORMAT");
-
-  const get = (label) => {
-    const m = text.match(new RegExp(`^${label}:[ \\t]*(.*)$`, "m"));
-    return m ? stripMd(m[1].trim()) : "";
-  };
-  const splitPipe = (s) => (s ? s.split("|").map((t) => t.trim()).filter(Boolean) : []);
-  const splitTags = (s) => (s ? s.split(/[,\n]/).map((t) => t.trim()).filter(Boolean) : []);
-
-  const r = {
-    firstFrame: get("FIRSTFRAME"),
-    hook: get("HOOK"),
-    hook3: splitPipe(get("HOOK3")),
-    hookWhy: splitPipe(get("HOOKWHY")),
-    captions: splitPipe(get("CAPTIONS")),
-    narration: get("NARRATION"),
-    caption: get("CAPTION"),
-    hashtags: splitTags(get("HASHTAGS")),
-    pinned: get("PINNED"),
-    endcard: get("ENDCARD"),
-    guide: splitPipe(get("GUIDE")),
-    cross: get("CROSS"),
-    bestTime: get("BESTTIME"),
-  };
-  if (!r.hook && !r.narration && r.captions.length === 0) throw new Error("FORMAT");
-  return r;
+  return await aiLabeled(prompt, 3000, ({ get, splitPipe, splitTags }) => {
+    const r = {
+      firstFrame: get("FIRSTFRAME"),
+      hook: get("HOOK"),
+      hook3: splitPipe(get("HOOK3")),
+      hookWhy: splitPipe(get("HOOKWHY")),
+      captions: splitPipe(get("CAPTIONS")),
+      narration: get("NARRATION"),
+      caption: get("CAPTION"),
+      hashtags: splitTags(get("HASHTAGS")),
+      pinned: get("PINNED"),
+      endcard: get("ENDCARD"),
+      guide: splitPipe(get("GUIDE")),
+      cross: get("CROSS"),
+      bestTime: get("BESTTIME"),
+    };
+    if (!r.hook && !r.narration && r.captions.length === 0) return null;
+    return r;
+  });
 }
 
 
@@ -1268,7 +1302,11 @@ ${CH_EXCEPTION.threads}
 12. 이모지는 글 전체에서 2개 이하.
 13. 글 안에 전화번호나 링크를 넣지 않는다. 스레드는 파는 곳이 아니라 신뢰를 쌓는 곳이다.
 
-반드시 아래 라벨 형식으로만, 각 라벨을 한 줄씩 출력하세요(설명·군더더기·코드펜스 금지).
+[출력 형식 — 어기면 결과를 쓸 수 없습니다]
+· 첫 줄부터 바로 라벨로 시작한다. 인사말·설명·머리말을 절대 앞에 쓰지 않는다.
+· 각 라벨은 한 줄씩. 라벨 이름 앞뒤에 별표·하이픈 같은 기호를 붙이지 않는다.
+· 생각 과정이나 후보 목록은 출력하지 않는다. 최종 결과만 라벨에 담는다.
+· 코드블록 기호로 감싸지 않는다.
 
 HOOK: (1번 글 · 두 줄 이내 · 미완성 문장으로 끊기)
 REPLIES: 자기 답글 본문 2~4개를 " | "로 구분 (각 2~4문장, 순서대로 이어지게)
@@ -1277,26 +1315,18 @@ TAG: #태그1
 REPLYPLAN: (댓글이 달렸을 때 대표가 어떻게 되받을지 방향 한 줄)
 BESTTIME: (이 글을 올리기 좋은 시간대 한 줄 · 한국 시간 기준)`;
 
-  const data = await aiComplete({ messages: [{ role: "user", content: prompt }], max_tokens: 2000 });
-  const text = (data.content || []).filter((b) => b && b.type === "text").map((b) => b.text).join("\n");
-  if (!text) throw new Error("FORMAT");
-
-  const get = (label) => {
-    const m = text.match(new RegExp(`^${label}:[ \\t]*(.*)$`, "m"));
-    return m ? stripMd(m[1].trim()) : "";
-  };
-  const splitPipe = (s) => (s ? s.split("|").map((t) => t.trim()).filter(Boolean) : []);
-
-  const r = {
-    hook: get("HOOK"),
-    replies: splitPipe(get("REPLIES")),
-    closer: get("CLOSER"),
-    tag: get("TAG"),
-    replyPlan: get("REPLYPLAN"),
-    bestTime: get("BESTTIME"),
-  };
-  if (!r.hook && r.replies.length === 0) throw new Error("FORMAT");
-  return r;
+  return await aiLabeled(prompt, 2500, ({ get, splitPipe }) => {
+    const r = {
+      hook: get("HOOK"),
+      replies: splitPipe(get("REPLIES")),
+      closer: get("CLOSER"),
+      tag: get("TAG"),
+      replyPlan: get("REPLYPLAN"),
+      bestTime: get("BESTTIME"),
+    };
+    if (!r.hook && r.replies.length === 0) return null;
+    return r;
+  });
 }
 
 
@@ -1330,10 +1360,14 @@ ${CH_EXCEPTION.insta}
 12. 문체는 광고문이 아니라 현장에서 일하는 사람의 담백한 존댓말.
 13. 고정 댓글(PINNED)에만 링크·연락을 넣는다. ${BRAND.linkUrl && BRAND.linkUrl.trim() ? "안내할 주소: " + BRAND.linkUrl.trim() : "주소가 없으면 '프로필 링크'와 전화번호로 안내한다."}
 
-반드시 아래 라벨 형식으로만, 각 라벨을 한 줄씩 출력하세요(설명·군더더기·코드펜스 금지).
+[출력 형식 — 어기면 결과를 쓸 수 없습니다]
+· 첫 줄부터 바로 라벨로 시작한다. 인사말·설명·머리말을 절대 앞에 쓰지 않는다.
+· 각 라벨은 한 줄씩. 라벨 이름 앞뒤에 별표·하이픈 같은 기호를 붙이지 않는다.
+· 생각 과정이나 후보 목록은 출력하지 않는다. 최종 결과만 라벨에 담는다.
+· 코드블록 기호로 감싸지 않는다.
 
 HOOKCARD: (1장 표지 훅 · 20자 이내 · 물음표·느낌표 금지 · 단정형)
-HOOK3: 표지 훅 후보를 속으로 10개 만든 뒤 가장 센 3개만 " | "로 구분해 출력 (각 20자 이내, 위 HOOKCARD 포함)
+HOOK3: 가장 센 표지 훅 3개를 " | "로 구분 (각 20자 이내, 위 HOOKCARD 포함. 나머지 후보는 출력하지 않는다)
 HOOKWHY: 3개를 고른 이유를 각각 한 줄로 " | "로 구분
 HOOKSUB: (표지 훅 아래 보조 한 줄 · 18자 이내)
 CARDS: 본문 4장을 " | "로 구분. 각 장은 "소제목 :: 본문문장1 / 본문문장2" 형식 (소제목 12자 이내, 본문 각 22자 이내)
@@ -1345,39 +1379,29 @@ PINNED: (고정 댓글 한 줄 · 견적·전화로 자연스럽게 유도)
 THREADCROSS: (이 카드를 알리려고 스레드에 올릴 한 줄)
 BESTTIME: (이 카드를 올리기 좋은 요일·시간 한 줄 · 한국 시간 기준)`;
 
-  const data = await aiComplete({ messages: [{ role: "user", content: prompt }], max_tokens: 2500 });
-  const text = (data.content || []).filter((b) => b && b.type === "text").map((b) => b.text).join("\n");
-  if (!text) throw new Error("FORMAT");
+  return await aiLabeled(prompt, 4000, ({ get, splitPipe, splitSlash, splitTags }) => {
+    const bodyCards = splitPipe(get("CARDS")).map((seg) => {
+      const parts = seg.split("::");
+      return { head: (parts[0] || "").trim(), lines: splitSlash((parts[1] || "").trim()).slice(0, 2) };
+    }).filter((c) => c.head || c.lines.length);
 
-  const get = (label) => {
-    const m = text.match(new RegExp(`^${label}:[ \\t]*(.*)$`, "m"));
-    return m ? stripMd(m[1].trim()) : "";
-  };
-  const splitPipe = (s) => (s ? s.split("|").map((t) => t.trim()).filter(Boolean) : []);
-  const splitSlash = (s) => (s ? s.split("/").map((t) => t.trim()).filter(Boolean) : []);
-  const splitTags = (s) => (s ? s.split(/[,\n]/).map((t) => t.trim()).filter(Boolean) : []);
-
-  const bodyCards = splitPipe(get("CARDS")).map((seg) => {
-    const parts = seg.split("::");
-    return { head: (parts[0] || "").trim(), lines: splitSlash((parts[1] || "").trim()).slice(0, 2) };
-  }).filter((c) => c.head || c.lines.length);
-
-  const r = {
-    hook: get("HOOKCARD"),
-    hook3: splitPipe(get("HOOK3")),
-    hookWhy: splitPipe(get("HOOKWHY")),
-    hookSub: get("HOOKSUB"),
-    cards: bodyCards,
-    summary: splitSlash(get("SUMMARY")).slice(0, 5),
-    saveHook: get("SAVEHOOK") || "저장해두세요",
-    caption: get("CAPTION"),
-    hashtags: splitTags(get("HASHTAGS")),
-    pinned: get("PINNED"),
-    cross: get("THREADCROSS"),
-    bestTime: get("BESTTIME"),
-  };
-  if (!r.hook && r.cards.length === 0) throw new Error("FORMAT");
-  return r;
+    const r = {
+      hook: get("HOOKCARD"),
+      hook3: splitPipe(get("HOOK3")),
+      hookWhy: splitPipe(get("HOOKWHY")),
+      hookSub: get("HOOKSUB"),
+      cards: bodyCards,
+      summary: splitSlash(get("SUMMARY")).slice(0, 5),
+      saveHook: get("SAVEHOOK") || "저장해두세요",
+      caption: get("CAPTION"),
+      hashtags: splitTags(get("HASHTAGS")),
+      pinned: get("PINNED"),
+      cross: get("THREADCROSS"),
+      bestTime: get("BESTTIME"),
+    };
+    if (!r.hook && r.cards.length === 0) return null;
+    return r;
+  });
 }
 
 // 생성 결과 → 슬라이드 배열 (표지 + 본문 + 요약 + CTA)
@@ -1442,6 +1466,7 @@ export default function App() {
   const [reviews, setReviews] = useState([]);
   const [crm, setCrm] = useState([]);
   const [genSeed, setGenSeed] = useState(null);
+  const [uiScale, setUiScale] = useState(1);
   const [ready, setReady] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -1463,6 +1488,11 @@ export default function App() {
         const r = await window.storage.get(KW_KEY);
         if (r) setKeywords(normKW(JSON.parse(r.value)));
       } catch { /* 기본값 유지 */ }
+      try {
+        const us = await window.storage.get(UI_SCALE_KEY);
+        const v = us && us.value ? Number(us.value) : 0;
+        setUiScale(SCALE_STEPS.indexOf(v) >= 0 ? v : defaultScale());
+      } catch { setUiScale(defaultScale()); }
       try {
         const b = await window.storage.get(BRAND_KEY);
         if (b) { const v = { ...BRAND, ...JSON.parse(b.value) }; Object.assign(BRAND, v); applyIndustry(v.industry, (v.axisEdits || {})[v.industry]); setBrand(v); }
@@ -1591,6 +1621,15 @@ export default function App() {
     });
   }, []);
 
+  const bumpScale = useCallback((dir) => {
+    setUiScale((v) => {
+      const i = Math.max(0, Math.min(SCALE_STEPS.length - 1, SCALE_STEPS.indexOf(v) + dir));
+      const nx = SCALE_STEPS[i];
+      try { window.storage.set(UI_SCALE_KEY, String(nx)); } catch {}
+      return nx;
+    });
+  }, []);
+
   const update = useCallback((id, patch) => {
     setQueue((q) => q.map((d) => (d.id === id ? { ...d, ...patch } : d)));
     // 상태·예정일 변경은 시트에도 올린다 (다른 기기에서 같은 상태로 보이게)
@@ -1615,7 +1654,7 @@ export default function App() {
   }, [queue]);
 
   return (
-    <div style={{ minHeight: "100%", background: C.bg, color: C.text, fontFamily: "var(--hd-font)" }}>
+    <div style={{ minHeight: "100%", background: C.bg, color: C.text, fontFamily: "var(--hd-font)", zoom: uiScale }}>
       <style>{`
         @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
         :root{ --hd-font:'Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif; }
@@ -1632,7 +1671,7 @@ export default function App() {
 
       {/* Header */}
       <header style={{ background: C.navy, color: "#fff", padding: "18px 22px 0" }}>
-        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <div style={{
               width: 38, height: 38, borderRadius: 11, background: C.coral,
@@ -1654,6 +1693,7 @@ export default function App() {
               <Stat n={stats.waiting} label="발행대기" />
               <Stat n={stats.scheduled} label="이달 예약" />
             </div>
+            <ScaleCtl scale={uiScale} bump={bumpScale} />
           </div>
 
           {/* Tabs — 넘치면 2줄로 */}
@@ -1690,7 +1730,7 @@ export default function App() {
         </div>
       </header>
 
-      <main style={{ maxWidth: 1080, margin: "0 auto", padding: "22px" }}>
+      <main style={{ maxWidth: 1180, margin: "0 auto", padding: "22px" }}>
         {saveError === "full" && (
           <div style={{ background: "#FDECEA", border: "1px solid #E8654A", borderRadius: 12, padding: "13px 15px", marginBottom: 16, fontSize: 13.5, color: "#8A2A1C", lineHeight: 1.6 }}>
             <b>⚠ 저장 공간이 가득 차 최근 변경이 저장되지 않았습니다.</b><br />
@@ -2449,6 +2489,25 @@ function CareBucket({ kind, label, cohort, over, list }) {
           {list.length > 200 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {list.length - 200}명</div>}
         </div>
       )}
+    </div>
+  );
+}
+
+// 글자 크기 조절 — 헤더에 상시 노출. 누르면 화면 전체가 커진다.
+function ScaleCtl({ scale, bump }) {
+  const btn = (on) => ({
+    width: 30, height: 30, borderRadius: 9, border: "1px solid rgba(255,255,255,.22)",
+    background: on ? "rgba(255,255,255,.10)" : "rgba(255,255,255,.03)",
+    color: on ? "#fff" : "#7C8DA6", fontWeight: 800, fontSize: 15, lineHeight: 1,
+    display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0,
+  });
+  const min = scale <= SCALE_STEPS[0];
+  const max = scale >= SCALE_STEPS[SCALE_STEPS.length - 1];
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 5, marginLeft: 14 }}>
+      <button className="hd-btn" onClick={() => bump(-1)} disabled={min} title="글자 작게" style={btn(!min)}>ㄱ</button>
+      <span style={{ fontSize: 10.5, fontWeight: 800, color: "#9DB0C9", minWidth: 40, textAlign: "center" }}>{scaleLabel(scale)}</span>
+      <button className="hd-btn" onClick={() => bump(1)} disabled={max} title="글자 크게" style={{ ...btn(!max), fontSize: 19 }}>ㄱ</button>
     </div>
   );
 }
@@ -4406,6 +4465,7 @@ function BrandSettings({ brand, updateBrand }) {
         {field("phone", "전화번호", Phone, "010-6407-2424")}
         {field("region", "사업 지역", MapPin, "대전, 세종, 옥천, 금산, 부여, 계룡")}
         {field("linkUrl", "견적·상담 링크", Globe, "예: https://... (비워두면 '프로필 링크'로 안내합니다)")}
+        <Note tone="tip"><Sparkles size={15} style={{ flexShrink: 0, marginTop: 1 }} /> <span>화면 글씨가 작으면 <b>맨 위 오른쪽 [ㄱ ㄱ] 버튼</b>으로 키우세요. <b>폰과 PC가 각각 따로 기억</b>됩니다.</span></Note>
 
         <div style={{ marginTop: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
