@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v3.1 · 0809-2056";
+const APP_VER = "v3.3 · 0810-2100";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -185,6 +185,22 @@ function mergeReviews(sheetList, localList) {
 
 // 릴스(숏폼) 주제
 const MOVING_REGIONS = ["대전", "세종", "계룡", "공주", "옥천", "금산", "논산", "부여", "영동", "청주"];
+
+// 경쟁이 낮아 우선 공략하는 지역 — 같은 노력으로 상위 노출이 훨씬 쉽다
+const BLUE_OCEAN = ["옥천", "금산", "논산", "부여", "영동"];
+const isBlueOcean = (rg) => BLUE_OCEAN.indexOf(rg) >= 0;
+
+// 채널별 발행 최적 시간 (한국 표준시)
+const BEST_TIME = {
+  reels: "평일 21:00~22:30 · 주말 10:00~12:00",
+  threads: "07:30~08:30 (출근) · 12:20~13:00 (점심) · 22:00~23:00",
+  cards: "평일 20:00~22:00 · 일요일 오전",
+};
+// 이사 검색은 주말 이사를 앞두고 목·금에 몰린다
+const SEARCH_PEAK = "이사 검색은 목·금에 몰립니다. 지역 호명형은 목·금에 배치하세요.";
+
+// 채널 콘텐츠 황금비 — 팔지 말고 쓸모를 줘야 저장·공유가 일어난다
+const MIX_RULE = "쓸모(정보·노하우) 60% · 실적(작업·청소 전후) 30% · 사람(현장·일상) 10%";
 
 /* ── 마케팅2 (단골 재마케팅) — 수동 버전 저장소 ── */
 // 지금은 기기 localStorage 저장. 나중에 계약 동(ERP)이 붙으면 계약 데이터에서 자동으로 채워진다.
@@ -615,6 +631,91 @@ const REEL_TOPICS = [
   { id: "cleanBA", name: "청소 전후", desc: "더러운 곳 → 깨끗하게. 청소 무료 강조", color: "#2E9E8F" },
   { id: "daily", name: "현장·일상 스케치", desc: "직원 현장, 맛집, 소소한 순간", color: "#E08A2B" },
 ];
+
+// 릴스 훅 유형 5종 — 첫 0.8초 정지율을 결정한다
+const REEL_HOOKS = [
+  {
+    id: "pattern", name: "패턴 인터럽트", desc: "‘왜 저래?’ 싶은 낯선 장면으로 시작", color: "#7C4DBE",
+    role: "일상에서 볼 수 없는 낯선 장면(사다리차 붐대가 화면을 가로지름, 창문으로 나오는 냉장고, 통째로 들려 나가는 장롱 등)을 첫 프레임에 배치해 손가락을 멈추게 한다. 설명은 나중에, 이상한 그림이 먼저다.",
+  },
+  {
+    id: "number", name: "숫자 · 시간", desc: "타이머·평수·시간 자막으로 압박", color: "#2F6FB0",
+    role: "화면 좌상단에 실시간 타이머나 구체적 숫자(층수·평수·소요시간·박스 개수)를 박아 ‘얼마나 걸리지?’라는 궁금증으로 끝까지 붙잡는다. 숫자는 [현장 메모]에 있는 것만 쓰고 없으면 지어내지 말 것.",
+  },
+  {
+    id: "ba", name: "비포애프터 분할", desc: "좌우 반반 화면 · 결과를 먼저", color: "#2E9E8F",
+    role: "첫 프레임을 좌우 분할해 더러운 상태와 깨끗해진 상태를 동시에 보여준다. 결과를 먼저 보여줘야 과정이 궁금해진다. 시간순 편집 금지.",
+  },
+  {
+    id: "warn", name: "금지 · 경고", desc: "‘이거 하면 후회합니다’", color: "#D9534F",
+    role: "손해 회피 심리를 자극하는 경고문으로 시작한다. 두루뭉술한 조언이 아니라 구체적인 실수 딱 하나를 지목한다.",
+  },
+  {
+    id: "region", name: "지역 호명", desc: "‘옥천 사시는 분만 보세요’", color: "#E08A2B",
+    role: "특정 지역명을 첫 자막에 넣어 그 지역 사용자를 정조준한다. 노출 총량은 줄지만 전환율이 높다. 블루오션 지역에 우선 사용.",
+  },
+];
+
+// 스레드(Threads) 글 유형 4종 — 텍스트 채널은 ‘답글 수’가 알고리즘 연료
+const THREAD_TOPICS = [
+  {
+    id: "howto", name: "노하우 · 정보", desc: "저장되는 글. 주력 60%", color: "#2F6FB0",
+    role: "이사를 앞둔 사람이 당장 써먹을 수 있는 실전 정보. 체크리스트·순서·비교 기준 등. 팔지 말고 쓸모만 줄 것.",
+  },
+  {
+    id: "money", name: "돈 · 견적 이야기", desc: "비용 구조·흥정·함정", color: "#2E9E8F",
+    role: "견적이 왜 업체마다 다른지, 무엇이 값을 올리고 내리는지 업자 입장에서 솔직하게 밝힌다. 우리 가격을 팔지 말고 ‘판단 기준’을 줄 것.",
+  },
+  {
+    id: "field", name: "현장 이야기", desc: "오늘 있었던 일", color: "#E08A2B",
+    role: "오늘 현장에서 실제로 있었던 짧은 이야기. 사람 냄새와 장면이 살아야 한다. 자랑조 금지, 담백하게.",
+  },
+  {
+    id: "debate", name: "질문 · 논쟁", desc: "답글을 부르는 글", color: "#7C4DBE",
+    role: "정답이 갈리는 주제를 던져 사람들이 자기 경험을 말하게 만든다. 대표는 한쪽 입장을 먼저 밝히되 단정하지 않는다.",
+  },
+];
+
+// 인스타 카드(캐러셀) 유형 — 사진이 없거나 부족한 날의 주력 포맷
+const CARD_TOPICS = [
+  {
+    id: "checklist", name: "체크리스트", desc: "저장률이 가장 높은 형식", color: "#2F6FB0",
+    role: "이사를 앞둔 사람이 캡처해서 두고두고 볼 만한 순서·목록. 날짜별(D-7, D-3, D-1) 또는 항목별로 끊는다. 각 항목은 실제로 행동할 수 있는 지시여야 한다.",
+  },
+  {
+    id: "money", name: "비용 · 견적 구조", desc: "무엇이 값을 올리고 내리는지", color: "#2E9E8F",
+    role: "이사 견적이 업체마다 다른 이유와 값이 오르내리는 요인을 업자 입장에서 밝힌다. 우리 가격을 팔지 말고 판단 기준을 준다. 구체 금액은 [회사 사실]에 없으면 쓰지 말 것.",
+  },
+  {
+    id: "mistake", name: "실수 · 주의사항", desc: "‘이거 모르면 후회’", color: "#D9534F",
+    role: "현장에서 실제로 자주 보는 고객의 실수를 지목하고 대안을 준다. 겁주기가 아니라 도움이어야 한다.",
+  },
+  {
+    id: "compare", name: "비교 · 구분", desc: "헷갈리는 것 정리", color: "#7C4DBE",
+    role: "헷갈리기 쉬운 두 가지를 나란히 놓고 구분해 준다. 예: 사이청소와 당일청소의 차이, 반포장과 포장이사의 차이. 어느 쪽이 누구에게 맞는지까지 말해준다.",
+  },
+  {
+    id: "case", name: "현장 사례", desc: "사진 1~2장만 있어도 가능", color: "#E08A2B",
+    role: "오늘 현장에서 실제로 있었던 일을 상황→문제→처리→결과 흐름으로 풀어낸다. [현장 메모]에 있는 사실만 쓰고 각색하지 말 것.",
+  },
+];
+
+// 전 채널 공통 금지·표현 규칙 (프롬프트에 그대로 주입)
+const CONTENT_RULES = `[반드시 지킬 표현 규칙]
+1. "이사 후 청소"라는 말은 절대 쓰지 말 것. 맞는 표현은 "사이청소", "당일청소", "입주청소"다.
+2. "입주청소 포함된 금액"이라고 쓰지 말 것. 제시 금액은 이사비이고, 입주청소는 공짜다.
+3. **볼드** __밑줄__ 같은 마크다운 강조기호를 쓰지 말 것. 그대로 노출된다.
+4. 과장·거짓 금지. [회사 사실]과 [현장 메모]에 없는 수치·후기·사례를 지어내지 말 것.
+5. 고객을 1인칭으로 사칭하지 말 것. 후기를 인용할 때는 큰따옴표를 쓰고 화자를 밝힐 것.`;
+
+// AI 오류 → 사람이 읽는 문구 (초안 생성과 동일한 규칙)
+function aiErrMsg(e, fallback) {
+  const em = e && e.message ? e.message : "";
+  if (em === "CONNECT") return "AI 서버에 연결하지 못했습니다. (미리보기 화면에서는 AI가 원래 작동하지 않습니다. 배포된 주소 marketinglink.vercel.app에서 시도하세요.)";
+  if (em.startsWith("SERVER:")) return "서버 응답 오류 — " + em.slice(7) + " (키 미설정이면 'ANTHROPIC_API_KEY' 확인, 크레딧 관련이면 결제 필요)";
+  return fallback;
+}
+
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const axisOf = (id) => AXES.find((a) => a.id === id) || AXES[0];
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -733,6 +834,7 @@ const BRAND = {
   region: "대전, 세종, 계룡, 공주, 옥천, 금산, 논산, 부여, 영동, 청주",
   industry: "moving",
   channel: "naver",
+  linkUrl: "",
   wpUrl: "",
   wpUser: "",
   wpAppPw: "",
@@ -912,56 +1014,220 @@ BODY:
   return r;
 }
 
-async function generateReel(topic, memo) {
+async function generateReel(topic, memo, hook, region) {
   const topicRole = {
-    highlight: "이사 작업 하이라이트(포장→운반→완료)를 빠르게 보여주는 10~15초 숏폼. 속도감·비포애프터·정리된 결과가 핵심.",
-    cleanBA: "이사 맡긴 고객에게 무료로 해주는 '새집 입주청소'의 전/후를 보여주는 숏폼. 입주 전 새집이 깨끗해지는 대비가 핵심. 이사 맡기면 입주청소가 공짜라는 점을 자연스럽게. ('이사 후 청소'라고 하지 말 것)",
+    highlight: "이사 작업 하이라이트(포장→운반→완료)를 빠르게 보여주는 숏폼. 속도감·정리된 결과가 핵심.",
+    cleanBA: "이사 맡긴 고객에게 무료로 해주는 '새집 입주청소'의 전/후를 보여주는 숏폼. 입주 전 새집이 깨끗해지는 대비가 핵심. 이사 맡기면 입주청소가 공짜라는 점을 자연스럽게.",
     daily: "이사 현장 직원들의 일상·현장 스케치·동네 맛집 등 친근한 숏폼. 사람 냄새·재미가 핵심.",
   }[topic.id] || "";
+  const hookRole = hook && hook.role ? hook.role : "";
+  const hookName = hook && hook.name ? hook.name : "자유";
 
-  const prompt = `당신은 '${BRAND.name}'의 숏폼(릴스) 기획자입니다.
+  const prompt = `당신은 '${BRAND.name}'의 인스타그램 릴스 기획자입니다.
+당신의 목표는 조회수가 아니라 "첫 0.8초 안에 스크롤을 멈추게 하는 것"입니다.
+릴스는 클릭이 아니라 자동재생입니다. 인트로가 있으면 그 릴스는 죽습니다.
 
 [브랜드] ${BRAND.region} 포장이사. 슬로건 "${BRAND.slogan}". 전화 ${BRAND.phone}.
 [회사 사실]
 ${BRAND.facts && BRAND.facts.trim() ? BRAND.facts.trim() : "(미입력)"}
 
 [릴스 주제] ${topic.name} — ${topicRole}
+[훅 유형] ${hookName} — ${hookRole}
+[타깃 지역] ${region || BRAND.region}${region && isBlueOcean(region) ? " (경쟁이 낮은 블루오션 지역 — 지역명을 더 앞에, 더 자주 노출할 것)" : ""}
 ${memo && memo.trim() ? `[현장 메모] ${memo.trim()}` : ""}
 
-10~15초 세로 영상(릴스/숏폼)에 쓸 자료를 만드세요. 과장·거짓 없이, 슬로건과 지역을 자연스럽게.
-반드시 아래 라벨 형식으로만, 각 라벨을 한 줄씩 출력하세요(설명·군더더기 금지).
+${CONTENT_RULES}
 
-HOOK: (첫 2초에 뜨는 강한 한 줄 자막)
-CAPTIONS: 장면별 화면 자막 3~5개를 " | "로 구분 (짧고 임팩트 있게)
-NARRATION: (영상 위에 깔 멘트/자막 낭독용 2~3문장)
-CAPTION: (인스타 릴스 게시 캡션 2~3문장, 이모지 약간. 마지막 문장은 행동 유도 ─ 예: "견적은 프로필·전화로 편하게")
+[릴스 제작 규칙]
+6. 영상 길이 10~18초. 짧을수록 완주율이 오르고, 완주율이 추천을 만든다.
+7. 첫 프레임에 인사·로고·인트로 금지. 가장 극적인 장면으로 즉시 시작.
+8. 화면 자막은 한 줄 12자 이내. 무음 시청이 기본이므로 자막만으로 내용이 전달되어야 한다.
+9. 자막은 화면 상단 1/3에 배치한다(하단은 인스타 UI에 가려짐).
+10. 캡션 첫 문장에 "전화주세요/문의주세요/상담" 같은 CTA 금지. 행동 유도는 마지막 문장에만.
+11. 브랜드·전화번호는 마지막 0.5초 정지 프레임에만 넣는다.
+12. 결과를 먼저 보여준다. 포장→운반→완료 순서로 찍되 편집은 완성된 장면부터 시작한다. 시간순 편집 금지.
+13. 고정 댓글(PINNED)에만 링크·연락을 넣는다. ${BRAND.linkUrl && BRAND.linkUrl.trim() ? "안내할 주소: " + BRAND.linkUrl.trim() : "주소가 없으면 '프로필 링크'와 전화번호로 안내한다."}
+
+반드시 아래 라벨 형식으로만, 각 라벨을 한 줄씩 출력하세요(설명·군더더기·코드펜스 금지).
+
+FIRSTFRAME: (영상의 첫 프레임을 무엇으로 시작할지 한 줄 지시. 카메라 위치·피사체까지 구체적으로)
+HOOK: (첫 2초 화면에 뜨는 자막 · 12자 이내)
+CAPTIONS: 장면별 화면 자막 3~5개를 " | "로 구분 (각 12자 이내)
+NARRATION: (영상 위에 깔 멘트 2~3문장)
+CAPTION: (인스타 릴스 게시 캡션 2~3문장, 이모지 약간. 첫 문장 CTA 금지, 마지막 문장만 행동 유도)
 HASHTAGS: (해시태그 10개. 지역 태그 3개 필수 ─ 예: #지역이사 #지역포장이사 #지역입주청소. 나머지는 업종·상황·브랜드. 실제 지역명으로, #으로 시작, 쉼표로 구분)
-GUIDE: 촬영 장면 순서 3~5개를 " | "로 구분 (무엇을 어떻게 찍을지)`;
+PINNED: (고정 댓글 한 줄 · 견적·전화로 자연스럽게 유도)
+ENDCARD: (마지막 0.5초 정지 프레임에 넣을 문구 한 줄)
+GUIDE: 촬영 장면 순서 3~5개를 " | "로 구분 (무엇을 어떻게 찍을지)
+CROSS: (이 릴스를 알리려고 스레드에 올릴 한 줄)
+BESTTIME: (이 릴스를 올리기 좋은 요일·시간 한 줄 · 한국 시간 기준)`;
 
-  let data;
-  try {
-    data = await aiComplete({ messages: [{ role: "user", content: prompt }], max_tokens: 1500 });
-  } catch (e) { throw e; }
+  const data = await aiComplete({ messages: [{ role: "user", content: prompt }], max_tokens: 2000 });
   const text = (data.content || []).filter((b) => b && b.type === "text").map((b) => b.text).join("\n");
   if (!text) throw new Error("FORMAT");
 
   const get = (label) => {
     const m = text.match(new RegExp(`^${label}:[ \\t]*(.*)$`, "m"));
-    return m ? m[1].trim() : "";
+    return m ? stripMd(m[1].trim()) : "";
   };
   const splitPipe = (s) => (s ? s.split("|").map((t) => t.trim()).filter(Boolean) : []);
   const splitTags = (s) => (s ? s.split(/[,\n]/).map((t) => t.trim()).filter(Boolean) : []);
 
   const r = {
+    firstFrame: get("FIRSTFRAME"),
     hook: get("HOOK"),
     captions: splitPipe(get("CAPTIONS")),
     narration: get("NARRATION"),
     caption: get("CAPTION"),
     hashtags: splitTags(get("HASHTAGS")),
+    pinned: get("PINNED"),
+    endcard: get("ENDCARD"),
     guide: splitPipe(get("GUIDE")),
+    cross: get("CROSS"),
+    bestTime: get("BESTTIME"),
   };
   if (!r.hook && !r.narration && r.captions.length === 0) throw new Error("FORMAT");
   return r;
+}
+
+
+async function generateThreads(topic, memo, region) {
+  const prompt = `당신은 '${BRAND.name}' 대표의 스레드(Threads) 글쓰기 담당입니다.
+스레드는 릴스와 정반대입니다. 자동재생이 없고, 첫 1~2줄을 보고 "더보기"를 누를지 결정합니다.
+그리고 스레드 알고리즘의 유일한 연료는 좋아요가 아니라 "답글 수"입니다.
+
+[브랜드] ${BRAND.region} 포장이사. 슬로건 "${BRAND.slogan}". 전화 ${BRAND.phone}.
+[회사 사실]
+${BRAND.facts && BRAND.facts.trim() ? BRAND.facts.trim() : "(미입력)"}
+
+[글 유형] ${topic.name} — ${topic.role}
+[타깃 지역] ${region || BRAND.region}${region && isBlueOcean(region) ? " (경쟁이 낮은 블루오션 지역 — 지역명을 더 앞에, 더 자주 노출할 것)" : ""}
+${memo && memo.trim() ? `[현장 메모] ${memo.trim()}` : ""}
+
+${CONTENT_RULES}
+
+[스레드 작성 규칙]
+6. 1번 글(HOOK)은 반드시 미완성으로 끝낸다. 숫자·반전·의문으로 끊어 "더보기"를 누르게 만든다.
+7. 1번 글은 두 줄 이내. 길면 훅이 죽는다.
+8. 본문은 1번 글이 아니라 "자기 답글"로 나눠 쓴다. 답글 하나당 2~4문장.
+9. 문체는 광고문이 아니라 현장에서 일하는 사람이 툭 던지는 말투. 존댓말, 담백하게.
+10. 마지막은 반드시 질문으로 닫는다. 사람들이 자기 경험을 말하고 싶게 만들 것.
+11. 해시태그는 최대 1개. 스레드에서 해시태그 남발은 역효과다.
+12. 이모지는 글 전체에서 2개 이하.
+13. 글 안에 전화번호나 링크를 넣지 않는다. 스레드는 파는 곳이 아니라 신뢰를 쌓는 곳이다.
+
+반드시 아래 라벨 형식으로만, 각 라벨을 한 줄씩 출력하세요(설명·군더더기·코드펜스 금지).
+
+HOOK: (1번 글 · 두 줄 이내 · 미완성 문장으로 끊기)
+REPLIES: 자기 답글 본문 2~4개를 " | "로 구분 (각 2~4문장, 순서대로 이어지게)
+CLOSER: (마지막 답글 · 질문형 한 줄)
+TAG: #태그1
+REPLYPLAN: (댓글이 달렸을 때 대표가 어떻게 되받을지 방향 한 줄)
+BESTTIME: (이 글을 올리기 좋은 시간대 한 줄 · 한국 시간 기준)`;
+
+  const data = await aiComplete({ messages: [{ role: "user", content: prompt }], max_tokens: 2000 });
+  const text = (data.content || []).filter((b) => b && b.type === "text").map((b) => b.text).join("\n");
+  if (!text) throw new Error("FORMAT");
+
+  const get = (label) => {
+    const m = text.match(new RegExp(`^${label}:[ \\t]*(.*)$`, "m"));
+    return m ? stripMd(m[1].trim()) : "";
+  };
+  const splitPipe = (s) => (s ? s.split("|").map((t) => t.trim()).filter(Boolean) : []);
+
+  const r = {
+    hook: get("HOOK"),
+    replies: splitPipe(get("REPLIES")),
+    closer: get("CLOSER"),
+    tag: get("TAG"),
+    replyPlan: get("REPLYPLAN"),
+    bestTime: get("BESTTIME"),
+  };
+  if (!r.hook && r.replies.length === 0) throw new Error("FORMAT");
+  return r;
+}
+
+
+async function generateCard(topic, memo, region) {
+  const prompt = `당신은 '${BRAND.name}'의 인스타그램 캐러셀(여러 장 카드) 기획자입니다.
+캐러셀은 릴스와도, 스레드와도 다릅니다.
+캐러셀의 알고리즘 연료는 조회수가 아니라 "저장(북마크)"과 "마지막 장까지 넘겼는가(완독률)"입니다.
+그래서 카드는 '보고 지나가는 것'이 아니라 '캡처해서 두고 볼 것'으로 만들어야 합니다.
+
+[브랜드] ${BRAND.region} 포장이사. 슬로건 "${BRAND.slogan}". 전화 ${BRAND.phone}.
+[회사 사실]
+${BRAND.facts && BRAND.facts.trim() ? BRAND.facts.trim() : "(미입력)"}
+
+[카드 유형] ${topic.name} — ${topic.role}
+[타깃 지역] ${region || BRAND.region}${region && isBlueOcean(region) ? " (경쟁이 낮은 블루오션 지역 — 지역명을 더 앞에, 더 자주 노출할 것)" : ""}
+${memo && memo.trim() ? `[현장 메모] ${memo.trim()}` : ""}
+
+${CONTENT_RULES}
+
+[카드 제작 규칙]
+6. 총 장수는 표지 1장 + 본문 4장 + 요약 1장 + CTA 1장 = 7장 구조다. 본문은 정확히 4장으로 맞춘다.
+7. 1장(표지)은 제목이 아니라 훅이다. 20자 이내로, 넘기지 않으면 손해라는 느낌을 줘야 한다.
+8. 본문 카드 한 장에는 요점 하나만 담는다. 두 개를 넣으면 카드가 죽는다.
+9. 카드는 글이 아니라 판이다. 본문 문장은 한 줄 22자 이내, 한 장에 최대 2문장.
+10. 6장(요약)은 앞 내용을 한 장으로 압축한 것이다. 이 한 장이 저장을 만든다. 각 줄 18자 이내.
+11. 캡션 첫 문장에 CTA 금지. 행동 유도는 마지막 문장에만.
+12. 문체는 광고문이 아니라 현장에서 일하는 사람의 담백한 존댓말.
+13. 고정 댓글(PINNED)에만 링크·연락을 넣는다. ${BRAND.linkUrl && BRAND.linkUrl.trim() ? "안내할 주소: " + BRAND.linkUrl.trim() : "주소가 없으면 '프로필 링크'와 전화번호로 안내한다."}
+
+반드시 아래 라벨 형식으로만, 각 라벨을 한 줄씩 출력하세요(설명·군더더기·코드펜스 금지).
+
+HOOKCARD: (1장 표지 훅 · 20자 이내)
+HOOKSUB: (표지 훅 아래 보조 한 줄 · 18자 이내)
+CARDS: 본문 4장을 " | "로 구분. 각 장은 "소제목 :: 본문문장1 / 본문문장2" 형식 (소제목 12자 이내, 본문 각 22자 이내)
+SUMMARY: 요약 카드에 넣을 3~5줄을 " / "로 구분 (각 18자 이내)
+SAVEHOOK: (요약 카드 하단에 넣을 저장 유도 한 줄 · 12자 이내)
+CAPTION: (인스타 게시 캡션 2~3문장, 이모지 약간. 첫 문장 CTA 금지)
+HASHTAGS: (해시태그 10개. 지역 태그 3개 필수. #으로 시작, 쉼표로 구분)
+PINNED: (고정 댓글 한 줄 · 견적·전화로 자연스럽게 유도)
+THREADCROSS: (이 카드를 알리려고 스레드에 올릴 한 줄)
+BESTTIME: (이 카드를 올리기 좋은 요일·시간 한 줄 · 한국 시간 기준)`;
+
+  const data = await aiComplete({ messages: [{ role: "user", content: prompt }], max_tokens: 2500 });
+  const text = (data.content || []).filter((b) => b && b.type === "text").map((b) => b.text).join("\n");
+  if (!text) throw new Error("FORMAT");
+
+  const get = (label) => {
+    const m = text.match(new RegExp(`^${label}:[ \\t]*(.*)$`, "m"));
+    return m ? stripMd(m[1].trim()) : "";
+  };
+  const splitPipe = (s) => (s ? s.split("|").map((t) => t.trim()).filter(Boolean) : []);
+  const splitSlash = (s) => (s ? s.split("/").map((t) => t.trim()).filter(Boolean) : []);
+  const splitTags = (s) => (s ? s.split(/[,\n]/).map((t) => t.trim()).filter(Boolean) : []);
+
+  const bodyCards = splitPipe(get("CARDS")).map((seg) => {
+    const parts = seg.split("::");
+    return { head: (parts[0] || "").trim(), lines: splitSlash((parts[1] || "").trim()).slice(0, 2) };
+  }).filter((c) => c.head || c.lines.length);
+
+  const r = {
+    hook: get("HOOKCARD"),
+    hookSub: get("HOOKSUB"),
+    cards: bodyCards,
+    summary: splitSlash(get("SUMMARY")).slice(0, 5),
+    saveHook: get("SAVEHOOK") || "저장해두세요",
+    caption: get("CAPTION"),
+    hashtags: splitTags(get("HASHTAGS")),
+    pinned: get("PINNED"),
+    cross: get("THREADCROSS"),
+    bestTime: get("BESTTIME"),
+  };
+  if (!r.hook && r.cards.length === 0) throw new Error("FORMAT");
+  return r;
+}
+
+// 생성 결과 → 슬라이드 배열 (표지 + 본문 + 요약 + CTA)
+function instaSlides(card) {
+  if (!card) return [];
+  const out = [{ type: "hook", head: card.hook, sub: card.hookSub }];
+  card.cards.slice(0, 5).forEach((c) => out.push({ type: "content", head: c.head, lines: c.lines }));
+  if (card.summary.length) out.push({ type: "summary", lines: card.summary, saveHook: card.saveHook });
+  out.push({ type: "cta" });
+  return out;
 }
 
 /* --------------------------- Storage ----------------------------- */
@@ -1218,6 +1484,8 @@ export default function App() {
               { id: "publish", label: "발행 대장", Icon: Send },
               { id: "keywords", label: "키워드", Icon: Tag },
               { id: "reels", label: "릴스", Icon: Video },
+              { id: "threads", label: "스레드", Icon: MessageSquare },
+              { id: "cards", label: "카드", Icon: ImageIcon },
               { id: "reviews", label: "평가", Icon: Star },
               { id: "retarget", label: "고객관리", Icon: Users },
               { id: "care", label: "달력", Icon: CalendarDays },
@@ -1254,6 +1522,8 @@ export default function App() {
         {tab === "publish" && <PublishBoard />}
         {tab === "keywords" && <KeywordManager keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} noteKeyword={noteKeyword} />}
         {tab === "reels" && <Reels />}
+        {tab === "threads" && <Threads />}
+        {tab === "cards" && <Cards />}
         {tab === "reviews" && <Reviews reviews={reviews} addReview={addReview} removeReview={removeReview} writeFromReview={writeFromReview} brand={brand} crm={crm} />}
         {tab === "retarget" && <Retarget crm={crm} addCust={addCust} updateCust={updateCust} removeCust={removeCust} importCusts={importCusts} />}
         {tab === "care" && <CareCalendar crm={crm} />}
@@ -2777,24 +3047,41 @@ function Calendar({ queue }) {
 }
 
 /* ------------------------- UI primitives ------------------------- */
+// 채널 공통 운영 규칙 안내 — 언제 올릴지 / 무엇을 올릴지
+function MixNote({ channel }) {
+  return (
+    <div style={{ background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 13px", marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 7, alignItems: "flex-start" }}>
+        <Clock size={14} color={C.navy} style={{ marginTop: 2, flexShrink: 0 }} />
+        <div style={{ fontSize: 11.5, color: C.text, lineHeight: 1.65 }}>
+          <b>올리기 좋은 시간</b> · {BEST_TIME[channel]}
+          <div style={{ color: C.muted, marginTop: 3 }}>{SEARCH_PEAK}</div>
+          <div style={{ color: C.muted, marginTop: 3 }}><b>콘텐츠 비율</b> · {MIX_RULE}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Reels() {
   const [topicId, setTopicId] = useState("highlight");
+  const [hookId, setHookId] = useState("ba");
+  const [region, setRegion] = useState(MOVING_REGIONS[0]);
   const [memo, setMemo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [reel, setReel] = useState(null);
   const [done, setDone] = useState([]);
   const topic = REEL_TOPICS.find((t) => t.id === topicId) || REEL_TOPICS[0];
+  const hook = REEL_HOOKS.find((h) => h.id === hookId) || REEL_HOOKS[0];
 
   const run = async () => {
     setLoading(true); setError(""); setReel(null); setDone([]);
     try {
-      const r = await generateReel(topic, memo);
+      const r = await generateReel(topic, memo, hook, region);
       setReel(r);
     } catch (e) {
-      setError(e && e.message === "CONNECT"
-        ? "생성 서버에 연결하지 못했습니다. 잠시 후 다시 눌러 주세요."
-        : "자료는 받았는데 형식이 살짝 어긋났습니다. 다시 한 번 눌러 주세요.");
+      setError(aiErrMsg(e, "자료는 받았는데 형식이 살짝 어긋났습니다. 다시 한 번 눌러 주세요."));
     } finally { setLoading(false); }
   };
   const toggleDone = (i) => setDone((d) => d.includes(i) ? d.filter((x) => x !== i) : [...d, i]);
@@ -2807,8 +3094,9 @@ function Reels() {
           <span style={{ fontSize: 16, fontWeight: 800 }}>릴스 · 숏폼 만들기</span>
         </div>
         <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
-          영상은 폰으로 찍으세요. 여기서는 <b>화면 자막·멘트·캡션·해시태그·촬영 가이드</b>를 만들어 드립니다.
+          영상은 폰으로 찍으세요. 여기서는 <b>첫 프레임 지시·화면 자막·멘트·캡션·고정댓글·촬영 가이드</b>를 만들어 드립니다.
         </div>
+        <MixNote channel="reels" />
 
         <Label>1 · 어떤 릴스?</Label>
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8, marginTop: 8 }}>
@@ -2827,7 +3115,39 @@ function Reels() {
           })}
         </div>
 
-        <Label style={{ marginTop: 20 }}>2 · 현장 메모 <span style={{ color: C.muted, fontWeight: 500 }}>(선택 · 있으면 더 생생)</span></Label>
+        <Label style={{ marginTop: 20 }}>2 · 훅 유형 <span style={{ color: C.muted, fontWeight: 500 }}>(첫 0.8초를 결정)</span></Label>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8, marginTop: 8 }}>
+          {REEL_HOOKS.map((h) => {
+            const on = h.id === hookId;
+            return (
+              <button key={h.id} className="hd-btn" onClick={() => setHookId(h.id)}
+                style={{ textAlign: "left", padding: "12px 14px", borderRadius: 12, border: `1.5px solid ${on ? h.color : C.line}`, background: on ? h.color + "10" : "#fff" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 99, background: h.color, display: "inline-block" }} />
+                  <span style={{ fontSize: 13.5, fontWeight: 800, color: C.navy }}>{h.name}</span>
+                </div>
+                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>{h.desc}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <Label style={{ marginTop: 20 }}>3 · 타깃 지역</Label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+          {MOVING_REGIONS.map((rg) => {
+            const on = rg === region;
+            const blue = isBlueOcean(rg);
+            return (
+              <button key={rg} className="hd-btn" onClick={() => setRegion(rg)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, padding: "8px 13px", borderRadius: 99, border: `1.5px solid ${on ? C.navy : (blue ? "#2E9E8F" : C.line)}`, background: on ? C.navy : "#fff", color: on ? "#fff" : C.text }}>
+                {rg}
+                {blue && <span style={{ fontSize: 9.5, fontWeight: 800, color: on ? "#7FE0CE" : "#2E9E8F", background: on ? "rgba(46,158,143,.22)" : "#E7F6F1", borderRadius: 4, padding: "1px 4px" }}>블루</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        <Label style={{ marginTop: 20 }}>4 · 현장 메모 <span style={{ color: C.muted, fontWeight: 500 }}>(선택 · 있으면 더 생생)</span></Label>
         <textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={3}
           placeholder="예: 3층 원룸, 짐 많았는데 2시간 만에 끝. 청소까지 하니 새집 같다고 좋아하심."
           style={{ width: "100%", marginTop: 8, padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6 }} />
@@ -2841,29 +3161,50 @@ function Reels() {
 
       {reel && (
         <div className="hd-fade" style={{ marginTop: 16 }}>
-          {/* 훅 + 화면 자막 */}
-          <Panel>
-            <SectionTitle icon={Video}>화면 자막 (영상에 얹기)</SectionTitle>
-            {reel.hook && (
-              <div style={{ marginTop: 10, background: C.navy, color: "#fff", borderRadius: 11, padding: "14px 16px" }}>
-                <div style={{ fontSize: 11, color: "#9DB0C9", fontWeight: 700, marginBottom: 4 }}>첫 2초 훅</div>
-                <div style={{ fontSize: 17, fontWeight: 800 }}>{reel.hook}</div>
+          {reel.firstFrame && (
+            <Panel>
+              <SectionTitle icon={Video}>첫 프레임 <span style={{ fontWeight: 500, color: C.muted }}>(여기서 승부 끝남)</span></SectionTitle>
+              <div style={{ marginTop: 10, background: "#FFF1EE", border: `1.5px solid ${C.coral}`, borderRadius: 11, padding: "13px 15px", fontSize: 14, fontWeight: 700, color: C.text, lineHeight: 1.6 }}>
+                {reel.firstFrame}
               </div>
-            )}
-            <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 7 }}>
-              {reel.captions.map((c, i) => (
-                <div key={i} style={{ display: "flex", gap: 9, alignItems: "center", background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: C.coral, minWidth: 18 }}>{i + 1}</span>
-                  <span style={{ fontSize: 13.5, color: C.text, fontWeight: 600 }}>{c}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: 10 }}>
-              <CopyButton getText={() => [reel.hook, ...reel.captions].filter(Boolean).join("\n")} label="자막 전체 복사" full />
-            </div>
-          </Panel>
+              <div style={{ marginTop: 8, fontSize: 11.5, color: C.muted, lineHeight: 1.6 }}>
+                인사·로고·인트로 넣지 마세요. 이 장면으로 바로 시작합니다.
+              </div>
+            </Panel>
+          )}
 
-          {/* 멘트 */}
+          <div style={{ marginTop: 14 }}>
+            <Panel>
+              <SectionTitle icon={Video}>화면 자막 (영상에 얹기)</SectionTitle>
+              {reel.hook && (
+                <div style={{ marginTop: 10, background: C.navy, color: "#fff", borderRadius: 11, padding: "14px 16px" }}>
+                  <div style={{ fontSize: 11, color: "#9DB0C9", fontWeight: 700, marginBottom: 4 }}>첫 2초 훅</div>
+                  <div style={{ fontSize: 17, fontWeight: 800 }}>{reel.hook}</div>
+                </div>
+              )}
+              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 7 }}>
+                {reel.captions.map((c, i) => (
+                  <div key={i} style={{ display: "flex", gap: 9, alignItems: "center", background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: C.coral, minWidth: 18 }}>{i + 1}</span>
+                    <span style={{ fontSize: 13.5, color: C.text, fontWeight: 600 }}>{c}</span>
+                  </div>
+                ))}
+              </div>
+              {reel.endcard && (
+                <div style={{ marginTop: 10, background: "#F1F3F6", borderRadius: 9, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 11, color: C.muted, fontWeight: 700, marginBottom: 3 }}>마지막 0.5초 정지 프레임</div>
+                  <div style={{ fontSize: 13.5, color: C.text, fontWeight: 700 }}>{reel.endcard}</div>
+                </div>
+              )}
+              <div style={{ marginTop: 8, fontSize: 11.5, color: C.muted, lineHeight: 1.6 }}>
+                자막은 화면 <b>상단 1/3</b>에 배치 · 안전영역 상단 220px / 하단 420px 비우기
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <CopyButton getText={() => [reel.hook, ...reel.captions, reel.endcard].filter(Boolean).join("\n")} label="자막 전체 복사" full />
+              </div>
+            </Panel>
+          </div>
+
           {reel.narration && (
             <div style={{ marginTop: 14 }}>
               <Panel>
@@ -2876,7 +3217,6 @@ function Reels() {
             </div>
           )}
 
-          {/* 촬영 가이드 */}
           {reel.guide.length > 0 && (
             <div style={{ marginTop: 14 }}>
               <Panel>
@@ -2899,7 +3239,6 @@ function Reels() {
             </div>
           )}
 
-          {/* 캡션 + 해시태그 */}
           <div style={{ marginTop: 14 }}>
             <Panel>
               <SectionTitle icon={Instagram}>릴스 캡션 · 해시태그</SectionTitle>
@@ -2912,6 +3251,186 @@ function Reels() {
               <div style={{ marginTop: 10 }}>
                 <CopyButton getText={() => `${reel.caption}\n\n${reel.hashtags.map((h) => (h.startsWith("#") ? h : "#" + h)).join(" ")}`} label="캡션 복사 (인스타 붙여넣기)" full />
               </div>
+
+              {reel.pinned && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.line}` }}>
+                  <div style={{ fontSize: 11.5, color: C.muted, fontWeight: 700, marginBottom: 6 }}>고정 댓글 (여기에만 링크)</div>
+                  <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.7, background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>{reel.pinned}</div>
+                  <div style={{ marginTop: 8 }}>
+                    <CopyButton getText={() => reel.pinned} label="고정 댓글 복사" full />
+                  </div>
+                </div>
+              )}
+            </Panel>
+          </div>
+
+          {(reel.cross || reel.bestTime) && (
+            <div style={{ marginTop: 14 }}>
+              <Panel>
+                <SectionTitle icon={MessageSquare}>스레드에 함께 올릴 한 줄</SectionTitle>
+                <div style={{ marginTop: 8, fontSize: 14, color: C.text, lineHeight: 1.7 }}>{reel.cross}</div>
+                {reel.bestTime && (
+                  <div style={{ marginTop: 10, fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>
+                    <b style={{ color: C.navy }}>추천 발행 시간</b> · {reel.bestTime}
+                  </div>
+                )}
+                <div style={{ marginTop: 10 }}>
+                  <CopyButton getText={() => reel.cross} label="복사" full />
+                </div>
+              </Panel>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function Threads() {
+  const [topicId, setTopicId] = useState("howto");
+  const [region, setRegion] = useState(MOVING_REGIONS[0]);
+  const [memo, setMemo] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [th, setTh] = useState(null);
+  const topic = THREAD_TOPICS.find((t) => t.id === topicId) || THREAD_TOPICS[0];
+
+  const run = async () => {
+    setLoading(true); setError(""); setTh(null);
+    try {
+      const r = await generateThreads(topic, memo, region);
+      setTh(r);
+    } catch (e) {
+      setError(aiErrMsg(e, "자료는 받았는데 형식이 살짝 어긋났습니다. 다시 한 번 눌러 주세요."));
+    } finally { setLoading(false); }
+  };
+
+  const allText = () => {
+    if (!th) return "";
+    const body = th.replies.map((r, i) => `[답글 ${i + 1}] ${r}`).join("\n\n");
+    return [`[1번 글] ${th.hook}`, body, th.closer ? `[마무리] ${th.closer}` : "", th.tag].filter(Boolean).join("\n\n");
+  };
+
+  return (
+    <div className="hd-fade">
+      <Panel>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <MessageSquare size={18} color={C.coral} />
+          <span style={{ fontSize: 16, fontWeight: 800 }}>스레드 글 만들기</span>
+        </div>
+        <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
+          스레드는 <b>첫 두 줄</b>과 <b>답글 수</b>로 승부합니다. 1번 글을 올린 뒤 답글로 본문을 이어 붙이세요.
+        </div>
+        <MixNote channel="threads" />
+
+        <Label>1 · 어떤 글?</Label>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8, marginTop: 8 }}>
+          {THREAD_TOPICS.map((t) => {
+            const on = t.id === topicId;
+            return (
+              <button key={t.id} className="hd-btn" onClick={() => setTopicId(t.id)}
+                style={{ textAlign: "left", padding: "13px 15px", borderRadius: 12, border: `1.5px solid ${on ? t.color : C.line}`, background: on ? t.color + "10" : "#fff" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 99, background: t.color, display: "inline-block" }} />
+                  <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{t.name}</span>
+                </div>
+                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>{t.desc}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <Label style={{ marginTop: 20 }}>2 · 타깃 지역</Label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+          {MOVING_REGIONS.map((rg) => {
+            const on = rg === region;
+            const blue = isBlueOcean(rg);
+            return (
+              <button key={rg} className="hd-btn" onClick={() => setRegion(rg)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, padding: "8px 13px", borderRadius: 99, border: `1.5px solid ${on ? C.navy : (blue ? "#2E9E8F" : C.line)}`, background: on ? C.navy : "#fff", color: on ? "#fff" : C.text }}>
+                {rg}
+                {blue && <span style={{ fontSize: 9.5, fontWeight: 800, color: on ? "#7FE0CE" : "#2E9E8F", background: on ? "rgba(46,158,143,.22)" : "#E7F6F1", borderRadius: 4, padding: "1px 4px" }}>블루</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        <Label style={{ marginTop: 20 }}>3 · 현장 메모 <span style={{ color: C.muted, fontWeight: 500 }}>(선택)</span></Label>
+        <textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={3}
+          placeholder="예: 오늘 논산 아파트. 사다리차 못 대서 계단으로 올림. 고객이 미안해하심."
+          style={{ width: "100%", marginTop: 8, padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6 }} />
+
+        <button className="hd-btn" onClick={run} disabled={loading}
+          style={{ marginTop: 16, width: "100%", padding: "14px", borderRadius: 12, border: "none", background: loading ? "#AEB7C2" : C.navy, color: "#fff", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
+          {loading ? <><Loader2 size={18} style={{ animation: "hdspin 1s linear infinite" }} /> 만드는 중…</> : <><MessageSquare size={18} /> 스레드 글 생성</>}
+        </button>
+        {error && <Note tone="error">{error}</Note>}
+      </Panel>
+
+      {th && (
+        <div className="hd-fade" style={{ marginTop: 16 }}>
+          <Panel>
+            <SectionTitle icon={MessageSquare}>1번 글 <span style={{ fontWeight: 500, color: C.muted }}>(이것만 먼저 올림)</span></SectionTitle>
+            <div style={{ marginTop: 10, background: C.navy, color: "#fff", borderRadius: 11, padding: "15px 16px", fontSize: 15.5, fontWeight: 700, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+              {th.hook}
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <CopyButton getText={() => th.hook} label="1번 글 복사" full />
+            </div>
+          </Panel>
+
+          {th.replies.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <Panel>
+                <SectionTitle icon={ListChecks}>이어붙일 답글 <span style={{ fontWeight: 500, color: C.muted }}>(순서대로)</span></SectionTitle>
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 9 }}>
+                  {th.replies.map((r, i) => (
+                    <div key={i} style={{ background: "#F7F9FC", borderRadius: 10, padding: "12px 13px" }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: C.coral, marginBottom: 5 }}>답글 {i + 1}</div>
+                      <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.75 }}>{r}</div>
+                      <div style={{ marginTop: 8 }}>
+                        <CopyButton getText={() => r} label="복사" />
+                      </div>
+                    </div>
+                  ))}
+                  {th.closer && (
+                    <div style={{ background: "#FFF1EE", border: `1.5px solid ${C.coral}`, borderRadius: 10, padding: "12px 13px" }}>
+                      <div style={{ fontSize: 11, fontWeight: 800, color: C.coral, marginBottom: 5 }}>마무리 질문 (답글을 부르는 줄)</div>
+                      <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.75, fontWeight: 700 }}>{th.closer}</div>
+                      <div style={{ marginTop: 8 }}>
+                        <CopyButton getText={() => th.closer} label="복사" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Panel>
+            </div>
+          )}
+
+          <div style={{ marginTop: 14 }}>
+            <Panel>
+              <SectionTitle icon={Tag}>태그 · 운영 메모</SectionTitle>
+              {th.tag && (
+                <div style={{ marginTop: 8 }}>
+                  <span style={{ fontSize: 12, color: "#2563A8", background: "#EAF2FB", borderRadius: 99, padding: "4px 10px", fontWeight: 600 }}>
+                    {th.tag.startsWith("#") ? th.tag : "#" + th.tag}
+                  </span>
+                </div>
+              )}
+              {th.bestTime && (
+                <div style={{ marginTop: 12, fontSize: 13, color: C.text, lineHeight: 1.7 }}>
+                  <b>올릴 시간</b> · {th.bestTime}
+                </div>
+              )}
+              {th.replyPlan && (
+                <div style={{ marginTop: 8, fontSize: 13, color: C.text, lineHeight: 1.7 }}>
+                  <b>댓글 대응</b> · {th.replyPlan}
+                </div>
+              )}
+              <div style={{ marginTop: 12 }}>
+                <CopyButton getText={allText} label="글 전체 복사" full />
+              </div>
             </Panel>
           </div>
         </div>
@@ -2919,6 +3438,135 @@ function Reels() {
     </div>
   );
 }
+
+
+function Cards() {
+  const [topicId, setTopicId] = useState("checklist");
+  const [region, setRegion] = useState(MOVING_REGIONS[0]);
+  const [memo, setMemo] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [card, setCard] = useState(null);
+  const topic = CARD_TOPICS.find((t) => t.id === topicId) || CARD_TOPICS[0];
+
+  const run = async () => {
+    setLoading(true); setError(""); setCard(null);
+    try {
+      const r = await generateCard(topic, memo, region);
+      setCard(r);
+    } catch (e) {
+      setError(aiErrMsg(e, "자료는 받았는데 형식이 살짝 어긋났습니다. 다시 한 번 눌러 주세요."));
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="hd-fade">
+      <Panel>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <ImageIcon size={18} color={C.coral} />
+          <span style={{ fontSize: 16, fontWeight: 800 }}>인스타 카드 만들기</span>
+        </div>
+        <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
+          <b>사진을 못 찍은 날의 주력 포맷</b>입니다. 캐러셀은 조회수가 아니라 <b>저장</b>으로 퍼집니다.
+          표지 1 + 본문 4 + 요약 1 + 마무리 1 = <b>7장</b>이 한 번에 만들어집니다.
+        </div>
+        <MixNote channel="cards" />
+
+        <Label>1 · 어떤 카드?</Label>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8, marginTop: 8 }}>
+          {CARD_TOPICS.map((t) => {
+            const on = t.id === topicId;
+            return (
+              <button key={t.id} className="hd-btn" onClick={() => setTopicId(t.id)}
+                style={{ textAlign: "left", padding: "13px 15px", borderRadius: 12, border: `1.5px solid ${on ? t.color : C.line}`, background: on ? t.color + "10" : "#fff" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 99, background: t.color, display: "inline-block" }} />
+                  <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{t.name}</span>
+                </div>
+                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>{t.desc}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <Label style={{ marginTop: 20 }}>2 · 타깃 지역</Label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
+          {MOVING_REGIONS.map((rg) => {
+            const on = rg === region;
+            const blue = isBlueOcean(rg);
+            return (
+              <button key={rg} className="hd-btn" onClick={() => setRegion(rg)}
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, padding: "8px 13px", borderRadius: 99, border: `1.5px solid ${on ? C.navy : (blue ? "#2E9E8F" : C.line)}`, background: on ? C.navy : "#fff", color: on ? "#fff" : C.text }}>
+                {rg}
+                {blue && <span style={{ fontSize: 9.5, fontWeight: 800, color: on ? "#7FE0CE" : "#2E9E8F", background: on ? "rgba(46,158,143,.22)" : "#E7F6F1", borderRadius: 4, padding: "1px 4px" }}>블루</span>}
+              </button>
+            );
+          })}
+        </div>
+
+        <Label style={{ marginTop: 20 }}>3 · 현장 메모 <span style={{ color: C.muted, fontWeight: 500 }}>(선택)</span></Label>
+        <textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={3}
+          placeholder="예: 요즘 사이청소 문의 많음. 언제 하는 건지 헷갈려하는 분이 많다."
+          style={{ width: "100%", marginTop: 8, padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6 }} />
+
+        <button className="hd-btn" onClick={run} disabled={loading}
+          style={{ marginTop: 16, width: "100%", padding: "14px", borderRadius: 12, border: "none", background: loading ? "#AEB7C2" : C.navy, color: "#fff", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
+          {loading ? <><Loader2 size={18} style={{ animation: "hdspin 1s linear infinite" }} /> 만드는 중…</> : <><ImageIcon size={18} /> 카드 7장 생성</>}
+        </button>
+        {error && <Note tone="error">{error}</Note>}
+      </Panel>
+
+      {card && (
+        <div className="hd-fade" style={{ marginTop: 16 }}>
+          <InstaCards card={card} />
+
+          <div style={{ marginTop: 14 }}>
+            <Panel>
+              <SectionTitle icon={Instagram}>캡션 · 해시태그</SectionTitle>
+              <div style={{ marginTop: 8, fontSize: 14, color: C.text, lineHeight: 1.7 }}>{card.caption}</div>
+              <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {card.hashtags.map((h, i) => (
+                  <span key={i} style={{ fontSize: 12, color: "#2563A8", background: "#EAF2FB", borderRadius: 99, padding: "4px 10px", fontWeight: 600 }}>{h.startsWith("#") ? h : "#" + h}</span>
+                ))}
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <CopyButton getText={() => `${card.caption}\n\n${card.hashtags.map((h) => (h.startsWith("#") ? h : "#" + h)).join(" ")}`} label="캡션 복사 (인스타 붙여넣기)" full />
+              </div>
+
+              {card.pinned && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.line}` }}>
+                  <div style={{ fontSize: 11.5, color: C.muted, fontWeight: 700, marginBottom: 6 }}>고정 댓글 (여기에만 링크)</div>
+                  <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.7, background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>{card.pinned}</div>
+                  <div style={{ marginTop: 8 }}>
+                    <CopyButton getText={() => card.pinned} label="고정 댓글 복사" full />
+                  </div>
+                </div>
+              )}
+            </Panel>
+          </div>
+
+          {(card.cross || card.bestTime) && (
+            <div style={{ marginTop: 14 }}>
+              <Panel>
+                <SectionTitle icon={MessageSquare}>스레드에 함께 올릴 한 줄</SectionTitle>
+                <div style={{ marginTop: 8, fontSize: 14, color: C.text, lineHeight: 1.7 }}>{card.cross}</div>
+                {card.bestTime && (
+                  <div style={{ marginTop: 10, fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>
+                    <b style={{ color: C.navy }}>추천 발행 시간</b> · {card.bestTime}
+                  </div>
+                )}
+                <div style={{ marginTop: 10 }}>
+                  <CopyButton getText={() => card.cross} label="복사" full />
+                </div>
+              </Panel>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm }) {
   const [name, setName] = useState("");
@@ -3351,6 +3999,7 @@ function BrandSettings({ brand, updateBrand }) {
         {field("slogan", "슬로건", Sparkles, "이사를 하면 청소가 공짜!")}
         {field("phone", "전화번호", Phone, "010-6407-2424")}
         {field("region", "사업 지역", MapPin, "대전, 세종, 옥천, 금산, 부여, 계룡")}
+        {field("linkUrl", "견적·상담 링크", Globe, "예: https://... (비워두면 '프로필 링크'로 안내합니다)")}
 
         <div style={{ marginTop: 4 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
@@ -3672,6 +4321,233 @@ function CardNews({ title, body }) {
         저장하면 폰 갤러리에 들어갑니다 → 인스타에 여러 장으로 올리세요. 모든 카드에 슬로건·전화번호가 자동으로 박힙니다.
       </div>
     </div>
+  );
+}
+
+
+function drawInstaSlide(canvas, slide, idx = 0, total = 1) {
+  const S = 1080, footerH = 120;
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, S, S);
+  const navy = "#15243B", navy2 = "#0E1A2C", coral = "#F25C4A", coralD = "#D8412F", white = "#fff", ink = "#1B2A41";
+  const font = (size, weight = 800) => `${weight} ${size}px 'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif`;
+
+  const grad = (c1, c2) => { const g = ctx.createLinearGradient(0, 0, S, S); g.addColorStop(0, c1); g.addColorStop(1, c2); return g; };
+  const circle = (x, y, r, color, alpha = 1) => { ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.restore(); };
+
+  const wrap = (text, maxW, f) => {
+    ctx.font = f;
+    const tokens = String(text).split(" ");
+    const lines = []; let line = "";
+    for (const tk of tokens) {
+      const test = line ? line + " " + tk : tk;
+      if (ctx.measureText(test).width <= maxW) { line = test; continue; }
+      if (line) lines.push(line);
+      if (ctx.measureText(tk).width > maxW) {
+        let cur = "";
+        for (const ch of tk) {
+          if (ctx.measureText(cur + ch).width <= maxW) cur += ch;
+          else { if (cur) lines.push(cur); cur = ch; }
+        }
+        line = cur;
+      } else line = tk;
+    }
+    if (line) lines.push(line);
+    return lines;
+  };
+  const drawLines = (lines, x, y, lh, f, color, align = "left") => {
+    ctx.font = f; ctx.fillStyle = color; ctx.textAlign = align; ctx.textBaseline = "alphabetic";
+    lines.forEach((ln, i) => ctx.fillText(ln, x, y + i * lh));
+    return y + lines.length * lh;
+  };
+  // 진행 표시 — 모든 카드에 넣는다(완독률 유도)
+  const dots = (active, color) => {
+    const n = total, gap = 26, r = 7, w = (n - 1) * gap, x0 = S / 2 - w / 2, y = S - footerH - 40;
+    for (let i = 0; i < n; i++) {
+      ctx.save(); ctx.globalAlpha = i === active ? 1 : 0.3; ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(x0 + i * gap, y, i === active ? r : r - 2, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+  };
+  // 스와이프 유도 화살표 — 마지막 장 빼고 전부
+  const swipe = (dark) => {
+    if (idx >= total - 1) return;
+    const cx = S - 110, cy = S - footerH - 110, r = 52;
+    ctx.save();
+    ctx.globalAlpha = dark ? 0.95 : 1;
+    ctx.fillStyle = coral; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.font = font(46, 800); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("›", cx + 2, cy - 2);
+    ctx.restore();
+    ctx.save();
+    ctx.fillStyle = dark ? "#9DB0C9" : "#8B97A6";
+    ctx.font = font(22, 700); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("넘겨보세요", cx, cy + r + 26);
+    ctx.restore();
+  };
+  const footer = (dark) => {
+    const fy = S - footerH;
+    ctx.fillStyle = dark ? "#0A1422" : "#F2F4F7";
+    ctx.fillRect(0, fy, S, footerH);
+    ctx.fillStyle = coral; ctx.fillRect(0, fy, 12, footerH);
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "left"; ctx.font = font(34, 800); ctx.fillStyle = coral;
+    ctx.fillText(BRAND.slogan, 56, fy + footerH / 2 - 14);
+    ctx.font = font(24, 600); ctx.fillStyle = dark ? "#9DB0C9" : "#6C7A8C";
+    ctx.fillText(BRAND.name, 56, fy + footerH / 2 + 24);
+    ctx.textAlign = "right"; ctx.font = font(40, 800); ctx.fillStyle = dark ? "#fff" : navy;
+    ctx.fillText("📞 " + BRAND.phone, S - 56, fy + footerH / 2);
+  };
+
+  /* ── 1장 : 훅 표지 ── */
+  if (slide.type === "hook") {
+    ctx.fillStyle = grad(navy, navy2); ctx.fillRect(0, 0, S, S);
+    circle(S - 140, 180, 260, coral, 0.14);
+    circle(150, S - footerH - 200, 190, "#2F6FB0", 0.12);
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    ctx.font = font(28, 800); ctx.fillStyle = coral;
+    ctx.fillText(BRAND.name, 60, 130);
+    ctx.fillStyle = coral; ctx.fillRect(60, 158, 96, 9);
+
+    const lines = wrap(slide.head || "", S - 130, font(84, 800));
+    const lh = 106, blockH = lines.length * lh;
+    const y = Math.max(360, (S - footerH) / 2 - blockH / 2 + 60);
+    const endY = drawLines(lines, 60, y, lh, font(84, 800), white, "left");
+    if (slide.sub) {
+      drawLines(wrap(slide.sub, S - 260, font(34, 600)), 60, endY + 44, 46, font(34, 600), "#9DB0C9", "left");
+    }
+    dots(idx, "#fff");
+    swipe(true);
+    footer(true);
+    return;
+  }
+
+  /* ── 마지막 : CTA ── */
+  if (slide.type === "cta") {
+    ctx.fillStyle = grad(coral, coralD); ctx.fillRect(0, 0, S, S);
+    circle(140, 160, 200, "#fff", 0.10);
+    circle(S - 120, S - 200, 240, "#fff", 0.10);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = font(80, 800); ctx.fillStyle = "#fff"; ctx.fillText("✨", S / 2, 220);
+    ctx.font = font(34, 700); ctx.fillStyle = "rgba(255,255,255,.92)";
+    const rg = wrap(BRAND.region, S - 160, font(34, 700));
+    drawLines(rg.slice(0, 2), S / 2, 320, 44, font(34, 700), "rgba(255,255,255,.92)", "center");
+    drawLines(wrap(BRAND.slogan, S - 160, font(86, 800)), S / 2, 500, 104, font(86, 800), white, "center");
+    const pill = "📞 " + BRAND.phone;
+    ctx.font = font(60, 800);
+    const pw = ctx.measureText(pill).width + 110, ph = 130, px = S / 2 - pw / 2, py = 740;
+    roundRect(ctx, px, py, pw, ph, 65); ctx.fillStyle = "#fff"; ctx.fill();
+    ctx.fillStyle = coralD; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = font(60, 800); ctx.fillText(pill, S / 2, py + ph / 2 + 2);
+    return;
+  }
+
+  /* ── 요약 카드 : 저장을 만드는 한 장 ── */
+  if (slide.type === "summary") {
+    ctx.fillStyle = grad(navy, navy2); ctx.fillRect(0, 0, S, S);
+    circle(S - 100, S - footerH - 260, 230, coral, 0.13);
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+
+    // 라벨 pill
+    ctx.font = font(30, 800);
+    const lab = "한 장 요약";
+    const lw = ctx.measureText(lab).width + 52;
+    roundRect(ctx, 60, 96, lw, 62, 31); ctx.fillStyle = coral; ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(lab, 60 + lw / 2, 128);
+
+    let y = 250;
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    for (const ln of (slide.lines || [])) {
+      circle(84, y - 14, 11, coral, 1);
+      const ls = wrap(ln, S - 200, font(44, 700));
+      y = drawLines(ls, 122, y, 58, font(44, 700), white, "left") + 32;
+      if (y > S - footerH - 150) break;
+    }
+    if (slide.saveHook) {
+      ctx.font = font(32, 800); ctx.fillStyle = coral; ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
+      ctx.fillText("🔖 " + slide.saveHook, S - 60, S - footerH - 70);
+    }
+    dots(idx, "#fff");
+    swipe(true);
+    footer(true);
+    return;
+  }
+
+  /* ── 본문 카드 ── */
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, S, S);
+  ctx.save(); ctx.globalAlpha = 0.08; ctx.fillStyle = coral;
+  ctx.beginPath(); ctx.arc(S, 0, 260, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+
+  const num = String(idx).padStart(2, "0");
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  ctx.font = font(130, 800); ctx.fillStyle = "#FCE6E1"; ctx.fillText(num, 56, 240);
+  ctx.fillStyle = coral; ctx.fillRect(60, 262, 70, 9);
+
+  let y = 400;
+  if (slide.head) y = drawLines(wrap(slide.head, S - 240, font(66, 800)), 60, y, 84, font(66, 800), navy) + 34;
+  for (const ln of (slide.lines || [])) {
+    y = drawLines(wrap(ln, S - 240, font(40, 500)), 60, y, 58, font(40, 500), ink) + 20;
+    if (y > S - footerH - 170) break;
+  }
+  dots(idx, navy);
+  swipe(false);
+  footer(false);
+}
+
+
+function InstaCards({ card }) {
+  const slides = useMemo(() => instaSlides(card), [card]);
+  const refs = useRef([]);
+  useEffect(() => {
+    let on = true;
+    (async () => {
+      try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch {}
+      if (!on) return;
+      slides.forEach((s, i) => { const c = refs.current[i]; if (c) drawInstaSlide(c, s, i, slides.length); });
+    })();
+    return () => { on = false; };
+  }, [slides]);
+
+  const saveOne = (i) => {
+    const c = refs.current[i]; if (!c) return;
+    const a = document.createElement("a");
+    a.download = `해피데이_인스타카드_${String(i + 1).padStart(2, "0")}.png`;
+    a.href = c.toDataURL("image/png");
+    a.click();
+  };
+  const saveAll = () => slides.forEach((_, i) => setTimeout(() => saveOne(i), i * 280));
+
+  if (!slides.length) return null;
+
+  return (
+    <Panel>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+        <ImageIcon size={17} color={C.coral} />
+        <span style={{ fontSize: 14.5, fontWeight: 800, color: C.navy }}>카드 {slides.length}장</span>
+        <span style={{ fontSize: 11.5, color: C.muted }}>· 1080×1080 (1:1)</span>
+        <div style={{ flex: 1 }} />
+        <button className="hd-btn" onClick={saveAll}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 800, color: "#fff", background: C.navy, border: "none", borderRadius: 9, padding: "9px 13px" }}>
+          <Download size={15} /> 전체 저장
+        </button>
+      </div>
+      <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 6 }}>
+        {slides.map((s, i) => (
+          <div key={i} style={{ flex: "0 0 auto", textAlign: "center" }}>
+            <canvas ref={(el) => (refs.current[i] = el)} width={1080} height={1080}
+              style={{ width: 178, height: 178, borderRadius: 12, border: `1px solid ${C.line}`, background: "#fff", display: "block" }} />
+            <button className="hd-btn" onClick={() => saveOne(i)}
+              style={{ marginTop: 6, fontSize: 11.5, fontWeight: 700, color: C.navy, background: "#fff", border: `1.5px solid ${C.line}`, borderRadius: 8, padding: "4px 12px" }}>
+              {i + 1}장 저장
+            </button>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10, lineHeight: 1.6 }}>
+        저장하면 폰 갤러리에 들어갑니다 → 인스타에서 <b>순서대로 선택</b>해 여러 장으로 올리세요.
+        모든 카드에 슬로건·전화번호가 자동으로 박힙니다.
+      </div>
+    </Panel>
   );
 }
 
