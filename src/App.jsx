@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v3.4 · 0810-2115";
+const APP_VER = "v3.6 · 0810-2125";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -812,6 +812,35 @@ const CONTENT_RULES = `[반드시 지킬 표현 규칙]
 4. 과장·거짓 금지. [회사 사실]과 [현장 메모]에 없는 수치·후기·사례를 지어내지 말 것.
 5. 고객을 1인칭으로 사칭하지 말 것. 후기를 인용할 때는 큰따옴표를 쓰고 화자를 밝힐 것.`;
 
+// 마케팅 문안 공통 규칙 (2026-08-10 제정 · 전 채널 공통)
+const STYLE_RULES = `[마케팅 문안 공통 규칙 — 전 채널 공통]
+S1. 첫 줄에서 잡고, 마지막 줄에서 남긴다. 중간이 좋고 첫 줄이 밋밋하면 실패한 글이다.
+S2. 하나만 제대로 말한다. 정보를 나열하지 않는다. 한 콘텐츠에 메시지 하나, 카드 한 장에 메시지 하나.
+S3. 착한 말·뻔한 말·아는 말은 뺀다. "이사는 인생의 큰 일입니다" 같은 문장은 전부 삭제 대상이다.
+S4. 숫자·기간·대상 중 하나는 문장 앞쪽에 둔다. 애매한 형용사는 쓰지 않는다.
+    ("꼼꼼한 이사" 금지 → "포장부터 배치까지 4시간" / "많은 분" 금지 → "3층 원룸 사시는 분")
+S5. 고객이 실제로 쓰는 말로 쓴다. 업계 용어로 쓰지 않는다.
+    (예: "짐이 얼마나 되는지 모르겠어요", "당일에 돈 더 달라 할까 봐", "파손 나면 어쩌나")
+S6. 설명으로 끝내지 않는다. 읽고 바로 할 수 있는 행동 하나를 남긴다.
+S7. 어디서 본 것 같은 소재는 쓰지 않는다.`;
+
+// 채널별 예외 — 같은 규칙을 두 채널에 다 적용하면 한쪽이 반드시 망가진다
+const CH_EXCEPTION = {
+  // 인스타는 아무 질문 없이 스크롤하는 사람이 본다. 질문을 던지면 "나한테 묻지 마"가 되고 넘어간다.
+  insta: `[인스타 계열 예외 — 반드시 지킬 것]
+X1. 물음표(?)와 느낌표(!)를 쓰지 않는다. 자막·훅·캡션 전부 해당한다.
+X2. 질문형 제목을 쓰지 않는다. 단정형으로 쓴다. (질문형은 블로그 전용 규칙이다)`,
+  // 블로그는 검색으로 들어오는 사람이 읽는다. 이미 질문을 품고 왔으니 제목이 그 질문과 같아야 걸린다.
+  blog: `[블로그 예외]
+X1. 제목은 질문형으로 쓰고 첫 줄에서 바로 답한다(GEO). 인스타의 물음표 금지 규칙은 블로그에 적용하지 않는다.`,
+  // 스레드는 답글이 연료다. 질문으로 닫아야 한다.
+  threads: `[스레드 예외]
+X1. 물음표는 마지막 마무리 질문에만 쓴다. 1번 글에는 물음표를 쓰지 않는다.`,
+};
+
+// 릴스에서 실제로 찍을 수 있는 장면 — 이 목록 밖은 지시하지 않는다
+const SHOOTABLE = "실제 이사 현장, 사다리차, 포장 과정, 트럭 적재, 가구 해체·조립, 청소 전후, 대표 인터뷰, 고객 인계 장면";
+
 // AI 오류 → 사람이 읽는 문구 (초안 생성과 동일한 규칙)
 function aiErrMsg(e, fallback) {
   const em = e && e.message ? e.message : "";
@@ -1040,6 +1069,10 @@ ${BRAND.facts && BRAND.facts.trim() ? BRAND.facts.trim() : "(미입력)"}${foodF
     ? "없음 — [식당 정보]의 식당명·지역·메뉴를 조합해 '지역명+메뉴+맛집' 형태의 롱테일 키워드를 직접 만들 것 (예: 성남동 곰탕 맛집, 대전 황태곰탕). 사용자가 키워드를 따로 입력하지 않아도 되게 알아서 정한다."
     : "없음 — 이 축에 맞는 월 검색량 100~500 수준의 롱테일 키워드를 직접 제안할 것")}
 
+${STYLE_RULES}
+
+${CH_EXCEPTION.blog}
+
 [네이버 SEO 규칙]
 - 제목은 핵심 키워드를 앞쪽에 배치
 - 직접 경험·구체적 정보 중심, "최고/1위" 같은 과장 금지
@@ -1142,6 +1175,13 @@ ${memo && memo.trim() ? `[현장 메모] ${memo.trim()}` : ""}
 
 ${CONTENT_RULES}
 
+${STYLE_RULES}
+
+${CH_EXCEPTION.insta}
+
+[찍을 수 있는 장면 — 이 안에서만 지시할 것]
+${SHOOTABLE}
+
 [릴스 제작 규칙]
 6. 영상 길이 10~18초. 짧을수록 완주율이 오르고, 완주율이 추천을 만든다.
 7. 첫 프레임에 인사·로고·인트로 금지. 가장 극적인 장면으로 즉시 시작.
@@ -1155,10 +1195,12 @@ ${CONTENT_RULES}
 반드시 아래 라벨 형식으로만, 각 라벨을 한 줄씩 출력하세요(설명·군더더기·코드펜스 금지).
 
 FIRSTFRAME: (영상의 첫 프레임을 무엇으로 시작할지 한 줄 지시. 카메라 위치·피사체까지 구체적으로)
-HOOK: (첫 2초 화면에 뜨는 자막 · 12자 이내)
+HOOK: (첫 2초 화면에 뜨는 자막 · 12자 이내 · 물음표·느낌표 금지)
+HOOK3: 훅 후보를 속으로 10개 만든 뒤 가장 센 3개만 " | "로 구분해 출력 (각 12자 이내, 위 HOOK 포함)
+HOOKWHY: 3개를 고른 이유를 각각 한 줄로 " | "로 구분
 CAPTIONS: 장면별 화면 자막 3~5개를 " | "로 구분 (각 12자 이내)
 NARRATION: (영상 위에 깔 멘트 2~3문장)
-CAPTION: (인스타 릴스 게시 캡션 2~3문장, 이모지 약간. 첫 문장 CTA 금지, 마지막 문장만 행동 유도)
+CAPTION: (릴스 캡션 2~3문장. 첫 문장에 검색될 만한 지역 키워드를 자연스럽게 넣고, 짧은 문단으로 끊고, 마지막은 '댓글 달아주세요' 같은 말 대신 읽는 사람이 자기 얘기를 하고 싶어지게 닫는다. 물음표·느낌표 금지)
 HASHTAGS: (해시태그 10개. 지역 태그 3개 필수 ─ 예: #지역이사 #지역포장이사 #지역입주청소. 나머지는 업종·상황·브랜드. 실제 지역명으로, #으로 시작, 쉼표로 구분)
 PINNED: (고정 댓글 한 줄 · 견적·전화로 자연스럽게 유도)
 ENDCARD: (마지막 0.5초 정지 프레임에 넣을 문구 한 줄)
@@ -1180,6 +1222,8 @@ BESTTIME: (이 릴스를 올리기 좋은 요일·시간 한 줄 · 한국 시�
   const r = {
     firstFrame: get("FIRSTFRAME"),
     hook: get("HOOK"),
+    hook3: splitPipe(get("HOOK3")),
+    hookWhy: splitPipe(get("HOOKWHY")),
     captions: splitPipe(get("CAPTIONS")),
     narration: get("NARRATION"),
     caption: get("CAPTION"),
@@ -1209,6 +1253,10 @@ ${BRAND.facts && BRAND.facts.trim() ? BRAND.facts.trim() : "(미입력)"}
 ${memo && memo.trim() ? `[현장 메모] ${memo.trim()}` : ""}
 
 ${CONTENT_RULES}
+
+${STYLE_RULES}
+
+${CH_EXCEPTION.threads}
 
 [스레드 작성 규칙]
 6. 1번 글(HOOK)은 반드시 미완성으로 끝낸다. 숫자·반전·의문으로 끊어 "더보기"를 누르게 만든다.
@@ -1268,6 +1316,10 @@ ${memo && memo.trim() ? `[현장 메모] ${memo.trim()}` : ""}
 
 ${CONTENT_RULES}
 
+${STYLE_RULES}
+
+${CH_EXCEPTION.insta}
+
 [카드 제작 규칙]
 6. 총 장수는 표지 1장 + 본문 4장 + 요약 1장 + CTA 1장 = 7장 구조다. 본문은 정확히 4장으로 맞춘다.
 7. 1장(표지)은 제목이 아니라 훅이다. 20자 이내로, 넘기지 않으면 손해라는 느낌을 줘야 한다.
@@ -1280,12 +1332,14 @@ ${CONTENT_RULES}
 
 반드시 아래 라벨 형식으로만, 각 라벨을 한 줄씩 출력하세요(설명·군더더기·코드펜스 금지).
 
-HOOKCARD: (1장 표지 훅 · 20자 이내)
+HOOKCARD: (1장 표지 훅 · 20자 이내 · 물음표·느낌표 금지 · 단정형)
+HOOK3: 표지 훅 후보를 속으로 10개 만든 뒤 가장 센 3개만 " | "로 구분해 출력 (각 20자 이내, 위 HOOKCARD 포함)
+HOOKWHY: 3개를 고른 이유를 각각 한 줄로 " | "로 구분
 HOOKSUB: (표지 훅 아래 보조 한 줄 · 18자 이내)
 CARDS: 본문 4장을 " | "로 구분. 각 장은 "소제목 :: 본문문장1 / 본문문장2" 형식 (소제목 12자 이내, 본문 각 22자 이내)
 SUMMARY: 요약 카드에 넣을 3~5줄을 " / "로 구분 (각 18자 이내)
 SAVEHOOK: (요약 카드 하단에 넣을 저장 유도 한 줄 · 12자 이내)
-CAPTION: (인스타 게시 캡션 2~3문장, 이모지 약간. 첫 문장 CTA 금지)
+CAPTION: (인스타 캡션 2~3문장. 첫 문장에 검색될 만한 지역 키워드를 자연스럽게 넣고, 마지막은 읽는 사람이 자기 얘기를 하고 싶어지게 닫는다. 물음표·느낌표 금지)
 HASHTAGS: (해시태그 10개. 지역 태그 3개 필수. #으로 시작, 쉼표로 구분)
 PINNED: (고정 댓글 한 줄 · 견적·전화로 자연스럽게 유도)
 THREADCROSS: (이 카드를 알리려고 스레드에 올릴 한 줄)
@@ -1310,6 +1364,8 @@ BESTTIME: (이 카드를 올리기 좋은 요일·시간 한 줄 · 한국 시�
 
   const r = {
     hook: get("HOOKCARD"),
+    hook3: splitPipe(get("HOOK3")),
+    hookWhy: splitPipe(get("HOOKWHY")),
     hookSub: get("HOOKSUB"),
     cards: bodyCards,
     summary: splitSlash(get("SUMMARY")).slice(0, 5),
@@ -1447,7 +1503,13 @@ export default function App() {
       try {
         const res = await window.storage.set(CRM_KEY, JSON.stringify(crm));
         setSaveError(res === false ? "full" : "");
-      } catch { setSaveError("full"); }
+      } catch (e) {
+        // 진짜 용량 초과일 때만 경고한다.
+        // (미리보기 화면처럼 저장소를 쓸 수 없는 환경에서 던지는 오류까지 '가득 참'으로 표시하면 오탐이 된다)
+        const msg = (e && (e.message || e.name) ? String(e.message || e.name) : "");
+        const quota = (e && e.name === "QuotaExceededError") || /quota|exceed|full|가득/i.test(msg);
+        setSaveError(quota ? "full" : "");
+      }
     })();
   }, [crm, ready]);
 
@@ -1659,6 +1721,24 @@ export default function App() {
 }
 
 /* --------------------------- 재타깃 (마케팅2 · 단골 재마케팅) ---------------------------- */
+// 광고성 문자 발송 전 반드시 확인하는 법적 경계
+function SendGate() {
+  return (
+    <div style={{ background: "#FFF1EE", border: `1.5px solid ${C.coral}`, borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <Phone size={15} color={C.coralDark} style={{ marginTop: 2, flexShrink: 0 }} />
+        <div style={{ fontSize: 11.5, color: C.text, lineHeight: 1.7 }}>
+          <b style={{ color: C.coralDark }}>보내기 전에 확인</b>
+          <div style={{ marginTop: 4 }}>· 수신 동의 받은 고객 → <b>문자·카톡 가능</b></div>
+          <div>· 동의 없는 과거 고객 → <b>거래 후 6개월 이내만</b> 가능 (수신거부 안내 필수)</div>
+          <div>· 6개월 지난 고객 → <b>문자 불가.</b> 사람이 직접 전화하며 출처를 밝히면 가능</div>
+          <div>· <b>21시~08시 광고성 문자는 별도 동의</b>가 있어야 한다</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Retarget({ crm, addCust, updateCust, removeCust, importCusts }) {
   const [moveDate, setMoveDate] = useState("");
   const [from, setFrom] = useState("");
@@ -1691,6 +1771,7 @@ function Retarget({ crm, addCust, updateCust, removeCust, importCusts }) {
 
   return (
     <div className="hd-fade">
+      <SendGate />
       <Panel>
         <Label>고객관리 <span style={{ color: C.muted, fontWeight: 500 }}>(고객 창고 · 태그 · 개별 문구)</span></Label>
         <div style={{ fontSize: 12.5, color: C.muted, marginTop: 8, lineHeight: 1.6 }}>
@@ -3338,6 +3419,31 @@ function Calendar({ queue, go }) {
 }
 
 /* ------------------------- UI primitives ------------------------- */
+// 훅 후보 3안 — 10개 만들고 3개 고른 결과. 대표는 고르기만 한다.
+function HookPicks({ hooks, whys, bare }) {
+  const [copied, setCopied] = useState(-1);
+  if (!hooks || hooks.length < 2) return null;
+  const pick = async (h, i) => { await copyText(h); setCopied(i); setTimeout(() => setCopied(-1), 1600); };
+  return (
+    <div style={{ marginTop: bare ? 8 : 12 }}>
+      {!bare && <div style={{ fontSize: 11.5, fontWeight: 800, color: C.muted, marginBottom: 6 }}>훅 후보 (10개 중 고른 3개 · 눌러서 복사)</div>}
+      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+        {hooks.map((h, i) => (
+          <button key={i} className="hd-btn" onClick={() => pick(h, i)}
+            style={{ textAlign: "left", background: copied === i ? "#E7F6F1" : "#fff", border: `1.5px solid ${copied === i ? "#2E9E8F" : C.line}`, borderRadius: 10, padding: "10px 12px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+              <span style={{ fontSize: 10.5, fontWeight: 800, color: "#fff", background: C.coral, borderRadius: 5, padding: "2px 7px", flexShrink: 0 }}>{i + 1}안</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{h}</span>
+              {copied === i && <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 800, color: "#1E7A6B" }}>복사됨</span>}
+            </div>
+            {whys && whys[i] && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.55 }}>{whys[i]}</div>}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // 채널 공통 운영 규칙 안내 — 언제 올릴지 / 무엇을 올릴지
 function MixNote({ channel }) {
   return (
@@ -3473,6 +3579,7 @@ function Reels() {
                   <div style={{ fontSize: 17, fontWeight: 800 }}>{reel.hook}</div>
                 </div>
               )}
+              <HookPicks hooks={reel.hook3} whys={reel.hookWhy} />
               <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 7 }}>
                 {reel.captions.map((c, i) => (
                   <div key={i} style={{ display: "flex", gap: 9, alignItems: "center", background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>
@@ -3809,6 +3916,14 @@ function Cards() {
 
       {card && (
         <div className="hd-fade" style={{ marginTop: 16 }}>
+          {card.hook3 && card.hook3.length > 1 && (
+            <div style={{ marginBottom: 14 }}>
+              <Panel>
+                <SectionTitle icon={Lightbulb}>표지 훅 후보 <span style={{ fontWeight: 500, color: C.muted }}>(10개 중 고른 3개)</span></SectionTitle>
+                <HookPicks hooks={card.hook3} whys={card.hookWhy} bare />
+              </Panel>
+            </div>
+          )}
           <InstaCards card={card} />
 
           <div style={{ marginTop: 14 }}>
