@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v3.3 · 0810-2100";
+const APP_VER = "v3.4 · 0810-2115";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -201,6 +201,110 @@ const SEARCH_PEAK = "이사 검색은 목·금에 몰립니다. 지역 호명형
 
 // 채널 콘텐츠 황금비 — 팔지 말고 쓸모를 줘야 저장·공유가 일어난다
 const MIX_RULE = "쓸모(정보·노하우) 60% · 실적(작업·청소 전후) 30% · 사람(현장·일상) 10%";
+
+/* ---------------- 발행 계획 (일자별 · 채널별) ---------------- */
+const PLAN_KEY = "happyday:plan:v1";
+const PUB_CHANNELS = [
+  { id: "blog",    name: "블로그", color: "#2F6FB0", tab: "generate" },
+  { id: "reels",   name: "릴스",   color: "#F25C4A", tab: "reels" },
+  { id: "cards",   name: "카드",   color: "#7C4DBE", tab: "cards" },
+  { id: "threads", name: "스레드", color: "#2E9E8F", tab: "threads" },
+  { id: "sms",     name: "문자",   color: "#E08A2B", tab: "retarget" },
+];
+const chOf = (id) => PUB_CHANNELS.find((c) => c.id === id) || PUB_CHANNELS[0];
+
+async function loadPlan() {
+  try { const r = await window.storage.get(PLAN_KEY); return r ? JSON.parse(r.value) : []; } catch { return []; }
+}
+async function savePlan(p) {
+  try { await window.storage.set(PLAN_KEY, JSON.stringify(p)); } catch {}
+}
+
+// 요일별 기본 편성 — 스레드 매일 / 카드 월·수·금 / 릴스 화·목 / 블로그 화·금
+// (0=일 … 6=토)  콘텐츠 비율 60:30:10 과 목·금 검색 몰림을 반영한 배치
+const WEEK_PLAN = [
+  { d: 1, ch: "threads" }, { d: 1, ch: "cards" },
+  { d: 2, ch: "threads" }, { d: 2, ch: "reels" }, { d: 2, ch: "blog" },
+  { d: 3, ch: "threads" }, { d: 3, ch: "cards" },
+  { d: 4, ch: "threads" }, { d: 4, ch: "reels" },
+  { d: 5, ch: "threads" }, { d: 5, ch: "cards" }, { d: 5, ch: "blog" },
+  { d: 6, ch: "threads" },
+  { d: 0, ch: "threads" },
+];
+
+function planTopic(ch, i, dow) {
+  if (ch === "reels") {
+    const hook = (dow === 4 || dow === 5) ? REEL_HOOKS.find((h) => h.id === "region") : REEL_HOOKS[i % REEL_HOOKS.length];
+    return REEL_TOPICS[i % REEL_TOPICS.length].name + " · " + (hook ? hook.name : "");
+  }
+  if (ch === "cards") return CARD_TOPICS[i % CARD_TOPICS.length].name;
+  if (ch === "threads") return THREAD_TOPICS[i % THREAD_TOPICS.length].name;
+  if (ch === "blog") return (AXES[i % AXES.length] || {}).name || "정보";
+  if (ch === "sms") return "후기 요청 / 재구매 안내";
+  return "";
+}
+// 목·금은 블루오션 지역을 우선 배치 (검색이 몰리는 요일)
+function planRegion(i, dow) {
+  const pool = (dow === 4 || dow === 5) ? BLUE_OCEAN : MOVING_REGIONS;
+  return pool[i % pool.length];
+}
+function ymd(dt) {
+  return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
+}
+// 그 주의 월요일 (offsetWeeks=1 이면 다음 주)
+function mondayOf(base, offsetWeeks) {
+  const d = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+  const gap = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - gap + (offsetWeeks || 0) * 7);
+  return d;
+}
+// 한 주치 계획 자동 생성
+function buildWeek(monday) {
+  const out = [];
+  WEEK_PLAN.forEach((p, i) => {
+    const dt = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate());
+    dt.setDate(dt.getDate() + ((p.d + 6) % 7));
+    const dow = dt.getDay();
+    out.push({
+      id: uid(), date: ymd(dt), ch: p.ch,
+      topic: planTopic(p.ch, i, dow),
+      region: p.ch === "sms" ? "" : planRegion(i, dow),
+      done: false,
+    });
+  });
+  return out.sort((a, b) => (a.date < b.date ? -1 : 1));
+}
+
+// 시트 행 → 검수 큐 항목 (폰·PC 공유용)
+function mapSheetPost(row) {
+  if (!row || !row.id) return null;
+  const tags = (v) => Array.isArray(v) ? v : (v ? String(v).split(/[,|]/).map((t) => t.trim()).filter(Boolean) : []);
+  return {
+    id: String(row.id),
+    axis: ({ "정보": "info", "이사하면서": "story", "후기": "review", "맛집": "food" }[row.axis]) || row.axis || "info",
+    status: row.status || "검수중",
+    createdAt: row.created_at || row.createdAt || todayStr(),
+    scheduledDate: row.scheduled_date || row.scheduledDate || "",
+    keyword: row.keyword || "",
+    blogTitle: row.title || "",
+    blogBody: row.body || "",
+    blogTags: tags(row.hashtags),
+    instaCaption: row.insta_caption || "",
+    hashtags: tags(row.hashtags),
+    fieldNote: "", imageCount: 0,
+    covers: tags(row.covers),
+    thread: row.thread || "",
+    region: row.region || "",
+    fromSheet: true,
+  };
+}
+// 시트분 + 기기분 병합 (같은 id는 기기 쪽 수정본을 우선)
+function mergePosts(sheetList, localList) {
+  const map = {};
+  sheetList.forEach((p) => { if (p) map[p.id] = p; });
+  localList.forEach((p) => { map[p.id] = { ...(map[p.id] || {}), ...p }; });
+  return Object.keys(map).map((k) => map[k]).sort((a, b) => ((b.createdAt || "") < (a.createdAt || "") ? -1 : 1));
+}
 
 /* ── 마케팅2 (단골 재마케팅) — 수동 버전 저장소 ── */
 // 지금은 기기 localStorage 저장. 나중에 계약 동(ERP)이 붙으면 계약 데이터에서 자동으로 채워진다.
@@ -1289,6 +1393,14 @@ export default function App() {
     loadQueue().then((q) => {
       setQueue(q);
       setReady(true);
+      // 발행 대장(시트)에서도 읽어와 합친다 → 폰·PC 어디서 봐도 같은 검수 큐
+      (async () => {
+        try {
+          const rows = await fetchPostsFromSheet();
+          const sheetPosts = rows.map(mapSheetPost).filter(Boolean);
+          if (sheetPosts.length) setQueue((prev) => mergePosts(sheetPosts, prev));
+        } catch { /* 시트를 못 읽으면 기기 저장분만 사용 */ }
+      })();
     });
     (async () => {
       try {
@@ -1419,6 +1531,13 @@ export default function App() {
 
   const update = useCallback((id, patch) => {
     setQueue((q) => q.map((d) => (d.id === id ? { ...d, ...patch } : d)));
+    // 상태·예정일 변경은 시트에도 올린다 (다른 기기에서 같은 상태로 보이게)
+    if (patch && (patch.status || patch.scheduledDate !== undefined)) {
+      const p = { id };
+      if (patch.status) p.status = patch.status;
+      if (patch.scheduledDate !== undefined) p.scheduled_date = patch.scheduledDate;
+      updatePostOnSheet(p);
+    }
   }, []);
   const remove = useCallback((id) => {
     setQueue((q) => q.filter((d) => d.id !== id));
@@ -1518,7 +1637,7 @@ export default function App() {
         )}
         {tab === "generate" && <Generate seed={genSeed} keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} onSave={(d) => { setQueue((q) => [d, ...q]); setTab("queue"); }} />}
         {tab === "queue" && <Queue queue={queue} update={update} remove={remove} go={() => setTab("generate")} />}
-        {tab === "calendar" && <Calendar queue={queue} />}
+        {tab === "calendar" && <Calendar queue={queue} go={setTab} />}
         {tab === "publish" && <PublishBoard />}
         {tab === "keywords" && <KeywordManager keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} noteKeyword={noteKeyword} />}
         {tab === "reels" && <Reels />}
@@ -2954,93 +3073,265 @@ function QueueCard({ d, update, remove }) {
 }
 
 /* --------------------------- CALENDAR ---------------------------- */
-function Calendar({ queue }) {
+function Calendar({ queue, go }) {
   const [cur, setCur] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
-  const scheduled = useMemo(() => queue.filter((d) => d.scheduledDate), [queue]);
+  const [sel, setSel] = useState(todayStr());          // 펼쳐 볼 날짜
+  const [plan, setPlan] = useState([]);
   const [history, setHistory] = useState([]);
-  useEffect(() => { (async () => { try { const r = await window.storage.get(HISTORY_KEY); if (r) setHistory(JSON.parse(r.value) || []); } catch {} })(); }, []);
-  const delHist = async (id) => { const nx = history.filter((h) => h.id !== id); setHistory(nx); try { await window.storage.set(HISTORY_KEY, JSON.stringify(nx)); } catch {} };
+  const [ready, setReady] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [nCh, setNCh] = useState("reels");
+  const [nTopic, setNTopic] = useState("");
+  const [nRegion, setNRegion] = useState(MOVING_REGIONS[0]);
 
+  useEffect(() => {
+    (async () => {
+      setPlan(await loadPlan());
+      try { const r = await window.storage.get(HISTORY_KEY); if (r) setHistory(JSON.parse(r.value) || []); } catch {}
+      setReady(true);
+    })();
+  }, []);
+  useEffect(() => { if (ready) savePlan(plan); }, [plan, ready]);
+
+  const delHist = async (id) => {
+    const nx = history.filter((h) => h.id !== id);
+    setHistory(nx);
+    try { await window.storage.set(HISTORY_KEY, JSON.stringify(nx)); } catch {}
+  };
+
+  /* ---- 그 날짜의 전체 발행 목록 = 계획 + 예약된 블로그 초안 ---- */
+  const scheduled = useMemo(() => queue.filter((d) => d.scheduledDate), [queue]);
+  const listOn = (dateStr) => {
+    const a = plan.filter((p) => p.date === dateStr).map((p) => ({ ...p, kind: "plan" }));
+    const b = scheduled.filter((x) => x.scheduledDate === dateStr).map((x) => ({
+      id: x.id, date: dateStr, ch: "blog", topic: x.blogTitle || "(제목 없음)",
+      region: x.region || "", done: x.status === "완료", kind: "draft",
+    }));
+    const order = { blog: 0, reels: 1, cards: 2, threads: 3, sms: 4 };
+    return [...b, ...a].sort((p, q) => (order[p.ch] || 9) - (order[q.ch] || 9));
+  };
+
+  /* ---- 달력 격자 ---- */
   const first = new Date(cur.y, cur.m, 1);
   const startPad = first.getDay();
   const days = new Date(cur.y, cur.m + 1, 0).getDate();
   const cells = [];
   for (let i = 0; i < startPad; i++) cells.push(null);
   for (let d = 1; d <= days; d++) cells.push(d);
-
   const key = (d) => `${cur.y}-${String(cur.m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-  const itemsOn = (d) => scheduled.filter((x) => x.scheduledDate === key(d));
   const move = (delta) => setCur((c) => { const n = new Date(c.y, c.m + delta, 1); return { y: n.getFullYear(), m: n.getMonth() }; });
-  const isToday = (d) => key(d) === todayStr();
+
+  /* ---- 자동 편성 ---- */
+  const autoWeek = (offset) => {
+    const mon = mondayOf(new Date(), offset);
+    const made = buildWeek(mon);
+    const dates = made.map((x) => x.date);
+    setPlan((p) => [...p.filter((x) => dates.indexOf(x.date) < 0), ...made]);
+    setSel(made[0].date);
+    setCur({ y: mon.getFullYear(), m: mon.getMonth() });
+  };
+  const addOne = () => {
+    if (!nTopic.trim()) return;
+    setPlan((p) => [...p, { id: uid(), date: sel, ch: nCh, topic: nTopic.trim(), region: nCh === "sms" ? "" : nRegion, done: false }]);
+    setNTopic(""); setAdding(false);
+  };
+  const toggle = (it) => {
+    if (it.kind !== "plan") return;
+    setPlan((p) => p.map((x) => x.id === it.id ? { ...x, done: !x.done } : x));
+  };
+  const del = (it) => {
+    if (it.kind !== "plan") return;
+    setPlan((p) => p.filter((x) => x.id !== it.id));
+  };
+
+  const selList = listOn(sel);
+  const selDate = new Date(sel.slice(0, 4), Number(sel.slice(5, 7)) - 1, Number(sel.slice(8, 10)));
+  const WD = ["일", "월", "화", "수", "목", "금", "토"];
+  const monthCount = useMemo(() => {
+    const pre = `${cur.y}-${String(cur.m + 1).padStart(2, "0")}`;
+    return plan.filter((p) => p.date.indexOf(pre) === 0).length + scheduled.filter((x) => x.scheduledDate.indexOf(pre) === 0).length;
+  }, [plan, scheduled, cur]);
 
   return (
     <div className="hd-fade">
-      {history.length > 0 && (
-        <Panel>
-          <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>발행 히스토리</div>
-          <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>지금까지 발행한 주제 — 다음 주제를 겹치지 않게 정할 때 참고하세요.</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {history.map((h) => (
-              <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "#FAFBFD", border: `1px solid ${C.line}`, borderRadius: 11 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: C.navy, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
-                  <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>{h.at}{h.region ? " · " + h.region : ""}{h.axis ? " · " + h.axis : ""}{h.channel ? " · " + h.channel : ""}</div>
-                </div>
-                <button className="hd-btn" onClick={() => delHist(h.id)} style={{ border: "none", background: "transparent", color: C.muted, padding: 4 }}><Trash2 size={15} /></button>
-              </div>
-            ))}
-          </div>
-        </Panel>
-      )}
+      {/* 자동 편성 */}
       <Panel>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 14 }}>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>{cur.y}년 {cur.m + 1}월</div>
-          <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-            <IconBtn onClick={() => move(-1)}><ChevronLeft size={18} /></IconBtn>
-            <IconBtn onClick={() => move(1)}><ChevronRight size={18} /></IconBtn>
-          </div>
+        <SectionTitle icon={CalendarDays}>발행 계획 세우기</SectionTitle>
+        <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.65, marginTop: 6 }}>
+          누르면 <b>한 주치가 채널별로 자동 편성</b>됩니다. 스레드 매일 · 카드 월수금 · 릴스 화목 · 블로그 화금.
+          <b> 목·금에는 블루오션 지역</b>이 우선 배치됩니다.
         </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
-          {["일", "월", "화", "수", "목", "금", "토"].map((w, i) => (
-            <div key={w} style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: i === 0 ? C.coral : i === 6 ? "#2F6FB0" : C.muted, paddingBottom: 4 }}>{w}</div>
-          ))}
-          {cells.map((d, i) => (
-            <div key={i} style={{
-              minHeight: 78, borderRadius: 11, padding: 6,
-              background: d ? (isToday(d) ? "#FFF4F2" : "#FAFBFD") : "transparent",
-              border: d ? `1px solid ${isToday(d) ? C.coral : C.line}` : "none",
-            }}>
-              {d && (
-                <>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: isToday(d) ? C.coralDark : C.muted, marginBottom: 4 }}>{d}</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                    {itemsOn(d).map((x) => {
-                      const a = axisOf(x.axis);
-                      return (
-                        <div key={x.id} title={x.blogTitle}
-                          style={{ fontSize: 10.5, fontWeight: 600, color: "#fff", background: a.color, borderRadius: 6, padding: "3px 5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: x.status === "완료" ? .55 : 1 }}>
-                          {x.status === "완료" ? "✓ " : ""}{x.blogTitle}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
+        <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+          <button className="hd-btn" onClick={() => autoWeek(0)}
+            style={{ flex: 1, padding: "12px", borderRadius: 11, border: "none", background: C.navy, color: "#fff", fontWeight: 800, fontSize: 13.5 }}>
+            이번 주 자동 편성
+          </button>
+          <button className="hd-btn" onClick={() => autoWeek(1)}
+            style={{ flex: 1, padding: "12px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 13.5 }}>
+            다음 주 자동 편성
+          </button>
         </div>
       </Panel>
 
-      <div style={{ display: "flex", gap: 16, marginTop: 14, flexWrap: "wrap", justifyContent: "center" }}>
-        {AXES.map((a) => (
-          <span key={a.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: C.muted }}>
-            <span style={{ width: 11, height: 11, borderRadius: 4, background: a.color }} /> {a.name}
-          </span>
-        ))}
+      {/* 달력 */}
+      <div style={{ marginTop: 14 }}>
+        <Panel>
+          <div style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
+            <div style={{ fontSize: 17, fontWeight: 800 }}>{cur.y}년 {cur.m + 1}월</div>
+            <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: C.muted }}>{monthCount}건</span>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+              <IconBtn onClick={() => move(-1)}><ChevronLeft size={18} /></IconBtn>
+              <IconBtn onClick={() => move(1)}><ChevronRight size={18} /></IconBtn>
+            </div>
+          </div>
+          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>날짜를 누르면 아래에 그 날 발행 목록이 펼쳐집니다.</div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
+            {WD.map((w, i) => (
+              <div key={w} style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: i === 0 ? C.coral : i === 6 ? "#2F6FB0" : C.muted, paddingBottom: 4 }}>{w}</div>
+            ))}
+            {cells.map((d, i) => {
+              if (!d) return <div key={i} />;
+              const ks = key(d);
+              const items = listOn(ks);
+              const on = ks === sel;
+              const today = ks === todayStr();
+              return (
+                <button key={i} className="hd-btn" onClick={() => { setSel(ks); setAdding(false); }}
+                  style={{
+                    minHeight: 62, borderRadius: 10, padding: "5px 4px", textAlign: "center",
+                    background: on ? C.navy : (today ? "#FFF4F2" : "#FAFBFD"),
+                    border: `1.5px solid ${on ? C.navy : (today ? C.coral : C.line)}`,
+                  }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: on ? "#fff" : (today ? C.coralDark : C.muted) }}>{d}</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 2, justifyContent: "center", marginTop: 4 }}>
+                    {items.slice(0, 6).map((it, j) => (
+                      <span key={j} style={{
+                        width: 7, height: 7, borderRadius: 99, display: "inline-block",
+                        background: chOf(it.ch).color, opacity: it.done ? 0.3 : 1,
+                      }} />
+                    ))}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap", justifyContent: "center" }}>
+            {PUB_CHANNELS.map((c) => (
+              <span key={c.id} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: C.muted }}>
+                <span style={{ width: 8, height: 8, borderRadius: 99, background: c.color }} /> {c.name}
+              </span>
+            ))}
+          </div>
+        </Panel>
       </div>
-      {scheduled.length === 0 && (
-        <Note tone="tip" center><CalendarDays size={15} /> <span>검수 큐에서 글의 <b>발행 예정일</b>을 지정하면 여기 캘린더에 자동으로 올라옵니다.</span></Note>
+
+      {/* 선택한 날짜 — 채널별 발행 목록 */}
+      <div style={{ marginTop: 14 }}>
+        <Panel>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 16, fontWeight: 800, color: C.navy }}>
+              {selDate.getMonth() + 1}월 {selDate.getDate()}일 ({WD[selDate.getDay()]})
+            </span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>{selList.length}건</span>
+            <div style={{ flex: 1 }} />
+            <button className="hd-btn" onClick={() => setAdding((v) => !v)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 800, color: "#fff", background: C.coral, border: "none", borderRadius: 9, padding: "7px 12px" }}>
+              <Plus size={14} /> 추가
+            </button>
+          </div>
+
+          {adding && (
+            <div style={{ marginTop: 12, background: "#FAFBFD", border: `1px solid ${C.line}`, borderRadius: 11, padding: "12px 13px" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {PUB_CHANNELS.map((c) => (
+                  <button key={c.id} className="hd-btn" onClick={() => setNCh(c.id)}
+                    style={{ fontSize: 12.5, fontWeight: 700, padding: "7px 12px", borderRadius: 99, border: `1.5px solid ${nCh === c.id ? c.color : C.line}`, background: nCh === c.id ? c.color : "#fff", color: nCh === c.id ? "#fff" : C.text }}>
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+              <input value={nTopic} onChange={(e) => setNTopic(e.target.value)} placeholder="주제 (예: 청소 전후 · 비포애프터 분할)"
+                style={{ width: "100%", marginTop: 9, padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 13.5 }} />
+              {nCh !== "sms" && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 9 }}>
+                  {MOVING_REGIONS.map((rg) => (
+                    <button key={rg} className="hd-btn" onClick={() => setNRegion(rg)}
+                      style={{ fontSize: 12, fontWeight: 700, padding: "6px 11px", borderRadius: 99, border: `1.5px solid ${nRegion === rg ? C.navy : (isBlueOcean(rg) ? "#2E9E8F" : C.line)}`, background: nRegion === rg ? C.navy : "#fff", color: nRegion === rg ? "#fff" : C.text }}>
+                      {rg}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button className="hd-btn" onClick={addOne}
+                style={{ marginTop: 10, width: "100%", padding: "11px", borderRadius: 10, border: "none", background: C.navy, color: "#fff", fontWeight: 800, fontSize: 13.5 }}>
+                이 날짜에 넣기
+              </button>
+            </div>
+          )}
+
+          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+            {selList.length === 0 && (
+              <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "18px 0", lineHeight: 1.6 }}>
+                이 날짜에 잡힌 발행이 없습니다.<br />위 <b>[자동 편성]</b> 또는 <b>[추가]</b>로 넣으세요.
+              </div>
+            )}
+            {selList.map((it) => {
+              const c = chOf(it.ch);
+              return (
+                <div key={it.kind + it.id} style={{ display: "flex", alignItems: "center", gap: 10, background: it.done ? "#F4F6F8" : "#fff", border: `1.5px solid ${it.done ? C.line : c.color + "55"}`, borderRadius: 12, padding: "11px 12px" }}>
+                  <button className="hd-btn" onClick={() => toggle(it)} disabled={it.kind !== "plan"}
+                    style={{ width: 24, height: 24, borderRadius: 7, flexShrink: 0, border: `2px solid ${it.done ? "#2E9E8F" : C.line}`, background: it.done ? "#2E9E8F" : "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 0 }}>
+                    {it.done && <Check size={14} color="#fff" />}
+                  </button>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                      <span style={{ fontSize: 10.5, fontWeight: 800, color: "#fff", background: c.color, borderRadius: 5, padding: "2px 7px" }}>{c.name}</span>
+                      {it.region && (
+                        <span style={{ fontSize: 10.5, fontWeight: 700, color: isBlueOcean(it.region) ? "#1E7A6B" : C.muted, background: isBlueOcean(it.region) ? "#E7F6F1" : "#F1F3F6", borderRadius: 5, padding: "2px 7px" }}>{it.region}</span>
+                      )}
+                      {it.kind === "draft" && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.muted }}>초안 예약</span>}
+                    </div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: it.done ? C.muted : C.text, textDecoration: it.done ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {it.topic}
+                    </div>
+                  </div>
+                  <button className="hd-btn" onClick={() => go && go(it.kind === "draft" ? "queue" : c.tab)}
+                    style={{ fontSize: 11.5, fontWeight: 800, color: c.color, background: "#fff", border: `1.5px solid ${c.color}55`, borderRadius: 8, padding: "6px 10px", flexShrink: 0 }}>
+                    만들기
+                  </button>
+                  {it.kind === "plan" && (
+                    <button className="hd-btn" onClick={() => del(it)} style={{ border: "none", background: "transparent", color: C.muted, padding: 3, flexShrink: 0 }}>
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Panel>
+      </div>
+
+      {/* 발행 히스토리 */}
+      {history.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <Panel>
+            <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>발행 히스토리</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>지금까지 발행한 주제 — 다음 주제를 겹치지 않게 정할 때 참고하세요.</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {history.slice(0, 30).map((h) => (
+                <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "#FAFBFD", border: `1px solid ${C.line}`, borderRadius: 11 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: C.navy, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
+                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>{h.at}{h.region ? " · " + h.region : ""}{h.axis ? " · " + h.axis : ""}{h.channel ? " · " + h.channel : ""}</div>
+                  </div>
+                  <button className="hd-btn" onClick={() => delHist(h.id)} style={{ border: "none", background: "transparent", color: C.muted, padding: 4 }}><Trash2 size={15} /></button>
+                </div>
+              ))}
+            </div>
+          </Panel>
+        </div>
       )}
     </div>
   );
