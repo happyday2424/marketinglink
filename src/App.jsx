@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v3.8 · 0810-2140";
+const APP_VER = "v4.8 · 0811-0925";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -731,9 +731,9 @@ function contactToStaged(raw) {
 }
 
 const REEL_TOPICS = [
-  { id: "highlight", name: "작업 하이라이트", desc: "포장→운반→완료. 빠른 편집·타임랩스", color: "#2F6FB0" },
-  { id: "cleanBA", name: "청소 전후", desc: "더러운 곳 → 깨끗하게. 청소 무료 강조", color: "#2E9E8F" },
-  { id: "daily", name: "현장·일상 스케치", desc: "직원 현장, 맛집, 소소한 순간", color: "#E08A2B" },
+  { id: "highlight", name: "작업 하이라이트", hint: "예: 3층 원룸, 짐 많았는데 2시간 만에 끝.", desc: "포장→운반→완료. 빠른 편집·타임랩스", color: "#2F6FB0" },
+  { id: "cleanBA", name: "청소 전후", hint: "예: 싱크대 기름때가 심했는데 새것처럼 됨. 고객이 놀람.", desc: "더러운 곳 → 깨끗하게. 청소 무료 강조", color: "#2E9E8F" },
+  { id: "daily", name: "현장·일상 스케치", hint: "예: 점심에 간 논산 국밥집. 직원들이 두 그릇씩 먹음.", desc: "직원 현장, 맛집, 소소한 순간", color: "#E08A2B" },
 ];
 
 // 릴스 훅 유형 5종 — 첫 0.8초 정지율을 결정한다
@@ -763,19 +763,19 @@ const REEL_HOOKS = [
 // 스레드(Threads) 글 유형 4종 — 텍스트 채널은 ‘답글 수’가 알고리즘 연료
 const THREAD_TOPICS = [
   {
-    id: "howto", name: "노하우 · 정보", desc: "저장되는 글. 주력 60%", color: "#2F6FB0",
+    id: "howto", name: "노하우 · 정보", hint: "예: 고객이 자주 묻는 것 하나.", desc: "저장되는 글. 주력 60%", color: "#2F6FB0",
     role: "이사를 앞둔 사람이 당장 써먹을 수 있는 실전 정보. 체크리스트·순서·비교 기준 등. 팔지 말고 쓸모만 줄 것.",
   },
   {
-    id: "money", name: "돈 · 견적 이야기", desc: "비용 구조·흥정·함정", color: "#2E9E8F",
+    id: "money", name: "돈 · 견적 이야기", hint: "예: 오늘 견적 두 건이 값이 달랐던 이유.", desc: "비용 구조·흥정·함정", color: "#2E9E8F",
     role: "견적이 왜 업체마다 다른지, 무엇이 값을 올리고 내리는지 업자 입장에서 솔직하게 밝힌다. 우리 가격을 팔지 말고 ‘판단 기준’을 줄 것.",
   },
   {
-    id: "field", name: "현장 이야기", desc: "오늘 있었던 일", color: "#E08A2B",
+    id: "field", name: "현장 이야기", hint: "예: 오늘 현장에서 있었던 일.", desc: "오늘 있었던 일", color: "#E08A2B",
     role: "오늘 현장에서 실제로 있었던 짧은 이야기. 사람 냄새와 장면이 살아야 한다. 자랑조 금지, 담백하게.",
   },
   {
-    id: "debate", name: "질문 · 논쟁", desc: "답글을 부르는 글", color: "#7C4DBE",
+    id: "debate", name: "질문 · 논쟁", hint: "예: 이사비 흥정처럼 의견이 갈리는 주제.", desc: "답글을 부르는 글", color: "#7C4DBE",
     role: "정답이 갈리는 주제를 던져 사람들이 자기 경험을 말하게 만든다. 대표는 한쪽 입장을 먼저 밝히되 단정하지 않는다.",
   },
 ];
@@ -783,23 +783,23 @@ const THREAD_TOPICS = [
 // 인스타 카드(캐러셀) 유형 — 사진이 없거나 부족한 날의 주력 포맷
 const CARD_TOPICS = [
   {
-    id: "checklist", name: "체크리스트", desc: "저장률이 가장 높은 형식", color: "#2F6FB0",
-    role: "이사를 앞둔 사람이 캡처해서 두고두고 볼 만한 순서·목록. 날짜별(D-7, D-3, D-1) 또는 항목별로 끊는다. 각 항목은 실제로 행동할 수 있는 지시여야 한다.",
+    id: "checklist", name: "체크리스트", preview: "표지 훅 → 챙길 것 4가지(한 장에 하나) → 한 장 요약 → 연락", hint: "예: 이사 앞두고 고객이 꼭 물어보는 것. 우리가 미리 챙겨달라고 부탁하는 것.", desc: "저장률이 가장 높은 형식", color: "#2F6FB0",
+    role: "이사를 앞둔 사람이 캡처해서 두고두고 볼 만한 목록. 각 항목은 실제로 행동할 수 있는 지시여야 한다. 시점(D-몇 일, 몇 주 전)은 [이사 준비 타임라인]에 근거가 있을 때만 쓰고, 근거가 없으면 시점을 만들어내지 말고 순서(먼저 / 그다음 / 마지막)로 끊는다. 항목 자체도 근거가 있는 것만 넣는다.",
   },
   {
-    id: "money", name: "비용 · 견적 구조", desc: "무엇이 값을 올리고 내리는지", color: "#2E9E8F",
+    id: "money", name: "비용 · 견적 구조", preview: "표지 훅 → 값이 오르는 요인 / 값이 내리는 요인 / 견적 때 확인할 것 / 우리 기준 → 한 장 요약 → 연락", hint: "예: 오늘 견적 두 건이 값이 달랐던 이유. 층수·짐량·사다리차 여부.", desc: "무엇이 값을 올리고 내리는지", color: "#2E9E8F",
     role: "이사 견적이 업체마다 다른 이유와 값이 오르내리는 요인을 업자 입장에서 밝힌다. 우리 가격을 팔지 말고 판단 기준을 준다. 구체 금액은 [회사 사실]에 없으면 쓰지 말 것.",
   },
   {
-    id: "mistake", name: "실수 · 주의사항", desc: "‘이거 모르면 후회’", color: "#D9534F",
-    role: "현장에서 실제로 자주 보는 고객의 실수를 지목하고 대안을 준다. 겁주기가 아니라 도움이어야 한다.",
+    id: "mistake", name: "실수 · 주의사항", preview: "표지 훅 → 자주 나오는 실수 4가지(한 장에 하나) → 한 장 요약 → 연락", hint: "예: 오늘 현장에서 본 고객 실수. 짐을 안 빼놔서 늦어졌다 같은 것.", desc: "‘이거 모르면 후회’", color: "#D9534F",
+    role: "현장에서 실제로 자주 보는 고객의 실수를 지목하고 대안을 준다. 겁주기가 아니라 도움이어야 한다. 다만 어떤 실수를 다룰지는 [현장 메모]나 [회사 사실]에 근거가 있어야 한다. 근거가 없으면 실수를 지어내지 말고, 청소·포장·보양처럼 [회사 사실]에 적힌 우리 작업 범위 안에서만 다룬다.",
   },
   {
-    id: "compare", name: "비교 · 구분", desc: "헷갈리는 것 정리", color: "#7C4DBE",
+    id: "compare", name: "비교 · 구분", preview: "표지 훅 → A는 무엇 / B는 무엇 / 언제 갈리는지 / 누구에게 뭐가 맞는지 → 한 장 요약 → 연락", hint: "예: 고객이 헷갈려한 것. 사이청소와 당일청소를 계속 물어본다.", desc: "헷갈리는 것 정리", color: "#7C4DBE",
     role: "헷갈리기 쉬운 두 가지를 나란히 놓고 구분해 준다. 예: 사이청소와 당일청소의 차이, 반포장과 포장이사의 차이. 어느 쪽이 누구에게 맞는지까지 말해준다.",
   },
   {
-    id: "case", name: "현장 사례", desc: "사진 1~2장만 있어도 가능", color: "#E08A2B",
+    id: "case", name: "현장 사례", preview: "표지 훅 → 상황 / 문제 / 처리 / 결과 → 한 장 요약 → 연락", hint: "예: 오늘 현장 이야기. 3층 원룸, 사다리차 못 대서 계단으로 올림.", desc: "사진 1~2장만 있어도 가능", color: "#E08A2B",
     role: "오늘 현장에서 실제로 있었던 일을 상황→문제→처리→결과 흐름으로 풀어낸다. [현장 메모]에 있는 사실만 쓰고 각색하지 말 것.",
   },
 ];
@@ -810,7 +810,86 @@ const CONTENT_RULES = `[반드시 지킬 표현 규칙]
 2. "입주청소 포함된 금액"이라고 쓰지 말 것. 제시 금액은 이사비이고, 입주청소는 공짜다.
 3. **볼드** __밑줄__ 같은 마크다운 강조기호를 쓰지 말 것. 그대로 노출된다.
 4. 과장·거짓 금지. [회사 사실]과 [현장 메모]에 없는 수치·후기·사례를 지어내지 말 것.
-5. 고객을 1인칭으로 사칭하지 말 것. 후기를 인용할 때는 큰따옴표를 쓰고 화자를 밝힐 것.`;
+5. 고객을 1인칭으로 사칭하지 말 것. 후기를 인용할 때는 큰따옴표를 쓰고 화자를 밝힐 것.
+6. [사실 가드 — 가장 중요] 이사 준비 시점·소요 기간·비용·법규 수치는 [회사 사실] 또는 [이사 준비 타임라인] 또는 [현장 메모]에 근거가 있을 때만 쓴다.
+   근거가 없으면 숫자를 만들어내지 말고, 시점 대신 순서로 쓰거나 그 항목 자체를 뺀다.
+   특히 "이사업체는 며칠 전에 알아본다" 같은 시점은 인터넷 통설이 실제 현장과 크게 다르므로, 근거 없이 절대 쓰지 않는다.
+7. 틀린 정보를 그럴듯하게 쓰느니 항목 수를 줄인다. 정보 전달이 목적이지 칸 채우기가 목적이 아니다.
+8. [항목형 근거 규칙] 체크리스트·주의사항·비교처럼 항목을 나열하는 콘텐츠는, 각 항목이 [회사 사실]·[이사 준비 타임라인]·[현장 메모] 중 하나에 근거가 있어야 한다.
+   일반 상식이나 인터넷에서 본 듯한 항목으로 개수를 채우지 않는다. 근거 있는 항목이 2개뿐이면 2개만 쓴다.`;
+
+/* ── 재료 블록 ────────────────────────────────────────────
+   검수를 마친 블로그가 있으면 그것을 재료로 쓴다. 사실 확인을 한 번만 하면 되도록.
+   블로그가 없을 때만 현장 메모를 재료로 쓴다. */
+function srcBlock(src, memo) {
+  if (src && src.body && String(src.body).trim()) {
+    const body = stripMd(String(src.body)).replace(/\[사진:[^\]]*\]/g, "").slice(0, 3000);
+    return "[검수 완료된 블로그 원문 — 이 안의 사실만 쓴다]\n"
+      + "제목: " + (src.title || "") + "\n"
+      + body
+      + "\n\n[재구성 규칙 — 최우선]\n"
+      + "· 위 본문은 대표가 이미 검수한 사실이다. 여기에 없는 정보를 새로 만들지 않는다.\n"
+      + "· 내용을 창작하지 말고, 이 본문을 이 채널의 문법에 맞게 재배치하고 압축한다.\n"
+      + "· 본문에 없는 숫자·시점·금액·기간은 절대 쓰지 않는다.\n"
+      + "· 소제목 기호(##), 인용 기호(>), 사진 자리 표시는 결과물에 넣지 않는다.\n"
+      + "· 본문이 길면 가장 값어치 있는 대목만 골라 쓴다. 억지로 다 담지 않는다.";
+  }
+  if (memo && String(memo).trim()) {
+    return "[현장 메모 — 이 콘텐츠의 중심 소재]\n" + String(memo).trim()
+      + "\n\n[메모 활용 규칙 — 최우선]\n"
+      + "· 위 메모가 이 콘텐츠의 주제다. 일반론으로 흐르지 말고 메모에 적힌 내용을 풀어서 쓴다.\n"
+      + "· 메모에 나온 사실·수치·용어는 반드시 결과물 본문에 등장해야 한다. 참고만 하고 다른 얘기를 하면 실패다.\n"
+      + "· 메모와 무관한 항목으로 칸을 채우지 않는다. 채울 내용이 부족하면 항목 수를 줄인다.\n"
+      + "· 메모에 없는 시점·금액·기간 숫자는 만들어내지 않는다.";
+  }
+  return "";
+}
+
+/* ── 발행 전 사실 검수 ──────────────────────────────────────
+   AI는 자기가 틀린 걸 모른다. 그래서 AI에게 검증을 맡기지 않는다.
+   대신 '틀리면 치명적인 문구'만 자동으로 뽑아 대표 눈앞에 올린다.
+   확인은 사람이 한다. 이 화면의 목적은 확인을 빠르게 만드는 것이다. */
+const RISK_RULES = [
+  { id: "ban",  label: "금지 표현", hard: true,
+    re: /(이사\s*후\s*청소|입주청소\s*포함)/g,
+    why: "우리 규칙상 쓰면 안 되는 표현입니다. 반드시 고치세요." },
+  { id: "money", label: "금액",
+    re: /\d[\d,.]*\s*(만원|천원|원)/g,
+    why: "회사 사실에 있는 금액인지 확인하세요. 없으면 빼는 게 안전합니다." },
+  { id: "when", label: "시점 · 기간",
+    re: /(D\s*-\s*\d+|\d+\s*(일|주|주일|개월|달|년)\s*(전|후|이내|안|만에))/g,
+    why: "실제 현장 시점과 맞습니까. 인터넷 통설은 현장과 다릅니다." },
+  { id: "num", label: "수치",
+    re: /\d[\d,.]*\s*(%|퍼센트|평|톤|kg|시간|분|층|배|건|명|곳)/g,
+    why: "근거 있는 숫자입니까. 없으면 문장을 바꾸세요." },
+  { id: "abs", label: "단정 · 과장",
+    re: /(무조건|100\s*%|업계\s*1위|1위|최고|최저|유일|절대|완벽|반드시|누구나)/g,
+    why: "과장 표현은 빼는 편이 안전합니다." },
+  { id: "law", label: "법규 · 행정",
+    re: /(허가|면허|과태료|의무|법령|위반|신고해야|보험\s*처리)/g,
+    why: "법규는 틀리면 치명적입니다. 근거가 없으면 삭제하세요." },
+];
+
+function riskScan(parts) {
+  const text = (parts || []).filter(Boolean).join("\n");
+  const out = [];
+  const seen = {};
+  RISK_RULES.forEach((r) => {
+    const re = new RegExp(r.re.source, "g");
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      const hit = String(m[0]).trim();
+      const key = r.id + "|" + hit;
+      if (seen[key]) continue;
+      seen[key] = 1;
+      // 문구가 들어 있는 줄을 함께 보여준다 (앞뒤 맥락 없이는 판단이 안 되므로)
+      const line = text.split("\n").find((ln) => ln.indexOf(hit) >= 0) || hit;
+      out.push({ key, label: r.label, hard: !!r.hard, why: r.why, hit, line: line.trim().slice(0, 70) });
+      if (out.length > 24) return;
+    }
+  });
+  return out;
+}
 
 // 라벨 응답 파서 — 모델이 라벨 앞에 **, -, 공백 등을 붙여도 읽어낸다
 function labelReader(raw) {
@@ -852,7 +931,8 @@ S4. 숫자·기간·대상 중 하나는 문장 앞쪽에 둔다. 애매한 형�
 S5. 고객이 실제로 쓰는 말로 쓴다. 업계 용어로 쓰지 않는다.
     (예: "짐이 얼마나 되는지 모르겠어요", "당일에 돈 더 달라 할까 봐", "파손 나면 어쩌나")
 S6. 설명으로 끝내지 않는다. 읽고 바로 할 수 있는 행동 하나를 남긴다.
-S7. 어디서 본 것 같은 소재는 쓰지 않는다.`;
+S7. 어디서 본 것 같은 소재는 쓰지 않는다.
+S8. 제목·훅·첫 줄 같은 선택지는 속으로 10개를 만든 뒤 가장 센 3개만 내놓는다. 각각 왜 골랐는지 한 줄씩 붙인다. 한 번에 정답 하나를 내밀지 않는다.`;
 
 // 채널별 예외 — 같은 규칙을 두 채널에 다 적용하면 한쪽이 반드시 망가진다
 const CH_EXCEPTION = {
@@ -1007,10 +1087,11 @@ const BRAND = {
   industry: "moving",
   channel: "naver",
   linkUrl: "",
+  timeline: "",
   wpUrl: "",
   wpUser: "",
   wpAppPw: "",
-  facts: "- 하는 일: 포장이사 + 새로 들어갈 집(입주할 집)을 무료로 청소\n- [청소 시점 — 매우 중요] 우리의 무료 청소는 '이사 후 헌 집 청소'가 아니다. 고객이 새로 들어갈 집을 미리 깨끗하게 해주는 청소이며, 현장/고객 용어로 '사이청소'와 '당일청소'라고 부른다.\n  · 사이청소: 이사 1~2일 전에 미리 새집을 청소해 두는 것\n  · 당일청소: 이사 당일, 앞 세대가 빠지는 집을 그날 바로 청소하는 것\n- 결합 구조: 해피데이에 이사를 맡기면 새집 청소(사이청소 또는 당일청소)가 공짜로 딸려온다. (이사+청소 결합이 핵심 차별점)\n- [표현 규칙] 글에는 상황에 맞게 '사이청소', '당일청소', '입주청소' 같은 실제 용어를 쓰고, 절대 '이사 후 청소'라고 쓰지 말 것.\n- 경력: 이사 15년, 무료 청소 서비스 9년\n- 강점: 바닥·벽 보양 꼼꼼히, 가전 작동 테스트, 직원 직접 시공(외주 안 줌)\n- [업계 진실] 주선이란 계약을 받아 수수료를 떼고 다른 업체에 넘기는 행위이며, 이 주선 행위를 하면 이사화물 운송주선사업 허가가 필요하다. 직접 받아 직접 시공하면 주선 행위가 아니므로 주선사업 허가증은 필요 없다. 해피데이는 직접 시공하므로 주선 허가증이 필요 없다. ('이사업 하려면 무조건 주선 허가가 필요하다'는 낡은 블로그발 오해이니 베끼지 말 것)\n- 금지: '업계 1위' 같은 과장, 거짓 할인 문구, '이사 후 청소'라는 부정확한 표현",
+  facts: "- 하는 일: 포장이사 + 새로 들어갈 집(입주할 집)을 무료로 청소\n- [청소 시점 — 매우 중요] 우리의 무료 청소는 '이사 후 헌 집 청소'가 아니다. 고객이 새로 들어갈 집을 미리 깨끗하게 해주는 청소이며, 현장/고객 용어로 '사이청소'와 '당일청소'라고 부른다.\n  · 사이청소: 이사 1~2일 전에 미리 새집을 청소해 두는 것\n  · 당일청소: 이사 당일, 앞 세대가 빠지는 집을 그날 바로 청소하는 것\n- [사이청소가 어려운 이유] 이사 갈 집은 이삿날 오전에야 비워진다. 앞 세대 짐이 빠지고 우리 짐이 들어가기 전 그 짧은 사이에 청소를 끝내야 하므로 시간이 매우 촉박하다.\n- [업계 현실] 일반 입주청소 업체는 사이청소를 시간이 촉박하다는 이유로 평소 입주청소 비용보다 15~20만원을 더 받는다.\n- [우리 강점] 해피데이는 전문 청소팀을 직접 보유한다. 9년간 한 팀으로 손발이 맞아 2시간 정도면 청소를 끝낸다. 그리고 이사를 맡기면 이 사이청소를 무료로 해준다.\n- 결합 구조: 해피데이에 이사를 맡기면 새집 청소(사이청소 또는 당일청소)가 공짜로 딸려온다. (이사+청소 결합이 핵심 차별점)\n- [표현 규칙] 글에는 상황에 맞게 '사이청소', '당일청소', '입주청소' 같은 실제 용어를 쓰고, 절대 '이사 후 청소'라고 쓰지 말 것.\n- 경력: 이사 15년, 무료 청소 서비스 9년\n- 강점: 바닥·벽 보양 꼼꼼히, 가전 작동 테스트, 직원 직접 시공(외주 안 줌)\n- [업계 진실] 주선이란 계약을 받아 수수료를 떼고 다른 업체에 넘기는 행위이며, 이 주선 행위를 하면 이사화물 운송주선사업 허가가 필요하다. 직접 받아 직접 시공하면 주선 행위가 아니므로 주선사업 허가증은 필요 없다. 해피데이는 직접 시공하므로 주선 허가증이 필요 없다. ('이사업 하려면 무조건 주선 허가가 필요하다'는 낡은 블로그발 오해이니 베끼지 말 것)\n- 금지: '업계 1위' 같은 과장, 거짓 할인 문구, '이사 후 청소'라는 부정확한 표현",
 };
 
 // 블로그 본문 → 카드뉴스 슬라이드 배열 (표지 + 내용 + 마무리 CTA)
@@ -1101,6 +1182,7 @@ async function generateDraft(axis, hint, extra = {}) {
 
 [회사 사실 정보 — 반드시 이 사실 안에서만 쓰고, 어긋나거나 없는 내용은 지어내지 말 것]
 ${BRAND.facts && BRAND.facts.trim() ? BRAND.facts.trim() : "(미입력)"}${foodFacts}
+${BRAND.timeline && BRAND.timeline.trim() ? "\n[이사 준비 타임라인 — 시점을 말할 땐 반드시 이 안에서만]\n" + BRAND.timeline.trim() : "\n[이사 준비 타임라인] (미입력 — 이사 준비 시점·기간 숫자를 절대 만들어내지 말 것)"}
 
 [이번 글의 축] ${axis.name} — ${axis.promptRole}${regionLine}
 
@@ -1190,7 +1272,7 @@ BODY:
   return r;
 }
 
-async function generateReel(topic, memo, hook, region) {
+async function generateReel(topic, memo, hook, region, src) {
   const topicRole = {
     highlight: "이사 작업 하이라이트(포장→운반→완료)를 빠르게 보여주는 숏폼. 속도감·정리된 결과가 핵심.",
     cleanBA: "이사 맡긴 고객에게 무료로 해주는 '새집 입주청소'의 전/후를 보여주는 숏폼. 입주 전 새집이 깨끗해지는 대비가 핵심. 이사 맡기면 입주청소가 공짜라는 점을 자연스럽게.",
@@ -1206,11 +1288,12 @@ async function generateReel(topic, memo, hook, region) {
 [브랜드] ${BRAND.region} 포장이사. 슬로건 "${BRAND.slogan}". 전화 ${BRAND.phone}.
 [회사 사실]
 ${BRAND.facts && BRAND.facts.trim() ? BRAND.facts.trim() : "(미입력)"}
+${BRAND.timeline && BRAND.timeline.trim() ? "\n[이사 준비 타임라인 — 시점을 말할 땐 반드시 이 안에서만]\n" + BRAND.timeline.trim() : "\n[이사 준비 타임라인] (미입력 — 시점·기간 숫자를 절대 만들어내지 말 것)"}
 
 [릴스 주제] ${topic.name} — ${topicRole}
 [훅 유형] ${hookName} — ${hookRole}
 [타깃 지역] ${region || BRAND.region}${region && isBlueOcean(region) ? " (경쟁이 낮은 블루오션 지역 — 지역명을 더 앞에, 더 자주 노출할 것)" : ""}
-${memo && memo.trim() ? `[현장 메모] ${memo.trim()}` : ""}
+${srcBlock(src, memo)}
 
 ${CONTENT_RULES}
 
@@ -1273,7 +1356,7 @@ BESTTIME: (이 릴스를 올리기 좋은 요일·시간 한 줄 · 한국 시�
 }
 
 
-async function generateThreads(topic, memo, region) {
+async function generateThreads(topic, memo, region, src) {
   const prompt = `당신은 '${BRAND.name}' 대표의 스레드(Threads) 글쓰기 담당입니다.
 스레드는 릴스와 정반대입니다. 자동재생이 없고, 첫 1~2줄을 보고 "더보기"를 누를지 결정합니다.
 그리고 스레드 알고리즘의 유일한 연료는 좋아요가 아니라 "답글 수"입니다.
@@ -1281,10 +1364,11 @@ async function generateThreads(topic, memo, region) {
 [브랜드] ${BRAND.region} 포장이사. 슬로건 "${BRAND.slogan}". 전화 ${BRAND.phone}.
 [회사 사실]
 ${BRAND.facts && BRAND.facts.trim() ? BRAND.facts.trim() : "(미입력)"}
+${BRAND.timeline && BRAND.timeline.trim() ? "\n[이사 준비 타임라인 — 시점을 말할 땐 반드시 이 안에서만]\n" + BRAND.timeline.trim() : "\n[이사 준비 타임라인] (미입력 — 시점·기간 숫자를 절대 만들어내지 말 것)"}
 
 [글 유형] ${topic.name} — ${topic.role}
 [타깃 지역] ${region || BRAND.region}${region && isBlueOcean(region) ? " (경쟁이 낮은 블루오션 지역 — 지역명을 더 앞에, 더 자주 노출할 것)" : ""}
-${memo && memo.trim() ? `[현장 메모] ${memo.trim()}` : ""}
+${srcBlock(src, memo)}
 
 ${CONTENT_RULES}
 
@@ -1309,6 +1393,8 @@ ${CH_EXCEPTION.threads}
 · 코드블록 기호로 감싸지 않는다.
 
 HOOK: (1번 글 · 두 줄 이내 · 미완성 문장으로 끊기)
+HOOK3: 가장 센 1번 글 후보 3개를 " | "로 구분 (각 두 줄 이내, 위 HOOK 포함. 나머지 후보는 출력하지 않는다)
+HOOKWHY: 3개를 고른 이유를 각각 한 줄로 " | "로 구분
 REPLIES: 자기 답글 본문 2~4개를 " | "로 구분 (각 2~4문장, 순서대로 이어지게)
 CLOSER: (마지막 답글 · 질문형 한 줄)
 TAG: #태그1
@@ -1318,6 +1404,8 @@ BESTTIME: (이 글을 올리기 좋은 시간대 한 줄 · 한국 시간 기준
   return await aiLabeled(prompt, 2500, ({ get, splitPipe }) => {
     const r = {
       hook: get("HOOK"),
+      hook3: splitPipe(get("HOOK3")),
+      hookWhy: splitPipe(get("HOOKWHY")),
       replies: splitPipe(get("REPLIES")),
       closer: get("CLOSER"),
       tag: get("TAG"),
@@ -1330,7 +1418,9 @@ BESTTIME: (이 글을 올리기 좋은 시간대 한 줄 · 한국 시간 기준
 }
 
 
-async function generateCard(topic, memo, region) {
+async function generateCard(topic, memo, region, src, count) {
+  const total = Math.max(7, Math.min(10, Number(count) || 7));
+  const body = total - 3;
   const prompt = `당신은 '${BRAND.name}'의 인스타그램 캐러셀(여러 장 카드) 기획자입니다.
 캐러셀은 릴스와도, 스레드와도 다릅니다.
 캐러셀의 알고리즘 연료는 조회수가 아니라 "저장(북마크)"과 "마지막 장까지 넘겼는가(완독률)"입니다.
@@ -1339,10 +1429,11 @@ async function generateCard(topic, memo, region) {
 [브랜드] ${BRAND.region} 포장이사. 슬로건 "${BRAND.slogan}". 전화 ${BRAND.phone}.
 [회사 사실]
 ${BRAND.facts && BRAND.facts.trim() ? BRAND.facts.trim() : "(미입력)"}
+${BRAND.timeline && BRAND.timeline.trim() ? "\n[이사 준비 타임라인 — 시점을 말할 땐 반드시 이 안에서만]\n" + BRAND.timeline.trim() : "\n[이사 준비 타임라인] (미입력 — 시점·기간 숫자를 절대 만들어내지 말 것)"}
 
 [카드 유형] ${topic.name} — ${topic.role}
 [타깃 지역] ${region || BRAND.region}${region && isBlueOcean(region) ? " (경쟁이 낮은 블루오션 지역 — 지역명을 더 앞에, 더 자주 노출할 것)" : ""}
-${memo && memo.trim() ? `[현장 메모] ${memo.trim()}` : ""}
+${srcBlock(src, memo)}
 
 ${CONTENT_RULES}
 
@@ -1351,7 +1442,7 @@ ${STYLE_RULES}
 ${CH_EXCEPTION.insta}
 
 [카드 제작 규칙]
-6. 총 장수는 표지 1장 + 본문 4장 + 요약 1장 + CTA 1장 = 7장 구조다. 본문은 정확히 4장으로 맞춘다.
+6. 총 장수는 표지 1장 + 본문 ${body}장 + 요약 1장 + CTA 1장 = ${total}장 구조다. 본문은 정확히 ${body}장으로 맞춘다.
 7. 1장(표지)은 제목이 아니라 훅이다. 20자 이내로, 넘기지 않으면 손해라는 느낌을 줘야 한다.
 8. 본문 카드 한 장에는 요점 하나만 담는다. 두 개를 넣으면 카드가 죽는다.
 9. 카드는 글이 아니라 판이다. 본문 문장은 한 줄 22자 이내, 한 장에 최대 2문장.
@@ -1370,7 +1461,7 @@ HOOKCARD: (1장 표지 훅 · 20자 이내 · 물음표·느낌표 금지 · 단
 HOOK3: 가장 센 표지 훅 3개를 " | "로 구분 (각 20자 이내, 위 HOOKCARD 포함. 나머지 후보는 출력하지 않는다)
 HOOKWHY: 3개를 고른 이유를 각각 한 줄로 " | "로 구분
 HOOKSUB: (표지 훅 아래 보조 한 줄 · 18자 이내)
-CARDS: 본문 4장을 " | "로 구분. 각 장은 "소제목 :: 본문문장1 / 본문문장2" 형식 (소제목 12자 이내, 본문 각 22자 이내)
+CARDS: 본문 ${body}장을 " | "로 구분. 각 장은 "소제목 :: 본문문장1 / 본문문장2" 형식 (소제목 12자 이내, 본문 각 22자 이내). 한 장에 요점 하나만.
 SUMMARY: 요약 카드에 넣을 3~5줄을 " / "로 구분 (각 18자 이내)
 SAVEHOOK: (요약 카드 하단에 넣을 저장 유도 한 줄 · 12자 이내)
 CAPTION: (인스타 캡션 2~3문장. 첫 문장에 검색될 만한 지역 키워드를 자연스럽게 넣고, 마지막은 읽는 사람이 자기 얘기를 하고 싶어지게 닫는다. 물음표·느낌표 금지)
@@ -1379,7 +1470,7 @@ PINNED: (고정 댓글 한 줄 · 견적·전화로 자연스럽게 유도)
 THREADCROSS: (이 카드를 알리려고 스레드에 올릴 한 줄)
 BESTTIME: (이 카드를 올리기 좋은 요일·시간 한 줄 · 한국 시간 기준)`;
 
-  return await aiLabeled(prompt, 4000, ({ get, splitPipe, splitSlash, splitTags }) => {
+  return await aiLabeled(prompt, 4000 + (body - 4) * 700, ({ get, splitPipe, splitSlash, splitTags }) => {
     const bodyCards = splitPipe(get("CARDS")).map((seg) => {
       const parts = seg.split("::");
       return { head: (parts[0] || "").trim(), lines: splitSlash((parts[1] || "").trim()).slice(0, 2) };
@@ -1408,7 +1499,7 @@ BESTTIME: (이 카드를 올리기 좋은 요일·시간 한 줄 · 한국 시�
 function instaSlides(card) {
   if (!card) return [];
   const out = [{ type: "hook", head: card.hook, sub: card.hookSub }];
-  card.cards.slice(0, 5).forEach((c) => out.push({ type: "content", head: c.head, lines: c.lines }));
+  card.cards.slice(0, 7).forEach((c) => out.push({ type: "content", head: c.head, lines: c.lines }));
   if (card.summary.length) out.push({ type: "summary", lines: card.summary, saveHook: card.saveHook });
   out.push({ type: "cta" });
   return out;
@@ -1466,6 +1557,7 @@ export default function App() {
   const [reviews, setReviews] = useState([]);
   const [crm, setCrm] = useState([]);
   const [genSeed, setGenSeed] = useState(null);
+  const [chSeed, setChSeed] = useState(null);
   const [uiScale, setUiScale] = useState(1);
   const [ready, setReady] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -1738,13 +1830,13 @@ export default function App() {
           </div>
         )}
         {tab === "generate" && <Generate seed={genSeed} keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} onSave={(d) => { setQueue((q) => [d, ...q]); setTab("queue"); }} />}
-        {tab === "queue" && <Queue queue={queue} update={update} remove={remove} go={() => setTab("generate")} />}
+        {tab === "queue" && <Queue queue={queue} update={update} remove={remove} go={() => setTab("generate")} sendTo={(t, d) => { setChSeed({ at: Date.now(), id: d.id, title: d.blogTitle, body: d.blogBody }); setTab(t); }} />}
         {tab === "calendar" && <Calendar queue={queue} go={setTab} />}
         {tab === "publish" && <PublishBoard />}
         {tab === "keywords" && <KeywordManager keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} noteKeyword={noteKeyword} />}
-        {tab === "reels" && <Reels />}
-        {tab === "threads" && <Threads />}
-        {tab === "cards" && <Cards />}
+        {tab === "reels" && <Reels queue={queue} seed={chSeed} />}
+        {tab === "threads" && <Threads queue={queue} seed={chSeed} />}
+        {tab === "cards" && <Cards queue={queue} seed={chSeed} />}
         {tab === "reviews" && <Reviews reviews={reviews} addReview={addReview} removeReview={removeReview} writeFromReview={writeFromReview} brand={brand} crm={crm} />}
         {tab === "retarget" && <Retarget crm={crm} addCust={addCust} updateCust={updateCust} removeCust={removeCust} importCusts={importCusts} />}
         {tab === "care" && <CareCalendar crm={crm} />}
@@ -2883,7 +2975,7 @@ function DraftView({ draft, axis }) {
 }
 
 /* ---------------------------- QUEUE ------------------------------ */
-function Queue({ queue, update, remove, go }) {
+function Queue({ queue, update, remove, go, sendTo }) {
   const [filter, setFilter] = useState("전체");
   const filters = ["전체", "검수중", "발행대기", "보류", "완료"];
   const list = filter === "전체" ? queue : queue.filter((d) => d.status === filter);
@@ -2917,7 +3009,7 @@ function Queue({ queue, update, remove, go }) {
         })}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {list.map((d) => <QueueCard key={d.id} d={d} update={update} remove={remove} />)}
+        {list.map((d) => <QueueCard key={d.id} d={d} update={update} remove={remove} sendTo={sendTo} />)}
       </div>
     </div>
   );
@@ -2953,7 +3045,7 @@ function TodayTasks({ queue, update, remove }) {
   );
 }
 
-function QueueCard({ d, update, remove }) {
+function QueueCard({ d, update, remove, sendTo }) {
   const [open, setOpen] = useState(false);
   const [flash, setFlash] = useState("");
   const [cards, setCards] = useState(false);
@@ -3106,6 +3198,29 @@ function QueueCard({ d, update, remove }) {
             </button>
           </div>
           {cards && <CardNews title={d.blogTitle} body={d.blogBody} />}
+
+          {sendTo && d.blogBody && (
+            <div style={{ marginTop: 12, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 13px" }}>
+              <div style={{ fontSize: 12, fontWeight: 800, color: C.navy, marginBottom: 3 }}>이 글로 다른 채널 만들기</div>
+              <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.6, marginBottom: 9 }}>
+                <b>이미 검수한 글이라 다시 검수하지 않아도 됩니다.</b> 이 글 안의 사실만 써서 채널 문법에 맞게 다시 짭니다.
+              </div>
+              <div style={{ display: "flex", gap: 7 }}>
+                <button className="hd-btn" onClick={() => sendTo("cards", d)}
+                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px", borderRadius: 10, border: "none", background: "#7C4DBE", color: "#fff", fontWeight: 800, fontSize: 12.5 }}>
+                  <ImageIcon size={15} /> 카드
+                </button>
+                <button className="hd-btn" onClick={() => sendTo("reels", d)}
+                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px", borderRadius: 10, border: "none", background: C.coral, color: "#fff", fontWeight: 800, fontSize: 12.5 }}>
+                  <Video size={15} /> 릴스
+                </button>
+                <button className="hd-btn" onClick={() => sendTo("threads", d)}
+                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px", borderRadius: 10, border: "none", background: "#2E9E8F", color: "#fff", fontWeight: 800, fontSize: 12.5 }}>
+                  <MessageSquare size={15} /> 스레드
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ── 발행 센터: 밤에 탭 몇 번으로 4채널 ── */}
           <Divider />
@@ -3478,6 +3593,142 @@ function Calendar({ queue, go }) {
 }
 
 /* ------------------------- UI primitives ------------------------- */
+// 재료 고르기 — 검수한 블로그를 재료로 쓰면 사실 확인을 한 번만 해도 된다
+function SourcePick({ queue, src, setSrc, memo, setMemo, hint }) {
+  const drafts = useMemo(() => (queue || [])
+    .filter((d) => d.blogBody && String(d.blogBody).trim())
+    .slice(0, 30), [queue]);
+  const useDraft = !!src;
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 7, marginTop: 8, marginBottom: 10 }}>
+        <button className="hd-btn" onClick={() => setSrc(null)}
+          style={{ flex: 1, padding: "10px 12px", borderRadius: 10, fontSize: 12.5, fontWeight: 800,
+            border: `1.5px solid ${!useDraft ? C.navy : C.line}`, background: !useDraft ? C.navy : "#fff", color: !useDraft ? "#fff" : C.text }}>
+          현장 메모로 만들기
+        </button>
+        <button className="hd-btn" onClick={() => { if (drafts.length) setSrc({ id: drafts[0].id, title: drafts[0].blogTitle, body: drafts[0].blogBody }); }}
+          disabled={!drafts.length}
+          style={{ flex: 1, padding: "10px 12px", borderRadius: 10, fontSize: 12.5, fontWeight: 800,
+            border: `1.5px solid ${useDraft ? "#2E9E8F" : C.line}`, background: useDraft ? "#2E9E8F" : "#fff",
+            color: useDraft ? "#fff" : (drafts.length ? C.text : "#AEB7C2") }}>
+          검수한 블로그에서 가져오기
+        </button>
+      </div>
+
+      {!useDraft && (
+        <>
+          <textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={3}
+            placeholder={hint || "예: 오늘 현장에서 있었던 일"}
+            style={{ width: "100%", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6 }} />
+          {!drafts.length && (
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.6 }}>
+              <b>[초안 생성]</b>에서 블로그를 먼저 만들어 두면, 그 글을 그대로 재료로 쓸 수 있습니다. 사실 확인을 한 번만 하면 됩니다.
+            </div>
+          )}
+        </>
+      )}
+
+      {useDraft && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#1E7A6B", marginBottom: 6 }}>
+            어느 글로 만들까요 <span style={{ fontWeight: 500, color: C.muted }}>({drafts.length}개)</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 210, overflowY: "auto" }}>
+            {drafts.map((d) => {
+              const on = src && src.id === d.id;
+              const a = axisOf(d.axis);
+              return (
+                <button key={d.id} className="hd-btn" onClick={() => setSrc({ id: d.id, title: d.blogTitle, body: d.blogBody })}
+                  style={{ textAlign: "left", padding: "10px 12px", borderRadius: 10,
+                    border: `1.5px solid ${on ? "#2E9E8F" : C.line}`, background: on ? "#E7F6F1" : "#fff" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: 99, background: a.color, display: "inline-block" }} />
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: C.muted }}>{a.name}{d.region ? " · " + d.region : ""}{d.status ? " · " + d.status : ""}</span>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {d.blogTitle || "(제목 없음)"}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize: 11, color: C.muted, marginTop: 7, lineHeight: 1.6 }}>
+            <b>이 글 안의 사실만 씁니다.</b> 없는 숫자·시점을 새로 만들지 않으므로, <b>한 번 검수한 글은 다시 검수하지 않아도 됩니다.</b>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 발행 전 사실 검수 — 틀리면 치명적인 문구만 뽑아 하나씩 확인시킨다
+function FactCheck({ parts }) {
+  const items = useMemo(() => riskScan(parts), [parts]);
+  const [ok, setOk] = useState([]);
+  useEffect(() => { setOk([]); }, [items]);
+  if (!items.length) {
+    return (
+      <div style={{ background: "#E7F6F1", border: "1.5px solid #2E9E8F", borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <Check size={16} color="#1E7A6B" />
+          <div style={{ fontSize: 12.5, color: "#1E7A6B", fontWeight: 700 }}>
+            숫자·시점·법규 문구가 없습니다. 사실 오류 위험이 낮은 결과물입니다.
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const hard = items.filter((x) => x.hard);
+  const done = ok.length >= items.length;
+  const toggle = (k) => setOk((v) => v.indexOf(k) >= 0 ? v.filter((x) => x !== k) : [...v, k]);
+  return (
+    <div style={{ background: done ? "#E7F6F1" : "#FFF7ED", border: `1.5px solid ${done ? "#2E9E8F" : "#E0A93C"}`, borderRadius: 12, padding: "13px 15px", marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <ListChecks size={16} color={done ? "#1E7A6B" : "#B7791F"} />
+        <span style={{ fontSize: 13.5, fontWeight: 800, color: done ? "#1E7A6B" : "#B7791F" }}>
+          {done ? "확인 완료 — 발행해도 됩니다" : `발행 전 확인 ${ok.length}/${items.length}`}
+        </span>
+      </div>
+      {!done && (
+        <div style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.65, marginBottom: 9 }}>
+          <b>AI는 자기가 틀린 걸 모릅니다.</b> 아래 문구는 틀리면 대표님 이름으로 잘못된 정보가 나가는 것들입니다.
+          하나씩 눌러 확인하세요. <b>확신이 없으면 그 문장을 지우는 쪽이 항상 안전합니다.</b>
+        </div>
+      )}
+      {hard.length > 0 && (
+        <div style={{ background: "#FDECEA", border: "1px solid #E8654A", borderRadius: 9, padding: "9px 11px", marginBottom: 9, fontSize: 12, color: "#8A2A1C", lineHeight: 1.6 }}>
+          <b>⚠ 금지 표현이 들어 있습니다 — 그대로 발행하지 마세요.</b>
+        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {items.map((it) => {
+          const on = ok.indexOf(it.key) >= 0;
+          return (
+            <button key={it.key} className="hd-btn" onClick={() => toggle(it.key)}
+              style={{ textAlign: "left", display: "flex", gap: 9, alignItems: "flex-start",
+                background: on ? "#EAF6F2" : "#fff", border: `1.5px solid ${on ? "#2E9E8F" : (it.hard ? "#E8654A" : C.line)}`,
+                borderRadius: 9, padding: "9px 11px" }}>
+              <span style={{ width: 19, height: 19, borderRadius: 5, flexShrink: 0, marginTop: 1,
+                border: `2px solid ${on ? "#2E9E8F" : C.line}`, background: on ? "#2E9E8F" : "#fff",
+                display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                {on && <Check size={12} color="#fff" />}
+              </span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: "inline-block", fontSize: 10, fontWeight: 800, color: "#fff",
+                  background: it.hard ? "#D9534F" : C.navy, borderRadius: 4, padding: "1px 6px", marginRight: 6 }}>{it.label}</span>
+                <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>{it.hit}</span>
+                <span style={{ display: "block", fontSize: 11.5, color: C.muted, marginTop: 3, lineHeight: 1.55 }}>{it.line}</span>
+                {!on && <span style={{ display: "block", fontSize: 11, color: it.hard ? "#8A2A1C" : "#B7791F", marginTop: 3 }}>{it.why}</span>}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // 훅 후보 3안 — 10개 만들고 3개 고른 결과. 대표는 고르기만 한다.
 function HookPicks({ hooks, whys, bare }) {
   const [copied, setCopied] = useState(-1);
@@ -3519,11 +3770,13 @@ function MixNote({ channel }) {
   );
 }
 
-function Reels() {
+function Reels({ queue, seed }) {
   const [topicId, setTopicId] = useState("highlight");
   const [hookId, setHookId] = useState("ba");
   const [region, setRegion] = useState(MOVING_REGIONS[0]);
   const [memo, setMemo] = useState("");
+  const [src, setSrc] = useState(null);
+  useEffect(() => { if (seed && seed.body) setSrc({ id: seed.id, title: seed.title, body: seed.body }); }, [seed]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [reel, setReel] = useState(null);
@@ -3534,7 +3787,7 @@ function Reels() {
   const run = async () => {
     setLoading(true); setError(""); setReel(null); setDone([]);
     try {
-      const r = await generateReel(topic, memo, hook, region);
+      const r = await generateReel(topic, memo, hook, region, src);
       setReel(r);
     } catch (e) {
       setError(aiErrMsg(e, "자료는 받았는데 형식이 살짝 어긋났습니다. 다시 한 번 눌러 주세요."));
@@ -3603,10 +3856,8 @@ function Reels() {
           })}
         </div>
 
-        <Label style={{ marginTop: 20 }}>4 · 현장 메모 <span style={{ color: C.muted, fontWeight: 500 }}>(선택 · 있으면 더 생생)</span></Label>
-        <textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={3}
-          placeholder="예: 3층 원룸, 짐 많았는데 2시간 만에 끝. 청소까지 하니 새집 같다고 좋아하심."
-          style={{ width: "100%", marginTop: 8, padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6 }} />
+        <Label style={{ marginTop: 20 }}>4 · 재료 <span style={{ color: C.muted, fontWeight: 500 }}>(무엇을 가지고 만들까요)</span></Label>
+        <SourcePick queue={queue} src={src} setSrc={setSrc} memo={memo} setMemo={setMemo} hint={topic.hint} />
 
         <button className="hd-btn" onClick={run} disabled={loading}
           style={{ marginTop: 16, width: "100%", padding: "14px", borderRadius: 12, border: "none", background: loading ? "#AEB7C2" : C.navy, color: "#fff", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
@@ -3617,6 +3868,7 @@ function Reels() {
 
       {reel && (
         <div className="hd-fade" style={{ marginTop: 16 }}>
+          <FactCheck parts={[reel.hook, ...(reel.captions || []), reel.narration, reel.caption, reel.endcard, reel.pinned, ...(reel.guide || [])]} />
           {reel.firstFrame && (
             <Panel>
               <SectionTitle icon={Video}>첫 프레임 <span style={{ fontWeight: 500, color: C.muted }}>(여기서 승부 끝남)</span></SectionTitle>
@@ -3744,10 +3996,12 @@ function Reels() {
 }
 
 
-function Threads() {
+function Threads({ queue, seed }) {
   const [topicId, setTopicId] = useState("howto");
   const [region, setRegion] = useState(MOVING_REGIONS[0]);
   const [memo, setMemo] = useState("");
+  const [src, setSrc] = useState(null);
+  useEffect(() => { if (seed && seed.body) setSrc({ id: seed.id, title: seed.title, body: seed.body }); }, [seed]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [th, setTh] = useState(null);
@@ -3756,7 +4010,7 @@ function Threads() {
   const run = async () => {
     setLoading(true); setError(""); setTh(null);
     try {
-      const r = await generateThreads(topic, memo, region);
+      const r = await generateThreads(topic, memo, region, src);
       setTh(r);
     } catch (e) {
       setError(aiErrMsg(e, "자료는 받았는데 형식이 살짝 어긋났습니다. 다시 한 번 눌러 주세요."));
@@ -3813,10 +4067,8 @@ function Threads() {
           })}
         </div>
 
-        <Label style={{ marginTop: 20 }}>3 · 현장 메모 <span style={{ color: C.muted, fontWeight: 500 }}>(선택)</span></Label>
-        <textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={3}
-          placeholder="예: 오늘 논산 아파트. 사다리차 못 대서 계단으로 올림. 고객이 미안해하심."
-          style={{ width: "100%", marginTop: 8, padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6 }} />
+        <Label style={{ marginTop: 20 }}>3 · 재료 <span style={{ color: C.muted, fontWeight: 500 }}>(무엇을 가지고 만들까요)</span></Label>
+        <SourcePick queue={queue} src={src} setSrc={setSrc} memo={memo} setMemo={setMemo} hint={topic.hint} />
 
         <button className="hd-btn" onClick={run} disabled={loading}
           style={{ marginTop: 16, width: "100%", padding: "14px", borderRadius: 12, border: "none", background: loading ? "#AEB7C2" : C.navy, color: "#fff", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
@@ -3827,6 +4079,7 @@ function Threads() {
 
       {th && (
         <div className="hd-fade" style={{ marginTop: 16 }}>
+          <FactCheck parts={[th.hook, ...(th.replies || []), th.closer]} />
           <Panel>
             <SectionTitle icon={MessageSquare}>1번 글 <span style={{ fontWeight: 500, color: C.muted }}>(이것만 먼저 올림)</span></SectionTitle>
             <div style={{ marginTop: 10, background: C.navy, color: "#fff", borderRadius: 11, padding: "15px 16px", fontSize: 15.5, fontWeight: 700, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
@@ -3835,6 +4088,7 @@ function Threads() {
             <div style={{ marginTop: 10 }}>
               <CopyButton getText={() => th.hook} label="1번 글 복사" full />
             </div>
+            <HookPicks hooks={th.hook3} whys={th.hookWhy} />
           </Panel>
 
           {th.replies.length > 0 && (
@@ -3897,19 +4151,23 @@ function Threads() {
 }
 
 
-function Cards() {
+function Cards({ queue, seed }) {
   const [topicId, setTopicId] = useState("checklist");
+  const [count, setCount] = useState(7);
   const [region, setRegion] = useState(MOVING_REGIONS[0]);
   const [memo, setMemo] = useState("");
+  const [src, setSrc] = useState(null);
+  useEffect(() => { if (seed && seed.body) setSrc({ id: seed.id, title: seed.title, body: seed.body }); }, [seed]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [card, setCard] = useState(null);
+  useEffect(() => { setCount(src ? 9 : 7); }, [src]);
   const topic = CARD_TOPICS.find((t) => t.id === topicId) || CARD_TOPICS[0];
 
   const run = async () => {
     setLoading(true); setError(""); setCard(null);
     try {
-      const r = await generateCard(topic, memo, region);
+      const r = await generateCard(topic, memo, region, src, count);
       setCard(r);
     } catch (e) {
       setError(aiErrMsg(e, "자료는 받았는데 형식이 살짝 어긋났습니다. 다시 한 번 눌러 주세요."));
@@ -3925,11 +4183,11 @@ function Cards() {
         </div>
         <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
           <b>사진을 못 찍은 날의 주력 포맷</b>입니다. 캐러셀은 조회수가 아니라 <b>저장</b>으로 퍼집니다.
-          표지 1 + 본문 4 + 요약 1 + 마무리 1 = <b>7장</b>이 한 번에 만들어집니다.
+          표지 1 + 본문 {count - 3} + 요약 1 + 마무리 1 = <b>{count}장</b>이 한 번에 만들어집니다.
         </div>
         <MixNote channel="cards" />
 
-        <Label>1 · 어떤 카드?</Label>
+        <Label>1 · 어떤 내용으로 만들까요 <span style={{ color: C.muted, fontWeight: 500 }}>(하나만 고르면 그 성격으로 7장이 나옵니다)</span></Label>
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 8, marginTop: 8 }}>
           {CARD_TOPICS.map((t) => {
             const on = t.id === topicId;
@@ -3946,7 +4204,36 @@ function Cards() {
           })}
         </div>
 
-        <Label style={{ marginTop: 20 }}>2 · 타깃 지역</Label>
+        {topic.preview && (
+          <div style={{ marginTop: 10, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 13px" }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.coral, marginBottom: 4 }}>이렇게 7장이 나옵니다</div>
+            <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.7 }}>{topic.preview}</div>
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.6 }}>
+              칸의 <b>구성</b>만 정해져 있습니다. <b>안에 들어갈 내용은 아래 현장 메모와 [설정]의 회사 사실에서 나옵니다.</b>
+              둘 다 비어 있으면 카드도 얕아집니다.
+            </div>
+          </div>
+        )}
+
+        <Label style={{ marginTop: 20 }}>2 · 몇 장으로 <span style={{ color: C.muted, fontWeight: 500 }}>(표지·요약·마무리 3장은 고정)</span></Label>
+        <div style={{ display: "flex", gap: 7, marginTop: 8 }}>
+          {[7, 8, 9, 10].map((v) => {
+            const on = v === count;
+            return (
+              <button key={v} className="hd-btn" onClick={() => setCount(v)}
+                style={{ flex: 1, padding: "11px 0", borderRadius: 10, fontSize: 13.5, fontWeight: 800,
+                  border: `1.5px solid ${on ? C.navy : C.line}`, background: on ? C.navy : "#fff", color: on ? "#fff" : C.text }}>
+                {v}장
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.6 }}>
+          본문이 <b>{count - 3}장</b>이 됩니다. 인스타 캐러셀은 <b>끝까지 넘기는 비율</b>이 중요해서,
+          내용이 얕으면 장수를 늘리지 않는 편이 낫습니다. <b>블로그를 재료로 쓰면 9~10장</b>도 충분히 채워집니다.
+        </div>
+
+        <Label style={{ marginTop: 20 }}>3 · 타깃 지역</Label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
           {MOVING_REGIONS.map((rg) => {
             const on = rg === region;
@@ -3961,20 +4248,19 @@ function Cards() {
           })}
         </div>
 
-        <Label style={{ marginTop: 20 }}>3 · 현장 메모 <span style={{ color: C.muted, fontWeight: 500 }}>(선택)</span></Label>
-        <textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={3}
-          placeholder="예: 요즘 사이청소 문의 많음. 언제 하는 건지 헷갈려하는 분이 많다."
-          style={{ width: "100%", marginTop: 8, padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6 }} />
+        <Label style={{ marginTop: 20 }}>4 · 재료 <span style={{ color: C.muted, fontWeight: 500 }}>(무엇을 가지고 만들까요)</span></Label>
+        <SourcePick queue={queue} src={src} setSrc={setSrc} memo={memo} setMemo={setMemo} hint={topic.hint} />
 
         <button className="hd-btn" onClick={run} disabled={loading}
           style={{ marginTop: 16, width: "100%", padding: "14px", borderRadius: 12, border: "none", background: loading ? "#AEB7C2" : C.navy, color: "#fff", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 9 }}>
-          {loading ? <><Loader2 size={18} style={{ animation: "hdspin 1s linear infinite" }} /> 만드는 중…</> : <><ImageIcon size={18} /> 카드 7장 생성</>}
+          {loading ? <><Loader2 size={18} style={{ animation: "hdspin 1s linear infinite" }} /> 만드는 중…</> : <><ImageIcon size={18} /> 카드 {count}장 생성</>}
         </button>
         {error && <Note tone="error">{error}</Note>}
       </Panel>
 
       {card && (
         <div className="hd-fade" style={{ marginTop: 16 }}>
+          <FactCheck parts={[card.hook, card.hookSub, ...(card.cards || []).map((c) => [c.head, ...(c.lines || [])].join(" ")), ...(card.summary || []), card.caption, card.pinned]} />
           {card.hook3 && card.hook3.length > 1 && (
             <div style={{ marginBottom: 14 }}>
               <Panel>
@@ -4415,6 +4701,18 @@ function BrandSettings({ brand, updateBrand }) {
           고친 뒤 아래 <b>[저장하기]</b>를 눌러야 반영됩니다. 저장하면 카드뉴스·헤더·글 생성에 전부 적용됩니다.
         </div>
 
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
+            <CalendarDays size={15} /> 이사 준비 타임라인 <span style={{ fontWeight: 500, color: C.muted }}>(비워두면 AI가 시점을 말하지 않습니다)</span>
+          </div>
+          <div style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.65, marginBottom: 7 }}>
+            <b>인터넷에 도는 이사 체크리스트는 현장과 다릅니다.</b> 대표님이 아는 <b>실제 시점</b>을 여기 적어두면,
+            체크리스트 카드·블로그가 그 시점으로만 씁니다. 비워두면 <b>AI가 시점 숫자를 아예 쓰지 않습니다.</b>
+          </div>
+          <textarea value={form.timeline || ""} onChange={(e) => set("timeline", e.target.value)} rows={6}
+            placeholder={"예)\n- 이사업체 예약: 성수기(봄·가을·손없는날)는 이사 O개월 전, 비수기는 O주 전\n- 견적 방문: 예약 확정 전, 최소 O곳 비교\n- 사이청소: 이사 1~2일 전\n- 당일청소: 이사 당일 앞 세대가 빠진 뒤\n- 폐기물 신고: O일 전까지 주민센터\n- 인터넷·정수기 이전 신청: O주 전"}
+            style={{ width: "100%", padding: "12px 14px", borderRadius: 11, border: `1.5px solid ${dirty ? C.coral + "66" : C.line}`, fontSize: 13.5, lineHeight: 1.7 }} />
+        </div>
         <div style={{ marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
             <Truck size={15} /> 업종 <span style={{ fontWeight: 500, color: C.muted }}>(고르면 초안 축이 업종에 맞게 바뀝니다)</span>
