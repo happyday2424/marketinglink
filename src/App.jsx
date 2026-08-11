@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v6 · 0811-1340";
+const APP_VER = "v7 · 0811-1355";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -112,9 +112,12 @@ async function logPublish(rec) {
 }
 // 발행 대장(초안) — 전용 GAS 웹앱에 저장/조회 (폰·PC 어디서든 같은 목록)
 // 주소는 [설정] > 발행대장 주소 에서 넣는다. 비어 있으면 시트 공유가 꺼진 상태로 동작한다.
+// 발행대장 GAS 웹앱 주소 — 여기 박아 둔다. 설정에서 따로 넣을 필요 없다.
+// 주소가 바뀌면 이 한 줄만 고치거나, [설정] > 발행대장 주소 에 새 주소를 넣으면 그쪽이 우선한다.
+const POSTS_GAS_URL = "https://script.google.com/macros/s/AKfycbwpG5pAE-8mRVDHtUAfBIsZKfCUzLoxAHWsEZZ4VnOgz74NzDeukaAvLq5HpAZ72mwStw/exec";
 function postsUrl() {
   const u = (BRAND.postsUrl || "").trim();
-  return u || "";
+  return u || POSTS_GAS_URL;
 }
 async function savePostToSheet(post) {
   const u = postsUrl(); if (!u) return;
@@ -4792,7 +4795,7 @@ function BrandSettings({ brand, updateBrand }) {
         {field("phone", "전화번호", Phone, "010-6407-2424")}
         {field("region", "사업 지역", MapPin, "대전, 세종, 옥천, 금산, 부여, 계룡")}
         {field("linkUrl", "견적·상담 링크", Globe, "예: https://... (비워두면 '프로필 링크'로 안내합니다)")}
-        {field("postsUrl", "발행대장 주소", Send, "발행대장 GAS 웹앱 주소 — 넣으면 폰·PC 검수 큐가 같아집니다")}
+        {field("postsUrl", "발행대장 주소", Send, "이미 연결돼 있습니다. 비워두세요. 주소가 바뀔 때만 새 주소를 넣습니다")}
         <Note tone="tip"><Sparkles size={15} style={{ flexShrink: 0, marginTop: 1 }} /> <span>화면 글씨가 작으면 <b>맨 위 오른쪽 [ㄱ ㄱ] 버튼</b>으로 키우세요. <b>폰과 PC가 각각 따로 기억</b>됩니다.</span></Note>
 
         <div style={{ marginTop: 4 }}>
