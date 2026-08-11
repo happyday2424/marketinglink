@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v7 · 0811-1355";
+const APP_VER = "v9 · 0811-1400";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -286,9 +286,28 @@ function buildWeek(monday) {
   return out.sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
+// 검수 큐 항목 → 시트로 보낼 이름 (수정한 것만 골라 보낸다)
+const SHEET_FIELD = {
+  blogTitle: "title", blogBody: "body", instaCaption: "insta_caption",
+  hashtags: "hashtags", covers: "covers", thread: "thread",
+  keyword: "keyword", region: "region", status: "status",
+  scheduledDate: "scheduled_date", srcLabel: "src",
+};
+function toSheetPatch(patch) {
+  const out = {};
+  for (const k in patch) {
+    const to = SHEET_FIELD[k];
+    if (!to) continue;
+    const v = patch[k];
+    out[to] = Array.isArray(v) ? v.join(", ") : (v === undefined || v === null ? "" : v);
+  }
+  return out;
+}
+
 // 시트 행 → 검수 큐 항목 (폰·PC 공유용)
 function mapSheetPost(row) {
   if (!row || !row.id) return null;
+  if (String(row.status || "") === "삭제") return null;   // 지운 글은 되살리지 않는다
   const tags = (v) => Array.isArray(v) ? v : (v ? String(v).split(/[,|]/).map((t) => t.trim()).filter(Boolean) : []);
   return {
     id: String(row.id),
@@ -305,6 +324,7 @@ function mapSheetPost(row) {
     fieldNote: "", imageCount: 0,
     covers: tags(row.covers),
     thread: row.thread || "",
+    srcLabel: row.src || row.srcLabel || "",
     region: row.region || "",
     fromSheet: true,
   };
@@ -1715,7 +1735,9 @@ export default function App() {
       `- 첨부한 사진은 이 고객의 실제 현장 사진이다. 사진 속 작업 전/후 상태·정리 상태를 구체적으로 묘사하되, 사진에 없는 것은 지어내지 말 것.`,
       `- 개인정보(이름·연락처)는 절대 쓰지 말 것. 특정 단지·호수 노출 금지.`,
     ].join("\n");
-    setGenSeed({ axisId: "review", memo: lines, region: rev.region || "", custCode: rev.name || "", at: Date.now() });
+    const src = "후기 " + (rev.name || "고객코드없음") + " · " + (rev.date || "") + " · 평균 " + avg + "점"
+      + (rev.memo ? " · 코멘트" : " · 점수만");
+    setGenSeed({ axisId: "review", memo: lines, region: rev.region || "", custCode: rev.name || "", srcLabel: src, at: Date.now() });
     setTab("generate");
   }, []);
 
@@ -1754,17 +1776,41 @@ export default function App() {
     });
   }, []);
 
+  // 고친 내용을 시트로 보낸다. 타자 한 글자마다 보내지 않도록 1.5초 모았다 한 번에 보낸다.
+  const pushBuf = useRef({});
+  const pushTimer = useRef({});
+  const [syncMsg, setSyncMsg] = useState("");
+  const pushToSheet = useCallback((id, patch) => {
+    const part = toSheetPatch(patch);
+    if (!Object.keys(part).length) return;
+    pushBuf.current[id] = { ...(pushBuf.current[id] || {}), ...part };
+    clearTimeout(pushTimer.current[id]);
+    pushTimer.current[id] = setTimeout(async () => {
+      const body = pushBuf.current[id]; pushBuf.current[id] = null;
+      setSyncMsg("저장 중…");
+      await updatePostOnSheet({ id, ...body });
+      setSyncMsg("모든 기기에 저장됨");
+      setTimeout(() => setSyncMsg(""), 2500);
+    }, 1500);
+  }, []);
+
   const update = useCallback((id, patch) => {
     setQueue((q) => q.map((d) => (d.id === id ? { ...d, ...patch } : d)));
-    // 상태·예정일 변경은 시트에도 올린다 (다른 기기에서 같은 상태로 보이게)
-    if (patch && (patch.status || patch.scheduledDate !== undefined)) {
-      const p = { id };
-      if (patch.status) p.status = patch.status;
-      if (patch.scheduledDate !== undefined) p.scheduled_date = patch.scheduledDate;
-      updatePostOnSheet(p);
-    }
+    pushToSheet(id, patch);
+  }, [pushToSheet]);
+  const reloadFromSheet = useCallback(async () => {
+    setSyncMsg("불러오는 중…");
+    try {
+      const rows = await fetchPostsFromSheet();
+      const sheetPosts = rows.map(mapSheetPost).filter(Boolean);
+      if (sheetPosts.length) setQueue((prev) => mergePosts(sheetPosts, prev));
+      setSyncMsg("최신으로 맞췄습니다 · " + sheetPosts.length + "건");
+    } catch { setSyncMsg("불러오지 못했습니다"); }
+    setTimeout(() => setSyncMsg(""), 3000);
   }, []);
+
   const remove = useCallback((id) => {
+    updatePostOnSheet({ id, status: "삭제" });   // 다른 기기에서도 사라지게
     setQueue((q) => q.filter((d) => d.id !== id));
   }, []);
 
@@ -1862,7 +1908,7 @@ export default function App() {
           </div>
         )}
         {tab === "generate" && <Generate seed={genSeed} keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} onSave={(d) => { setQueue((q) => [d, ...q]); setTab("queue"); }} />}
-        {tab === "queue" && <Queue queue={queue} update={update} remove={remove} go={() => setTab("generate")} sendTo={(t, d) => { setChSeed({ at: Date.now(), id: d.id, title: d.blogTitle, body: d.blogBody }); setTab(t); }} />}
+        {tab === "queue" && <Queue queue={queue} update={update} remove={remove} reload={reloadFromSheet} syncMsg={syncMsg} go={() => setTab("generate")} sendTo={(t, d) => { setChSeed({ at: Date.now(), id: d.id, title: d.blogTitle, body: d.blogBody }); setTab(t); }} />}
         {tab === "calendar" && <Calendar queue={queue} go={setTab} />}
         {tab === "publish" && <PublishBoard />}
         {tab === "keywords" && <KeywordManager keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} noteKeyword={noteKeyword} />}
@@ -2662,6 +2708,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
   const [draft, setDraft] = useState(null);
   const [seedNote, setSeedNote] = useState(false);
   const [seedCust, setSeedCust] = useState("");
+  const [srcLabel, setSrcLabel] = useState("");
   const axis = axisOf(axisId);
 
   // 평가 탭에서 "이 평가로 글쓰기"로 넘어오면 축·메모·지역·고객코드 자동 세팅
@@ -2672,6 +2719,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
       setDraft(null);
       setSeedNote(true);
       setSeedCust(seed.custCode || "");
+      setSrcLabel(seed.srcLabel || "");
       if (seed.region) {
         if (MOVING_REGIONS.includes(seed.region)) { setRegion(seed.region); setRegionEtc(""); }
         else { setRegionEtc(seed.region); setRegion(""); }
@@ -2722,6 +2770,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
       blogTitle: draft.blogTitle || "", blogBody: draft.blogBody || "",
       blogTags: draft.blogTags || [], instaCaption: draft.instaCaption || "",
       hashtags: draft.hashtags || [], fieldNote: draft.fieldNote || "", imageCount: images.length,
+      srcLabel: srcLabel || "",
       covers: draft.covers || [], thread: draft.thread || "",
       region: (regionEtc.trim() || region) || "",
     };
@@ -2731,7 +2780,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
       id: item.id, region: item.region, axis: AXIS_LABEL[axisId] || axisId,
       keyword: item.keyword, title: item.blogTitle, body: item.blogBody,
       insta_caption: item.instaCaption, hashtags: item.hashtags, covers: item.covers,
-      thread: item.thread, status: "검수중",
+      thread: item.thread, status: "검수중", src: item.srcLabel || "",
     });
     try { if (window.storage.delete) window.storage.delete(DRAFT_KEY); else window.storage.set(DRAFT_KEY, ""); } catch {}
     setDraft(null);
@@ -3007,7 +3056,7 @@ function DraftView({ draft, axis }) {
 }
 
 /* ---------------------------- QUEUE ------------------------------ */
-function Queue({ queue, update, remove, go, sendTo }) {
+function Queue({ queue, update, remove, go, sendTo, reload, syncMsg }) {
   const [filter, setFilter] = useState("전체");
   const filters = ["전체", "검수중", "발행대기", "보류", "완료"];
   const list = filter === "전체" ? queue : queue.filter((d) => d.status === filter);
@@ -3023,6 +3072,15 @@ function Queue({ queue, update, remove, go, sendTo }) {
 
   return (
     <div className="hd-fade">
+      <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, flexWrap: "wrap" }}>
+        <button className="hd-btn" onClick={reload}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 800, color: "#fff", background: C.navy, border: "none", borderRadius: 10, padding: "10px 14px" }}>
+          <RefreshCw size={15} /> 다른 기기 것 불러오기
+        </button>
+        <span style={{ fontSize: 12, color: syncMsg ? "#1E7A6B" : C.muted, fontWeight: 700 }}>
+          {syncMsg || "폰에서 만든 글은 이 버튼을 눌러야 여기 나옵니다"}
+        </span>
+      </div>
       <TodayTasks queue={queue} update={update} remove={remove} />
       <div style={{ display: "flex", gap: 7, marginBottom: 14, flexWrap: "wrap" }}>
         {filters.map((f) => {
@@ -3152,6 +3210,11 @@ function QueueCard({ d, update, remove, sendTo }) {
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
             <span style={{ fontSize: 11, fontWeight: 800, color: axis.color }}>{axis.name}</span>
             {d.keyword && <span style={{ fontSize: 11, color: C.muted }}>· {d.keyword}</span>}
+            {d.srcLabel && (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 800, color: "#1E7A6B", background: "#E7F6F1", border: "1px solid #9AD8C7", borderRadius: 5, padding: "2px 7px", whiteSpace: "nowrap" }}>
+                <Star size={10} /> {d.srcLabel}
+              </span>
+            )}
           </div>
           <div style={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.blogTitle}</div>
         </div>
