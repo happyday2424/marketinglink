@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v9 · 0811-1400";
+const APP_VER = "v10 · 0811-1415";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -1909,7 +1909,7 @@ export default function App() {
         )}
         {tab === "generate" && <Generate seed={genSeed} keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} onSave={(d) => { setQueue((q) => [d, ...q]); setTab("queue"); }} />}
         {tab === "queue" && <Queue queue={queue} update={update} remove={remove} reload={reloadFromSheet} syncMsg={syncMsg} go={() => setTab("generate")} sendTo={(t, d) => { setChSeed({ at: Date.now(), id: d.id, title: d.blogTitle, body: d.blogBody }); setTab(t); }} />}
-        {tab === "calendar" && <Calendar queue={queue} go={setTab} />}
+        {tab === "calendar" && <Calendar queue={queue} go={(t, seed) => { if (seed) setChSeed(seed); setTab(t); }} />}
         {tab === "publish" && <PublishBoard />}
         {tab === "keywords" && <KeywordManager keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} noteKeyword={noteKeyword} />}
         {tab === "reels" && <Reels queue={queue} seed={chSeed} />}
@@ -3210,6 +3210,7 @@ function QueueCard({ d, update, remove, sendTo }) {
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
             <span style={{ fontSize: 11, fontWeight: 800, color: axis.color }}>{axis.name}</span>
             {d.keyword && <span style={{ fontSize: 11, color: C.muted }}>· {d.keyword}</span>}
+            {d.createdAt && <span style={{ fontSize: 11, color: C.muted }}>· 작성 {String(d.createdAt).slice(5)}</span>}
             {d.srcLabel && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 800, color: "#1E7A6B", background: "#E7F6F1", border: "1px solid #9AD8C7", borderRadius: 5, padding: "2px 7px", whiteSpace: "nowrap" }}>
                 <Star size={10} /> {d.srcLabel}
@@ -3647,7 +3648,7 @@ function Calendar({ queue, go }) {
                       {it.topic}
                     </div>
                   </div>
-                  <button className="hd-btn" onClick={() => go && go(it.kind === "draft" ? "queue" : c.tab)}
+                  <button className="hd-btn" onClick={() => go && go(it.kind === "draft" ? "queue" : c.tab, it.kind === "draft" ? null : { at: Date.now(), plan: true, ch: it.ch, topic: it.topic, region: it.region })}
                     style={{ fontSize: 11.5, fontWeight: 800, color: c.color, background: "#fff", border: `1.5px solid ${c.color}55`, borderRadius: 8, padding: "6px 10px", flexShrink: 0 }}>
                     만들기
                   </button>
@@ -3872,6 +3873,14 @@ function Reels({ queue, seed }) {
   const [memo, setMemo] = useState("");
   const [src, setSrc] = useState(null);
   useEffect(() => { if (seed && seed.body) setSrc({ id: seed.id, title: seed.title, body: seed.body }); }, [seed]);
+  useEffect(() => {
+    if (!seed || !seed.plan) return;
+    const t = REEL_TOPICS.find((x) => seed.topic && seed.topic.indexOf(x.name) >= 0);
+    if (t) setTopicId(t.id);
+    const h = REEL_HOOKS.find((x) => seed.topic && seed.topic.indexOf(x.name) >= 0);
+    if (h) setHookId(h.id);
+    if (seed.region && MOVING_REGIONS.indexOf(seed.region) >= 0) setRegion(seed.region);
+  }, [seed && seed.at]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [reel, setReel] = useState(null);
@@ -4097,6 +4106,12 @@ function Threads({ queue, seed }) {
   const [memo, setMemo] = useState("");
   const [src, setSrc] = useState(null);
   useEffect(() => { if (seed && seed.body) setSrc({ id: seed.id, title: seed.title, body: seed.body }); }, [seed]);
+  useEffect(() => {
+    if (!seed || !seed.plan) return;
+    const t = THREAD_TOPICS.find((x) => seed.topic && seed.topic.indexOf(x.name) >= 0);
+    if (t) setTopicId(t.id);
+    if (seed.region && MOVING_REGIONS.indexOf(seed.region) >= 0) setRegion(seed.region);
+  }, [seed && seed.at]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [th, setTh] = useState(null);
@@ -4253,6 +4268,12 @@ function Cards({ queue, seed }) {
   const [memo, setMemo] = useState("");
   const [src, setSrc] = useState(null);
   useEffect(() => { if (seed && seed.body) setSrc({ id: seed.id, title: seed.title, body: seed.body }); }, [seed]);
+  useEffect(() => {
+    if (!seed || !seed.plan) return;
+    const t = CARD_TOPICS.find((x) => seed.topic && seed.topic.indexOf(x.name) >= 0);
+    if (t) setTopicId(t.id);
+    if (seed.region && MOVING_REGIONS.indexOf(seed.region) >= 0) setRegion(seed.region);
+  }, [seed && seed.at]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [card, setCard] = useState(null);
