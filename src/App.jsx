@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v10 · 0811-1415";
+const APP_VER = "v12 · 0811-1425";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -32,7 +32,7 @@ const C = {
   navy2: "#22344F",
   line: "#E0E6EE",
   text: "#1B2A41",
-  muted: "#6C7A8C",
+  muted: "#5A6672",
   coral: "#F25C4A",
   coralDark: "#D8412F",
   gold: "#C2913A",
@@ -1737,7 +1737,7 @@ export default function App() {
     ].join("\n");
     const src = "후기 " + (rev.name || "고객코드없음") + " · " + (rev.date || "") + " · 평균 " + avg + "점"
       + (rev.memo ? " · 코멘트" : " · 점수만");
-    setGenSeed({ axisId: "review", memo: lines, region: rev.region || "", custCode: rev.name || "", srcLabel: src, at: Date.now() });
+    setGenSeed({ axisId: "review", memo: lines, region: rev.region || "", custCode: rev.name || "", srcLabel: src, scores: rev.scores || [], revDate: rev.date || "", revMemo: rev.memo || "", at: Date.now() });
     setTab("generate");
   }, []);
 
@@ -1854,11 +1854,11 @@ export default function App() {
                 <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-.02em" }}>마케팅링크</span>
                 <span style={{ fontSize: 10, fontWeight: 800, color: C.navy, background: "#C7D5E8", borderRadius: 5, padding: "2px 6px", letterSpacing: ".02em" }}>24LINK</span>
               </div>
-              <div style={{ fontSize: 12.5, color: "#9DB0C9", marginTop: 2 }}>
+              <div style={{ fontSize: 14, color: "#9DB0C9", marginTop: 2 }}>
                 {brand.name} · {brand.slogan}
               </div>
             </div>
-            <div style={{ display: "flex", gap: 18, fontSize: 12.5, color: "#C7D3E4" }}>
+            <div style={{ display: "flex", gap: 18, fontSize: 14, color: "#C7D3E4" }}>
               <Stat n={stats.total} label="전체 초안" />
               <Stat n={stats.waiting} label="발행대기" />
               <Stat n={stats.scheduled} label="이달 예약" />
@@ -1888,7 +1888,7 @@ export default function App() {
                   style={{
                     border: on ? "none" : "1px solid rgba(255,255,255,.18)",
                     background: on ? "#fff" : "rgba(255,255,255,.08)",
-                    color: on ? C.navy : "#C7D5E8", fontWeight: 700, fontSize: 13.5,
+                    color: on ? C.navy : "#C7D5E8", fontWeight: 700, fontSize: 14.5,
                     padding: "9px 14px", borderRadius: 999,
                     display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap",
                   }}>
@@ -1902,7 +1902,7 @@ export default function App() {
 
       <main style={{ maxWidth: 1180, margin: "0 auto", padding: "22px" }}>
         {saveError === "full" && (
-          <div style={{ background: "#FDECEA", border: "1px solid #E8654A", borderRadius: 12, padding: "13px 15px", marginBottom: 16, fontSize: 13.5, color: "#8A2A1C", lineHeight: 1.6 }}>
+          <div style={{ background: "#FDECEA", border: "1px solid #E8654A", borderRadius: 12, padding: "13px 15px", marginBottom: 16, fontSize: 14.5, color: "#8A2A1C", lineHeight: 1.6 }}>
             <b>⚠ 저장 공간이 가득 차 최근 변경이 저장되지 않았습니다.</b><br />
             고객을 한 번에 너무 많이 넣으면 이 기기에 다 담기지 못합니다. <b>고객관리에서 일부를 지우거나, 다음부터는 500~800명씩 나눠서</b> 넣어주세요. 지금 화면의 고객 중 일부는 새로고침 시 사라질 수 있으니, 먼저 <b>[설정]에서 백업</b>을 받아두세요.
           </div>
@@ -1922,7 +1922,7 @@ export default function App() {
       </main>
 
       <footer style={{ maxWidth: 1080, margin: "0 auto", padding: "2px 22px 22px", textAlign: "center" }}>
-        <span style={{ fontSize: 11, color: C.muted, letterSpacing: ".02em" }}>
+        <span style={{ fontSize: 14, color: C.muted, letterSpacing: ".02em" }}>
           {APP_VER}
         </span>
       </footer>
@@ -1937,7 +1937,7 @@ function SendGate() {
     <div style={{ background: "#FFF1EE", border: `1.5px solid ${C.coral}`, borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
       <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
         <Phone size={15} color={C.coralDark} style={{ marginTop: 2, flexShrink: 0 }} />
-        <div style={{ fontSize: 11.5, color: C.text, lineHeight: 1.7 }}>
+        <div style={{ fontSize: 14.5, color: C.text, lineHeight: 1.7 }}>
           <b style={{ color: C.coralDark }}>보내기 전에 확인</b>
           <div style={{ marginTop: 4 }}>· 수신 동의 받은 고객 → <b>문자·카톡 가능</b></div>
           <div>· 동의 없는 과거 고객 → <b>거래 후 6개월 이내만</b> 가능 (수신거부 안내 필수)</div>
@@ -1984,28 +1984,28 @@ function Retarget({ crm, addCust, updateCust, removeCust, importCusts }) {
       <SendGate />
       <Panel>
         <Label>고객관리 <span style={{ color: C.muted, fontWeight: 500 }}>(고객 창고 · 태그 · 개별 문구)</span></Label>
-        <div style={{ fontSize: 12.5, color: C.muted, marginTop: 8, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 14, color: C.muted, marginTop: 8, lineHeight: 1.6 }}>
           이름·번호 대신 <b>고객코드(이사일+출발+도착)</b>로 전체 고객을 보관·관리하는 곳입니다. 재이사는 <b>전세 2·4·6년 주기</b>로 계산합니다. <b>이번 달 누구에게 보낼지(명단)는 [달력] 탭</b>에서 자동으로 뜹니다 — 여기선 고객을 불러오고, 태그를 붙이고, 개별로 문구를 보냅니다.
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10, marginTop: 16 }}>
           <div>
-            <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 5 }}>이사일</div>
+            <div style={{ fontSize: 14.5, color: C.muted, marginBottom: 5 }}>이사일</div>
             <input type="date" value={moveDate} onChange={(e) => setMoveDate(e.target.value)}
-              style={{ width: "100%", padding: "9px 11px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 13 }} />
+              style={{ width: "100%", padding: "9px 11px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14 }} />
           </div>
           <div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 5 }}>출발단지</div>
+            <div style={{ fontSize: 14, color: C.muted, marginBottom: 5 }}>출발단지</div>
             <input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="예: 노은자이"
               style={{ width: "100%", padding: "12px 13px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 15 }} />
           </div>
           <div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 5 }}>도착단지</div>
+            <div style={{ fontSize: 14, color: C.muted, marginBottom: 5 }}>도착단지</div>
             <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="예: 세종한신"
               style={{ width: "100%", padding: "12px 13px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 15 }} />
           </div>
           <div>
-            <div style={{ fontSize: 13, color: C.muted, marginBottom: 5 }}>연락처 (선택)</div>
+            <div style={{ fontSize: 14, color: C.muted, marginBottom: 5 }}>연락처 (선택)</div>
             <input value={phone} onChange={(e) => setPhone(formatPhoneLive(e.target.value))}
               inputMode="numeric" maxLength={13} placeholder="010-0000-1234"
               style={{ width: "100%", padding: "12px 13px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 16, fontWeight: 600, letterSpacing: 0.3 }} />
@@ -2013,13 +2013,13 @@ function Retarget({ crm, addCust, updateCust, removeCust, importCusts }) {
         </div>
 
         <div style={{ marginTop: 12 }}>
-          <div style={{ fontSize: 13, color: C.muted, marginBottom: 7 }}>지역 (문구에 반영)</div>
+          <div style={{ fontSize: 14, color: C.muted, marginBottom: 7 }}>지역 (문구에 반영)</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {MOVING_REGIONS.map((r) => {
               const on = region === r;
               return (
                 <button key={r} className="hd-btn" onClick={() => setRegion(on ? "" : r)}
-                  style={{ padding: "6px 12px", borderRadius: 999, border: `1.5px solid ${on ? C.coral : C.line}`, background: on ? C.coral : "#fff", color: on ? "#fff" : C.navy, fontWeight: 700, fontSize: 12.5 }}>
+                  style={{ padding: "6px 12px", borderRadius: 999, border: `1.5px solid ${on ? C.coral : C.line}`, background: on ? C.coral : "#fff", color: on ? "#fff" : C.navy, fontWeight: 700, fontSize: 14 }}>
                   {r}
                 </button>
               );
@@ -2031,10 +2031,10 @@ function Retarget({ crm, addCust, updateCust, removeCust, importCusts }) {
           style={{ width: "100%", marginTop: 12, padding: "12px 13px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 15 }} />
 
         <div style={{ display: "flex", alignItems: "center", gap: 7, marginTop: 12, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 12, color: C.muted }}>계약상태:</span>
+          <span style={{ fontSize: 14, color: C.muted }}>계약상태:</span>
           {["계약", "견적", "신규"].map((s) => (
             <button key={s} className="hd-btn" onClick={() => setCstatus(s)}
-              style={{ padding: "5px 12px", borderRadius: 999, border: `1.5px solid ${cstatus === s ? C.coral : C.line}`, background: cstatus === s ? C.coral : "#fff", color: cstatus === s ? "#fff" : C.navy, fontWeight: 700, fontSize: 12.5 }}>
+              style={{ padding: "5px 12px", borderRadius: 999, border: `1.5px solid ${cstatus === s ? C.coral : C.line}`, background: cstatus === s ? C.coral : "#fff", color: cstatus === s ? "#fff" : C.navy, fontWeight: 700, fontSize: 14 }}>
               {s}
             </button>
           ))}
@@ -2067,14 +2067,14 @@ function Retarget({ crm, addCust, updateCust, removeCust, importCusts }) {
               return (
                 <>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 11, padding: "12px 13px", marginBottom: 12 }}>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>고객 찾기</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>고객 찾기</span>
                     <input value={qPhone} onChange={(e) => setQPhone(e.target.value)} inputMode="numeric" placeholder="전화번호 (뒷자리만도 OK)"
                       style={{ flex: "1 1 150px", padding: "10px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14 }} />
                     <input value={qDate} onChange={(e) => setQDate(e.target.value)} placeholder="이사일 (예: 2026-07 또는 2026-07-04)"
                       style={{ flex: "1 1 170px", padding: "10px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14 }} />
                     {searching && (
                       <button className="hd-btn" onClick={() => { setQPhone(""); setQDate(""); }}
-                        style={{ padding: "10px 13px", borderRadius: 9, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 700, fontSize: 13 }}>지우기</button>
+                        style={{ padding: "10px 13px", borderRadius: 9, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 700, fontSize: 14 }}>지우기</button>
                     )}
                   </div>
                   {searching
@@ -2082,8 +2082,8 @@ function Retarget({ crm, addCust, updateCust, removeCust, importCusts }) {
                     : (crm.length > 200 && <Note tone="tip"><ListChecks size={15} style={{ flexShrink: 0, marginTop: 1 }} /> <span>등록 고객 <b>{crm.length.toLocaleString()}명</b> 중 최근 <b>200명</b>만 표시합니다. 특정 고객은 위 <b>전화번호·이사일</b>로 찾으세요.</span></Note>)}
                   <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
                     {results.slice(0, 300).map((c) => <CustCard key={c.id} c={c} updateCust={updateCust} removeCust={removeCust} repeatCount={c.phone ? (phoneCounts[c.phone] || 1) : 1} />)}
-                    {results.length === 0 && <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "16px 0" }}>맞는 고객이 없습니다. 번호 뒷자리나 이사일(월까지만)로 다시 찾아보세요.</div>}
-                    {results.length > 300 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {(results.length - 300).toLocaleString()}명 (검색을 더 좁혀주세요)</div>}
+                    {results.length === 0 && <div style={{ fontSize: 14, color: C.muted, textAlign: "center", padding: "16px 0" }}>맞는 고객이 없습니다. 번호 뒷자리나 이사일(월까지만)로 다시 찾아보세요.</div>}
+                    {results.length > 300 && <div style={{ fontSize: 14.5, color: C.muted, textAlign: "center" }}>… 외 {(results.length - 300).toLocaleString()}명 (검색을 더 좁혀주세요)</div>}
                   </div>
                 </>
               );
@@ -2197,14 +2197,14 @@ function ContactImport({ importCusts }) {
           <div style={{ width: 34, height: 34, borderRadius: 9, background: "#EEF2F7", display: "grid", placeItems: "center" }}><Users size={17} color={C.navy2} /></div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>고객 DB 가져오기</div>
-            <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>예전 ASP DB(엑셀·CSV) · 폰 연락처(vCard)를 불러옵니다</div>
+            <div style={{ fontSize: 14.5, color: C.muted, marginTop: 2 }}>예전 ASP DB(엑셀·CSV) · 폰 연락처(vCard)를 불러옵니다</div>
           </div>
           <ChevronRight size={18} color={C.muted} style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} />
         </button>
 
         {open && (
           <div className="hd-fade" style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "11px 13px" }}>
+            <div style={{ fontSize: 14, color: C.text, lineHeight: 1.6, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "11px 13px" }}>
               <b>불러올 수 있는 형식</b><br />
               · <b>엑셀 원본(.xlsx)</b>: 그대로 올리면 됩니다. mm_ 열(이사일·전화·출발·도착)과 처리상태(계약/견적)를 자동 인식합니다.<br />
               · <b>정리본(CSV)</b>: 고객코드·이사일·지역·전화번호 열이 있으면 그대로 인식합니다.<br />
@@ -2214,62 +2214,62 @@ function ContactImport({ importCusts }) {
 
             <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
               <button type="button" className="hd-btn" onClick={() => fileRef.current && fileRef.current.click()}
-                style={{ flex: "1 1 160px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 11, border: `1.5px dashed ${C.navy}66`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 13.5 }}>
+                style={{ flex: "1 1 160px", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 11, border: `1.5px dashed ${C.navy}66`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 14.5 }}>
                 <Download size={16} /> 파일 올리기 (.csv / .vcf)
               </button>
               <input ref={fileRef} type="file" accept=".xlsx,.xls,.vcf,.csv,.txt,text/vcard,text/csv" style={{ display: "none" }} onChange={onFile} />
             </div>
 
-            <div style={{ fontSize: 11.5, color: C.muted, margin: "12px 0 5px" }}>또는 내용 붙여넣기</div>
+            <div style={{ fontSize: 14.5, color: C.muted, margin: "12px 0 5px" }}>또는 내용 붙여넣기</div>
             <textarea value={raw} onChange={(e) => setRaw(e.target.value)} rows={3}
               placeholder={"고객코드,이사일,지역,전화번호 ... (CSV 붙여넣기) 또는 vCard 내용"}
-              style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 12.5, lineHeight: 1.6, fontFamily: "ui-monospace,monospace" }} />
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6, fontFamily: "ui-monospace,monospace" }} />
             <button className="hd-btn" onClick={() => ingest(raw)} disabled={!raw.trim()}
-              style={{ marginTop: 8, width: "100%", padding: "11px", borderRadius: 10, border: "none", background: raw.trim() ? C.navy : "#C7CED7", color: "#fff", fontWeight: 800, fontSize: 13.5 }}>
+              style={{ marginTop: 8, width: "100%", padding: "11px", borderRadius: 10, border: "none", background: raw.trim() ? C.navy : "#C7CED7", color: "#fff", fontWeight: 800, fontSize: 14.5 }}>
               읽어들이기
             </button>
 
-            {msg && <div style={{ fontSize: 12, color: "#1E7A6B", marginTop: 10, fontWeight: 700 }}>{msg}</div>}
+            {msg && <div style={{ fontSize: 14, color: "#1E7A6B", marginTop: 10, fontWeight: 700 }}>{msg}</div>}
 
             {staged.length > 0 && (
               <div style={{ marginTop: 14 }}>
                 {/* 필터 */}
                 <div style={{ background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "11px 12px" }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: C.navy, marginBottom: 8 }}>좁혀서 담기</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 8 }}>좁혀서 담기</div>
                   <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center", marginBottom: 9 }}>
-                    <span style={{ fontSize: 12, color: C.muted }}>이 파일의 계약상태:</span>
+                    <span style={{ fontSize: 14, color: C.muted }}>이 파일의 계약상태:</span>
                     {["계약", "견적", "신규"].map((s) => (
                       <button key={s} className="hd-btn" onClick={() => setImpStatus(s)}
-                        style={{ padding: "5px 11px", borderRadius: 999, border: `1.5px solid ${impStatus === s ? C.coral : C.line}`, background: impStatus === s ? C.coral : "#fff", color: impStatus === s ? "#fff" : C.navy, fontWeight: 700, fontSize: 12 }}>
+                        style={{ padding: "5px 11px", borderRadius: 999, border: `1.5px solid ${impStatus === s ? C.coral : C.line}`, background: impStatus === s ? C.coral : "#fff", color: impStatus === s ? "#fff" : C.navy, fontWeight: 700, fontSize: 14 }}>
                         {s}
                       </button>
                     ))}
                   </div>
                   <div style={{ display: "flex", gap: 7, flexWrap: "wrap", alignItems: "center" }}>
                     <select value={fRegion} onChange={(e) => setFRegion(e.target.value)}
-                      style={{ padding: "7px 9px", borderRadius: 8, border: `1.5px solid ${C.line}`, fontSize: 12.5 }}>
+                      style={{ padding: "7px 9px", borderRadius: 8, border: `1.5px solid ${C.line}`, fontSize: 14 }}>
                       <option value="">지역 전체</option>
                       {MOVING_REGIONS.map((rg) => <option key={rg} value={rg}>{rg}</option>)}
                     </select>
                     <input value={fYearFrom} onChange={(e) => setFYearFrom(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="이사연도 부터" inputMode="numeric"
-                      style={{ width: 100, padding: "7px 9px", borderRadius: 8, border: `1.5px solid ${C.line}`, fontSize: 12.5 }} />
+                      style={{ width: 100, padding: "7px 9px", borderRadius: 8, border: `1.5px solid ${C.line}`, fontSize: 14 }} />
                     <span style={{ color: C.muted }}>~</span>
                     <input value={fYearTo} onChange={(e) => setFYearTo(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="까지" inputMode="numeric"
-                      style={{ width: 80, padding: "7px 9px", borderRadius: 8, border: `1.5px solid ${C.line}`, fontSize: 12.5 }} />
-                    <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, color: C.text, cursor: "pointer" }}>
+                      style={{ width: 80, padding: "7px 9px", borderRadius: 8, border: `1.5px solid ${C.line}`, fontSize: 14 }} />
+                    <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 14, color: C.text, cursor: "pointer" }}>
                       <input type="checkbox" checked={fDueOnly} onChange={(e) => setFDueOnly(e.target.checked)} /> 재이사 임박만(6개월 내)
                     </label>
                   </div>
-                  <div style={{ fontSize: 12, color: C.navy, fontWeight: 700, marginTop: 9 }}>
+                  <div style={{ fontSize: 14, color: C.navy, fontWeight: 700, marginTop: 9 }}>
                     조건 맞는 고객 <b style={{ color: C.coral }}>{filtered.length.toLocaleString()}명</b> · 선택 {incCount.toLocaleString()}명
                   </div>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 8px" }}>
                   <ListChecks size={16} color={C.navy} />
-                  <span style={{ fontSize: 12.5, fontWeight: 800, color: C.navy }}>미리보기 (최대 150건)</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>미리보기 (최대 150건)</span>
                   <div style={{ flex: 1 }} />
-                  <button className="hd-btn" onClick={() => { const set = new Set(shown); setStaged((s) => s.map((r) => (set.has(r) ? { ...r, include: true } : r))); }} style={{ fontSize: 11.5, fontWeight: 700, color: C.navy, background: "#EEF2F7", border: "none", borderRadius: 8, padding: "6px 10px" }}>보이는 것 전체선택</button>
+                  <button className="hd-btn" onClick={() => { const set = new Set(shown); setStaged((s) => s.map((r) => (set.has(r) ? { ...r, include: true } : r))); }} style={{ fontSize: 14.5, fontWeight: 700, color: C.navy, background: "#EEF2F7", border: "none", borderRadius: 8, padding: "6px 10px" }}>보이는 것 전체선택</button>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 320, overflowY: "auto" }}>
@@ -2277,23 +2277,23 @@ function ContactImport({ importCusts }) {
                     <div key={i} style={{ border: `1px solid ${C.line}`, borderRadius: 10, padding: "9px 11px", background: r.include ? "#fff" : "#F7F9FC", opacity: r.include ? 1 : 0.55 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <input type="checkbox" checked={r.include} onChange={(e) => setRow(r, { include: e.target.checked })} />
-                        <span style={{ fontSize: 13, fontWeight: 700, color: C.navy, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.rawName || r.code || "(이름 없음)"}</span>
-                        {r.phone && <span style={{ fontSize: 12.5, color: C.text, fontWeight: 600 }}>{r.phone}</span>}
+                        <span style={{ fontSize: 14, fontWeight: 700, color: C.navy, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.rawName || r.code || "(이름 없음)"}</span>
+                        {r.phone && <span style={{ fontSize: 14, color: C.text, fontWeight: 600 }}>{r.phone}</span>}
                       </div>
                       {(r.from || r.to) && (
-                        <div style={{ fontSize: 12.5, color: C.text, marginTop: 6, lineHeight: 1.4 }}>
+                        <div style={{ fontSize: 14, color: C.text, marginTop: 6, lineHeight: 1.4 }}>
                           {r.from || "(출발지 미상)"} <span style={{ color: C.coral, fontWeight: 800 }}>→</span> {r.to || "(도착지 미정)"}
                         </div>
                       )}
                       <div style={{ display: "flex", gap: 7, marginTop: 8, flexWrap: "wrap", alignItems: "center" }}>
                         <input type="date" value={r.moveDate} onChange={(e) => setRow(r, { moveDate: e.target.value })}
-                          style={{ padding: "6px 8px", borderRadius: 8, border: `1.5px solid ${C.line}`, fontSize: 12 }} />
+                          style={{ padding: "6px 8px", borderRadius: 8, border: `1.5px solid ${C.line}`, fontSize: 14 }} />
                         <select value={r.region} onChange={(e) => setRow(r, { region: e.target.value })}
-                          style={{ padding: "6px 8px", borderRadius: 8, border: `1.5px solid ${C.line}`, fontSize: 12 }}>
+                          style={{ padding: "6px 8px", borderRadius: 8, border: `1.5px solid ${C.line}`, fontSize: 14 }}>
                           <option value="">지역</option>
                           {MOVING_REGIONS.map((rg) => <option key={rg} value={rg}>{rg}</option>)}
                         </select>
-                        {!r.moveDate && <span style={{ fontSize: 11, color: "#B7791F" }}>시기 확인 필요</span>}
+                        {!r.moveDate && <span style={{ fontSize: 14, color: "#B7791F" }}>시기 확인 필요</span>}
                       </div>
                     </div>
                   ))}
@@ -2303,7 +2303,7 @@ function ContactImport({ importCusts }) {
                   style={{ marginTop: 12, width: "100%", padding: "13px", borderRadius: 11, border: "none", background: C.coral, color: "#fff", fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
                   <Plus size={16} /> 조건 맞는 {incCount.toLocaleString()}명 고객관리에 추가
                 </button>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 14, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
                   같은 고객코드는 자동 중복 제거됩니다. 기기 저장 방식이라 <b>한 번에 500~800명 이하</b>를 권합니다. 전체 10년치 자동 활용은 백엔드(동) 연결 시 열립니다.
                 </div>
               </div>
@@ -2344,18 +2344,18 @@ function CustCard({ c, updateCust, removeCust, repeatCount }) {
     <div style={{ background: "#fff", borderRadius: 16, border: `1px solid ${C.line}`, borderLeft: `4px solid ${isImminent ? C.coral : (isSoon ? C.gold : C.line)}`, padding: "14px 16px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <span style={{ fontSize: 16, fontWeight: 800, color: C.navy }}>{c.code}</span>
-        {repeatCount > 1 && <span style={{ fontSize: 11, fontWeight: 800, color: "#fff", background: "#7A3EA8", borderRadius: 999, padding: "3px 9px" }}>단골 {repeatCount}회</span>}
+        {repeatCount > 1 && <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", background: "#7A3EA8", borderRadius: 999, padding: "3px 9px" }}>단골 {repeatCount}회</span>}
         {c.region && <Chip><MapPin size={11} /> {c.region}</Chip>}
-        <span style={{ fontSize: 10.5, fontWeight: 700, color: (c.contractStatus === "견적") ? "#8A6418" : "#2563A8", background: (c.contractStatus === "견적") ? "#FFF4E6" : "#E8F3FF", borderRadius: 999, padding: "2px 8px" }}>{c.contractStatus || "계약"}</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: (c.contractStatus === "견적") ? "#8A6418" : "#2563A8", background: (c.contractStatus === "견적") ? "#FFF4E6" : "#E8F3FF", borderRadius: 999, padding: "2px 8px" }}>{c.contractStatus || "계약"}</span>
         <button className="hd-btn" onClick={() => updateCust(c.id, { keyman: !c.keyman })}
-          style={{ fontSize: 10.5, fontWeight: 700, color: c.keyman ? "#B7791F" : C.muted, background: c.keyman ? "#FAEEDA" : "#F1F3F6", border: "none", borderRadius: 999, padding: "2px 8px" }}>
+          style={{ fontSize: 14, fontWeight: 700, color: c.keyman ? "#B7791F" : C.muted, background: c.keyman ? "#FAEEDA" : "#F1F3F6", border: "none", borderRadius: 999, padding: "2px 8px" }}>
           {c.keyman ? "★키맨" : "키맨?"}
         </button>
-        {isImminent && <span style={{ fontSize: 11, fontWeight: 800, color: "#B23A2E", background: "#FDECEA", borderRadius: 999, padding: "3px 9px" }}>재이사 임박 · {nextOut}개월 뒤</span>}
-        {isSoon && <span style={{ fontSize: 11, fontWeight: 800, color: "#8A6418", background: "#FFF4E6", borderRadius: 999, padding: "3px 9px" }}>곧 다가옴 · {nextOut}개월 뒤</span>}
-        {!isImminent && !isSoon && nextOut !== null && <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, background: "#F1F3F6", borderRadius: 999, padding: "3px 9px" }}>다음 재이사 {nextOut}개월 뒤</span>}
+        {isImminent && <span style={{ fontSize: 14, fontWeight: 800, color: "#B23A2E", background: "#FDECEA", borderRadius: 999, padding: "3px 9px" }}>재이사 임박 · {nextOut}개월 뒤</span>}
+        {isSoon && <span style={{ fontSize: 14, fontWeight: 800, color: "#8A6418", background: "#FFF4E6", borderRadius: 999, padding: "3px 9px" }}>곧 다가옴 · {nextOut}개월 뒤</span>}
+        {!isImminent && !isSoon && nextOut !== null && <span style={{ fontSize: 14, fontWeight: 700, color: C.muted, background: "#F1F3F6", borderRadius: 999, padding: "3px 9px" }}>다음 재이사 {nextOut}개월 뒤</span>}
         <div style={{ flex: 1 }} />
-        <span style={{ fontSize: 11.5, color: C.muted }}>이사 {c.moveDate}</span>
+        <span style={{ fontSize: 14.5, color: C.muted }}>이사 {c.moveDate}</span>
         <Act onClick={() => removeCust(c.id)} color="#C0392B" bg="#FDECEA"><Trash2 size={14} /></Act>
       </div>
 
@@ -2366,28 +2366,28 @@ function CustCard({ c, updateCust, removeCust, repeatCount }) {
           <span>{c.from || "(출발지 미상)"} <span style={{ color: C.coral, fontWeight: 800 }}>→</span> {c.to || "(도착지 미정)"}</span>
         </div>
       )}
-      {c.memo && <div style={{ fontSize: 12.5, color: C.text, marginTop: 6 }}>{c.memo}</div>}
+      {c.memo && <div style={{ fontSize: 14, color: C.text, marginTop: 6 }}>{c.memo}</div>}
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
         <button className="hd-btn" onClick={() => doCopy("후기요청", msgReview(c))}
-          style={{ flex: "1 1 110px", padding: "10px", borderRadius: 10, border: "none", background: "#E7F6F1", color: "#1E7A6B", fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          style={{ flex: "1 1 110px", padding: "10px", borderRadius: 10, border: "none", background: "#E7F6F1", color: "#1E7A6B", fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
           <Star size={15} /> 후기요청
         </button>
         <button className="hd-btn" onClick={() => doCopy("재타깃", msgRetarget(c))}
-          style={{ flex: "1 1 110px", padding: "10px", borderRadius: 10, border: "none", background: "#E8F3FF", color: "#2563A8", fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          style={{ flex: "1 1 110px", padding: "10px", borderRadius: 10, border: "none", background: "#E8F3FF", color: "#2563A8", fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
           <MessageSquare size={15} /> 재타깃
         </button>
         <button className="hd-btn" onClick={() => doCopy("소개", msgCoffee(c))}
-          style={{ flex: "1 1 110px", padding: "10px", borderRadius: 10, border: "none", background: "#EEEDFE", color: "#4A429E", fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          style={{ flex: "1 1 110px", padding: "10px", borderRadius: 10, border: "none", background: "#EEEDFE", color: "#4A429E", fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
           <Users size={15} /> 소개(커피)
         </button>
         <button className="hd-btn" onClick={onCoupon}
-          style={{ flex: "1 1 110px", padding: "10px", borderRadius: 10, border: "none", background: "#FFF4E6", color: "#B7791F", fontWeight: 800, fontSize: 13, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+          style={{ flex: "1 1 110px", padding: "10px", borderRadius: 10, border: "none", background: "#FFF4E6", color: "#B7791F", fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
           <Gift size={15} /> 쿠폰
         </button>
       </div>
 
-      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10 }}>{lastLabel}{c.couponCode ? ` · 쿠폰 ${c.couponCode}` : ""}</div>
+      <div style={{ fontSize: 14.5, color: C.muted, marginTop: 10 }}>{lastLabel}{c.couponCode ? ` · 쿠폰 ${c.couponCode}` : ""}</div>
       {flash && <Note tone="ok"><Check size={14} /> <span>{flash}</span></Note>}
     </div>
   );
@@ -2512,22 +2512,22 @@ function CareCalendar({ crm }) {
     <div className="hd-fade">
       <Panel>
         <Label>고객관리 달력 <span style={{ color: C.muted, fontWeight: 500 }}>· {y}년 {mo + 1}월 (자동)</span></Label>
-        <div style={{ fontSize: 12.5, color: C.muted, marginTop: 8, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 14, color: C.muted, marginTop: 8, lineHeight: 1.6 }}>
           큰 부류는 <b>이사 시기(월·분기)별로, 하루 발송 인원 안에서 여러 날짜에 자동으로 나뉩니다</b>. <b>그날 칸을 눌러 그날치만 복사·발송</b>하세요. 최신 시기가 앞 날짜, 오래된 시기는 뒤 날짜라 <b>오래된 고객은 그 날짜를 건너뛰면</b> 됩니다. 등록 {crm.length.toLocaleString()}명 기준.
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap", background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px" }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>하루 발송 인원</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>하루 발송 인원</span>
           {[30, 50, 100, 150, 200, 300].map((v) => (
             <button key={v} className="hd-btn" onClick={() => setCap(v)}
-              style={{ padding: "7px 13px", borderRadius: 999, border: `1.5px solid ${cap === v ? C.coral : C.line}`, background: cap === v ? C.coral : "#fff", color: cap === v ? "#fff" : C.navy, fontWeight: 800, fontSize: 13.5 }}>
+              style={{ padding: "7px 13px", borderRadius: 999, border: `1.5px solid ${cap === v ? C.coral : C.line}`, background: cap === v ? C.coral : "#fff", color: cap === v ? "#fff" : C.navy, fontWeight: 800, fontSize: 14.5 }}>
               {v}명
             </button>
           ))}
-          <span style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.4 }}>개인폰이면 100 이하 권장(업무 문자 여유분·차단 방지). 대행사 쓰면 크게.</span>
+          <span style={{ fontSize: 14.5, color: C.muted, lineHeight: 1.4 }}>개인폰이면 100 이하 권장(업무 문자 여유분·차단 방지). 대행사 쓰면 크게.</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5, marginTop: 14 }}>
           {["일", "월", "화", "수", "목", "금", "토"].map((w) => (
-            <div key={w} style={{ textAlign: "center", fontSize: 11.5, color: C.muted, padding: "2px 0" }}>{w}</div>
+            <div key={w} style={{ textAlign: "center", fontSize: 14.5, color: C.muted, padding: "2px 0" }}>{w}</div>
           ))}
           {cells.map((d, i) => {
             if (d === null) return <div key={"e" + i} />;
@@ -2541,7 +2541,7 @@ function CareCalendar({ crm }) {
                 style={{ minHeight: 60, borderRadius: 9, padding: "5px 6px", textAlign: "left",
                   border: `${isToday ? 2 : 1}px solid ${isToday ? C.coral : C.line}`, background: has ? e0.bg : "#FAFBFC",
                   cursor: has ? "pointer" : "default", outline: selDay === d ? `2px solid ${C.navy}` : "none" }}>
-                <div style={{ fontSize: 12, fontWeight: isToday ? 800 : 600, color: isToday ? C.coral : C.text }}>{d}{isToday ? " ·오늘" : ""}</div>
+                <div style={{ fontSize: 14, fontWeight: isToday ? 800 : 600, color: isToday ? C.coral : C.text }}>{d}{isToday ? " ·오늘" : ""}</div>
                 {has && <div style={{ fontSize: 10, color: e0.tone, marginTop: 3, lineHeight: 1.2, fontWeight: 700 }}>{e0.label}{ent.length > 1 ? " 외" : ""}</div>}
                 {has && <div style={{ fontSize: 9.5, color: C.muted, marginTop: 1, lineHeight: 1.2 }}>{e0.cohort}</div>}
                 {has && <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>{n}명</div>}
@@ -2549,7 +2549,7 @@ function CareCalendar({ crm }) {
             );
           })}
         </div>
-        <div style={{ fontSize: 11, color: C.muted, marginTop: 10, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 14, color: C.muted, marginTop: 10, lineHeight: 1.5 }}>
           만기=재이사(2·4·6년), 생애주기=이사 후 경과, 계절=현재 계절, 소개유도=만족 계약고객. 큰 부류(계절·소개)는 하루 발송 인원 안에서 여러 날에 자동 분산됩니다.
         </div>
       </Panel>
@@ -2602,23 +2602,23 @@ function CareBucket({ kind, label, cohort, over, list }) {
     <div style={{ border: `1px solid ${C.line}`, borderRadius: 12, padding: "14px", marginBottom: 12 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>{label}</span>
-        {cohort && <span style={{ fontSize: 12, fontWeight: 700, color: "#4A429E", background: "#EEEDFE", borderRadius: 999, padding: "3px 10px" }}>{cohort}</span>}
-        <span style={{ fontSize: 13, fontWeight: 700, color: C.teal }}>{list.length}명</span>
-        {over && <span style={{ fontSize: 11.5, fontWeight: 700, color: "#B23A2E", background: "#FDECEA", borderRadius: 999, padding: "3px 9px" }}>500 초과 · 이틀 나눠 보내세요</span>}
+        {cohort && <span style={{ fontSize: 14, fontWeight: 700, color: "#4A429E", background: "#EEEDFE", borderRadius: 999, padding: "3px 10px" }}>{cohort}</span>}
+        <span style={{ fontSize: 14, fontWeight: 700, color: C.teal }}>{list.length}명</span>
+        {over && <span style={{ fontSize: 14.5, fontWeight: 700, color: "#B23A2E", background: "#FDECEA", borderRadius: 999, padding: "3px 9px" }}>500 초과 · 이틀 나눠 보내세요</span>}
       </div>
       <div style={{ background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 10, padding: "12px 13px", marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>보낼 문구</span>
+          <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>보낼 문구</span>
           {variants.map((v, i) => (
             <button key={i} className="hd-btn" onClick={() => setVi(i)}
-              style={{ padding: "6px 12px", borderRadius: 999, border: `1.5px solid ${vi === i ? C.coral : C.line}`, background: vi === i ? C.coral : "#fff", color: vi === i ? "#fff" : C.navy, fontWeight: 700, fontSize: 12.5 }}>
+              style={{ padding: "6px 12px", borderRadius: 999, border: `1.5px solid ${vi === i ? C.coral : C.line}`, background: vi === i ? C.coral : "#fff", color: vi === i ? "#fff" : C.navy, fontWeight: 700, fontSize: 14 }}>
               {v.label}
             </button>
           ))}
-          <span style={{ fontSize: 11.5, color: C.muted }}>· 직접 고쳐도 됩니다</span>
+          <span style={{ fontSize: 14.5, color: C.muted }}>· 직접 고쳐도 됩니다</span>
         </div>
         <textarea value={msgText} onChange={(e) => setMsgText(e.target.value)}
-          style={{ width: "100%", minHeight: 120, padding: "11px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 13.5, lineHeight: 1.7, fontFamily: "inherit", color: C.text }} />
+          style={{ width: "100%", minHeight: 120, padding: "11px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14.5, lineHeight: 1.7, fontFamily: "inherit", color: C.text }} />
         <button className="hd-btn" onClick={copyMsg}
           style={{ marginTop: 10, padding: "11px 16px", borderRadius: 10, border: "none", background: msgCopied ? "#1E7A6B" : C.coral, color: "#fff", fontWeight: 800, fontSize: 14 }}>
           {msgCopied ? "문구 복사됨 — 붙여넣기" : "① 이 문구 복사"}
@@ -2630,11 +2630,11 @@ function CareBucket({ kind, label, cohort, over, list }) {
           {phCopied ? "번호 복사됨" : `② 전화번호 ${list.length}개 복사`}
         </button>
         <button className="hd-btn" onClick={() => setOpen(!open)}
-          style={{ padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 700, fontSize: 13.5 }}>
+          style={{ padding: "12px 14px", borderRadius: 10, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 700, fontSize: 14.5 }}>
           {open ? "명단 닫기" : "명단·주소 보기"}
         </button>
       </div>
-      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 14.5, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
         발송법: ① 문구 복사 → 문자앱 본문에 붙여넣기 · ② 전화번호 복사 → 받는사람 칸에 붙여넣기 → 전송. (많으면 발송 대행사 이용)
       </div>
       {open && (
@@ -2642,21 +2642,21 @@ function CareBucket({ kind, label, cohort, over, list }) {
           {list.slice(0, 200).map((c) => {
             const r = routeOf(c);
             return (
-              <div key={c.id} style={{ fontSize: 13.5, color: C.text, padding: "9px 11px", border: `1px solid ${C.line}`, borderRadius: 8 }}>
+              <div key={c.id} style={{ fontSize: 14.5, color: C.text, padding: "9px 11px", border: `1px solid ${C.line}`, borderRadius: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontWeight: 800, color: C.navy, fontSize: 15 }}>📅 {c.moveDate || "이사일 미상"}</span>
-                  <span style={{ fontSize: 11.5, color: c.contractStatus === "견적" ? "#8A6418" : "#2563A8", background: c.contractStatus === "견적" ? "#FFF4E6" : "#E8F3FF", borderRadius: 999, padding: "2px 8px", fontWeight: 700 }}>{c.contractStatus || "계약"}</span>
-                  {c.region && <span style={{ fontSize: 12, color: C.muted }}>{c.region}</span>}
-                  {c.keyman && <span style={{ fontSize: 11, color: "#B7791F", fontWeight: 700 }}>★키맨</span>}
+                  <span style={{ fontSize: 14.5, color: c.contractStatus === "견적" ? "#8A6418" : "#2563A8", background: c.contractStatus === "견적" ? "#FFF4E6" : "#E8F3FF", borderRadius: 999, padding: "2px 8px", fontWeight: 700 }}>{c.contractStatus || "계약"}</span>
+                  {c.region && <span style={{ fontSize: 14, color: C.muted }}>{c.region}</span>}
+                  {c.keyman && <span style={{ fontSize: 14, color: "#B7791F", fontWeight: 700 }}>★키맨</span>}
                 </div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginTop: 5 }}>📞 {c.phone || "(번호없음)"}</div>
-                <div style={{ fontSize: 13, color: C.text, marginTop: 4, lineHeight: 1.55, wordBreak: "break-all" }}>
+                <div style={{ fontSize: 14, color: C.text, marginTop: 4, lineHeight: 1.55, wordBreak: "break-all" }}>
                   📍 {r.from || "(출발지 미상)"} <span style={{ color: C.coral, fontWeight: 800 }}>→</span> {r.to || "(도착지 미정)"}
                 </div>
               </div>
             );
           })}
-          {list.length > 200 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {list.length - 200}명</div>}
+          {list.length > 200 && <div style={{ fontSize: 14.5, color: C.muted, textAlign: "center" }}>… 외 {list.length - 200}명</div>}
         </div>
       )}
     </div>
@@ -2676,7 +2676,7 @@ function ScaleCtl({ scale, bump }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 5, marginLeft: 14 }}>
       <button className="hd-btn" onClick={() => bump(-1)} disabled={min} title="글자 작게" style={btn(!min)}>ㄱ</button>
-      <span style={{ fontSize: 10.5, fontWeight: 800, color: "#9DB0C9", minWidth: 40, textAlign: "center" }}>{scaleLabel(scale)}</span>
+      <span style={{ fontSize: 14, fontWeight: 800, color: "#9DB0C9", minWidth: 40, textAlign: "center" }}>{scaleLabel(scale)}</span>
       <button className="hd-btn" onClick={() => bump(1)} disabled={max} title="글자 크게" style={{ ...btn(!max), fontSize: 19 }}>ㄱ</button>
     </div>
   );
@@ -2686,7 +2686,7 @@ function Stat({ n, label }) {
   return (
     <div style={{ textAlign: "center" }}>
       <div style={{ fontSize: 17, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{n}</div>
-      <div style={{ fontSize: 11, marginTop: 3 }}>{label}</div>
+      <div style={{ fontSize: 14, marginTop: 3 }}>{label}</div>
     </div>
   );
 }
@@ -2709,6 +2709,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
   const [seedNote, setSeedNote] = useState(false);
   const [seedCust, setSeedCust] = useState("");
   const [srcLabel, setSrcLabel] = useState("");
+  const [seedScores, setSeedScores] = useState(null);
   const axis = axisOf(axisId);
 
   // 평가 탭에서 "이 평가로 글쓰기"로 넘어오면 축·메모·지역·고객코드 자동 세팅
@@ -2720,6 +2721,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
       setSeedNote(true);
       setSeedCust(seed.custCode || "");
       setSrcLabel(seed.srcLabel || "");
+      setSeedScores(seed.scores && seed.scores.length ? { scores: seed.scores, date: seed.revDate || "", memo: seed.revMemo || "" } : null);
       if (seed.region) {
         if (MOVING_REGIONS.includes(seed.region)) { setRegion(seed.region); setRegionEtc(""); }
         else { setRegionEtc(seed.region); setRegion(""); }
@@ -2794,8 +2796,49 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
             <Star size={17} color="#1E7A6B" />
             <span style={{ fontSize: 14, fontWeight: 800, color: "#1E7A6B" }}>고객 후기로 글쓰기</span>
             {seedCust && <Chip><Users size={11} /> {seedCust}</Chip>}
+            {seedScores && seedScores.date && <Chip><CalendarDays size={11} /> {seedScores.date}</Chip>}
           </div>
-          <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.6, marginTop: 8 }}>
+
+          {seedScores && (
+            <div style={{ marginTop: 11, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 13px" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 9 }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>고객이 준 점수</span>
+                <span style={{ fontSize: 24, fontWeight: 800, color: "#1E7A6B" }}>
+                  {(seedScores.scores.filter((v) => v >= 1).reduce((a, b) => a + b, 0) / Math.max(1, seedScores.scores.filter((v) => v >= 1).length)).toFixed(1)}
+                </span>
+                <span style={{ fontSize: 14, color: C.muted }}>/ 5.0 평균</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 7 }}>
+                {REVIEW_SHORT.map((label, i) => {
+                  const v = seedScores.scores[i];
+                  const none = !(v >= 1);
+                  const low = v >= 1 && v <= 3;
+                  return (
+                    <div key={label} style={{ display: "flex", alignItems: "center", gap: 8, background: none ? "#F4F6F8" : (low ? "#FBF1DF" : "#E7F6F0"), borderRadius: 9, padding: "9px 11px" }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: none ? C.muted : C.text, flex: 1 }}>{label}</span>
+                      {none ? (
+                        <span style={{ fontSize: 13, color: C.muted, fontWeight: 700 }}>—</span>
+                      ) : (
+                        <>
+                          <span style={{ fontSize: 14, letterSpacing: 1, color: low ? "#B7791F" : "#1E7A6B" }}>{"★".repeat(v)}</span>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: low ? "#B7791F" : "#1E7A6B", minWidth: 18, textAlign: "right" }}>{v}</span>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {seedScores.memo && (
+                <div style={{ marginTop: 10, fontSize: 14.5, color: C.text, lineHeight: 1.7, background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>
+                  “{seedScores.memo}”
+                </div>
+              )}
+              <div style={{ marginTop: 8, fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
+                <b>—</b> 는 고객이 답하지 않은 항목입니다. <b>노란색은 3점 이하</b>라 글에서 다루지 않는 편이 낫습니다.
+              </div>
+            </div>
+          )}
+          <div style={{ fontSize: 14, color: C.text, lineHeight: 1.6, marginTop: 8 }}>
             <b>① 점수·코멘트</b>가 아래 현장 메모에 담겼습니다. <b>② 이 고객 현장에서 팀이 찍어둔 사진을 지금 올리세요.</b> <b>③ [초안 생성]</b>을 누르면 점수+사진 기반 후기 글이 나옵니다. <span style={{ color: C.muted }}>(개인정보는 담기지 않습니다)</span>
           </div>
 
@@ -2810,12 +2853,12 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
                 <div key={i} style={{ position: "relative" }}>
                   <img src={im.url} alt="" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 9, border: `1px solid ${C.line}` }} />
                   <button className="hd-btn" onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
-                    style={{ position: "absolute", top: -7, right: -7, width: 22, height: 22, borderRadius: 99, border: "none", background: C.coralDark, color: "#fff", fontSize: 13, fontWeight: 800, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+                    style={{ position: "absolute", top: -7, right: -7, width: 22, height: 22, borderRadius: 99, border: "none", background: C.coralDark, color: "#fff", fontSize: 14, fontWeight: 800, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
                 </div>
               ))}
             </div>
           )}
-          <div style={{ fontSize: 11, color: "#1E7A6B", marginTop: 9, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 14, color: "#1E7A6B", marginTop: 9, lineHeight: 1.5 }}>
             사진은 <b>직접 촬영한 원본</b>일수록 좋습니다. AI가 사진 속 전/후 상태를 보고 후기 본문에 녹입니다. (사진 없이 점수만으로도 생성됩니다)
           </div>
         </div>
@@ -2836,8 +2879,8 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
                   <span style={{ width: 9, height: 9, borderRadius: 9, background: a.color }} />
                   <span style={{ fontWeight: 800, fontSize: 15 }}>{a.name}</span>
                 </div>
-                <div style={{ fontSize: 11.5, color: a.color, fontWeight: 700, margin: "6px 0 4px" }}>{a.role}</div>
-                <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5 }}>{a.desc}</div>
+                <div style={{ fontSize: 14.5, color: a.color, fontWeight: 700, margin: "6px 0 4px" }}>{a.role}</div>
+                <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5 }}>{a.desc}</div>
               </button>
             );
           })}
@@ -2845,24 +2888,24 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
 
         {axis.food && (
           <div style={{ marginTop: 18, background: "#FFF8F2", border: `1.5px solid ${axis.color}44`, borderRadius: 14, padding: "15px" }}>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: axis.color, marginBottom: 4 }}>식당 정보 <span style={{ color: "#C0392B" }}>* 필수</span></div>
-            <div style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.5, marginBottom: 12 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: axis.color, marginBottom: 4 }}>식당 정보 <span style={{ color: "#C0392B" }}>* 필수</span></div>
+            <div style={{ fontSize: 14.5, color: C.muted, lineHeight: 1.5, marginBottom: 12 }}>
               사진(간판·메뉴판·음식)은 발행할 때 그 자리에 넣으세요. 여기 적은 메뉴·코멘트를 AI가 기초 자료로 글을 씁니다. 많이 적을수록 글이 길고 생생해지며, 안 적은 가격·정보는 지어내지 않습니다.
             </div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, marginBottom: 6 }}>식당명</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 6 }}>식당명</div>
             <input value={restaurant} onChange={(e) => setRestaurant(e.target.value)} placeholder="예: 부여 황톳길 국밥"
               style={{ width: "100%", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, marginBottom: 12 }} />
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, marginBottom: 6 }}>먹은 메뉴</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 6 }}>먹은 메뉴</div>
             <input value={menu} onChange={(e) => setMenu(e.target.value)} placeholder="예: 순대국밥, 수육 한 접시"
               style={{ width: "100%", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, marginBottom: 12 }} />
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, marginBottom: 6 }}>내 코멘트 <span style={{ fontWeight: 500, color: C.muted }}>(맛·느낌을 편하게 — 많이 적을수록 글이 길어집니다)</span></div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 6 }}>내 코멘트 <span style={{ fontWeight: 500, color: C.muted }}>(맛·느낌을 편하게 — 많이 적을수록 글이 길어집니다)</span></div>
             <textarea value={taste} onChange={(e) => setTaste(e.target.value)} rows={4}
               placeholder="예: 국물이 진하고 잡내가 없다. 깍두기가 직접 담근 맛이라 계속 손이 갔다. 양도 푸짐해서 이사 끝나고 먹기 딱 좋았다."
               style={{ width: "100%", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6 }} />
 
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, margin: "14px 0 6px" }}>사진 첨부 <span style={{ fontWeight: 500, color: C.muted }}>(간판·메뉴판·음식 — AI가 사진을 보고 씁니다)</span></div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, margin: "14px 0 6px" }}>사진 첨부 <span style={{ fontWeight: 500, color: C.muted }}>(간판·메뉴판·음식 — AI가 사진을 보고 씁니다)</span></div>
             <button type="button" className="hd-btn" onClick={() => fileRef.current && fileRef.current.click()}
-              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, border: `1.5px dashed ${axis.color}88`, background: "#FFF8F2", color: axis.color, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, border: `1.5px dashed ${axis.color}88`, background: "#FFF8F2", color: axis.color, fontWeight: 700, fontSize: 14.5, cursor: "pointer" }}>
               <ImageIcon size={16} /> 사진 올리기
             </button>
             <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }}
@@ -2879,12 +2922,12 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
                   <div key={i} style={{ position: "relative" }}>
                     <img src={im.url} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 9, border: `1px solid ${C.line}` }} />
                     <button className="hd-btn" onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
-                      style={{ position: "absolute", top: -7, right: -7, width: 22, height: 22, borderRadius: 99, border: "none", background: C.coralDark, color: "#fff", fontSize: 13, fontWeight: 800, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+                      style={{ position: "absolute", top: -7, right: -7, width: 22, height: 22, borderRadius: 99, border: "none", background: C.coralDark, color: "#fff", fontSize: 14, fontWeight: 800, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
                   </div>
                 ))}
               </div>
             )}
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 7, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: C.muted, marginTop: 7, lineHeight: 1.5 }}>
               사진을 올리면 AI가 실제 비주얼을 보고 더 생생하게 씁니다. (최대 10장, 많을수록 AI가 더 생생하게 씁니다) 안 올려도 텍스트로 작성됩니다.
             </div>
           </div>
@@ -2903,9 +2946,9 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
                   : "예: 강조하고 싶은 점·실제 사례. 적으면 AI가 그걸 기초로 구체적인 글을 씁니다. (비우면 일반 정보글)"}
               style={{ width: "100%", marginTop: 8, padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6 }} />
 
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, margin: "14px 0 6px" }}>사진 첨부 <span style={{ fontWeight: 500, color: C.muted }}>(그 작업 현장·전후 사진 — AI가 보고 씁니다 · 선택)</span></div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, margin: "14px 0 6px" }}>사진 첨부 <span style={{ fontWeight: 500, color: C.muted }}>(그 작업 현장·전후 사진 — AI가 보고 씁니다 · 선택)</span></div>
             <button type="button" className="hd-btn" onClick={() => fileRef.current && fileRef.current.click()}
-              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, border: `1.5px dashed ${axis.color}88`, background: "#F7F9FC", color: axis.color, fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}>
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "12px", borderRadius: 10, border: `1.5px dashed ${axis.color}88`, background: "#F7F9FC", color: axis.color, fontWeight: 700, fontSize: 14.5, cursor: "pointer" }}>
               <ImageIcon size={16} /> 사진 올리기
             </button>
             <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: "none" }}
@@ -2922,12 +2965,12 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
                   <div key={i} style={{ position: "relative" }}>
                     <img src={im.url} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 9, border: `1px solid ${C.line}` }} />
                     <button className="hd-btn" onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
-                      style={{ position: "absolute", top: -7, right: -7, width: 22, height: 22, borderRadius: 99, border: "none", background: C.coralDark, color: "#fff", fontSize: 13, fontWeight: 800, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+                      style={{ position: "absolute", top: -7, right: -7, width: 22, height: 22, borderRadius: 99, border: "none", background: C.coralDark, color: "#fff", fontSize: 14, fontWeight: 800, lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
                   </div>
                 ))}
               </div>
             )}
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 7, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: C.muted, marginTop: 7, lineHeight: 1.5 }}>
               그 고객 작업 때 찍어둔 사진을 직접 골라 올리세요. (최대 10장, 많을수록 좋아요) 사진 없이 글만도 됩니다.
             </div>
 
@@ -2939,7 +2982,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
                   const on = region === r;
                   return (
                     <button key={r} className="hd-btn" onClick={() => { setRegion(r); setRegionEtc(""); }}
-                      style={{ padding: "8px 14px", borderRadius: 999, border: `1.5px solid ${on ? C.coral : C.line}`, background: on ? C.coral : "#fff", color: on ? "#fff" : C.navy, fontWeight: 700, fontSize: 13 }}>
+                      style={{ padding: "8px 14px", borderRadius: 999, border: `1.5px solid ${on ? C.coral : C.line}`, background: on ? C.coral : "#fff", color: on ? "#fff" : C.navy, fontWeight: 700, fontSize: 14 }}>
                       {r}
                     </button>
                   );
@@ -2947,8 +2990,8 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
               </div>
               <input value={regionEtc} onChange={(e) => { setRegionEtc(e.target.value); if (e.target.value.trim()) setRegion(""); }}
                 placeholder="목록에 없으면 직접 입력 (예: 보은, 공주 근교)"
-                style={{ width: "100%", marginTop: 9, padding: "10px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 13.5 }} />
-              <div style={{ fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
+                style={{ width: "100%", marginTop: 9, padding: "10px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14.5 }} />
+              <div style={{ fontSize: 14, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
                 대전에서 1시간 이내면 우리 영업권입니다. 실제 다녀온 지역만 고르세요(가짜 지역 금지).
               </div>
             </div>
@@ -2966,20 +3009,20 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
         {/* 기본 키워드 칩 */}
         {(keywords[axisId] || []).length > 0 && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginTop: 11, alignItems: "center" }}>
-            <span style={{ fontSize: 11.5, color: C.muted, fontWeight: 800 }}>기본 키워드</span>
+            <span style={{ fontSize: 14.5, color: C.muted, fontWeight: 800 }}>기본 키워드</span>
             {(keywords[axisId] || []).map((kw) => (
-              <span key={kw.w} title={kw.note || ""} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12.5, fontWeight: 700, color: axis.color, background: "#fff", border: `1.5px solid ${axis.color}55`, borderRadius: 999, padding: "4px 4px 4px 11px" }}>
+              <span key={kw.w} title={kw.note || ""} style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 14, fontWeight: 700, color: axis.color, background: "#fff", border: `1.5px solid ${axis.color}55`, borderRadius: 999, padding: "4px 4px 4px 11px" }}>
                 <button className="hd-btn" onClick={() => setHint((h) => { const cur = h.split(",").map((s) => s.trim()).filter(Boolean); if (cur.includes(kw.w)) return h; return cur.length ? cur.join(", ") + ", " + kw.w : kw.w; })}
-                  style={{ border: "none", background: "transparent", color: "inherit", fontWeight: 700, fontSize: 12.5, padding: 0 }}>{kw.w}</button>
+                  style={{ border: "none", background: "transparent", color: "inherit", fontWeight: 700, fontSize: 14, padding: 0 }}>{kw.w}</button>
                 <button className="hd-btn" onClick={() => removeKeyword(axisId, kw.w)} title="삭제"
-                  style={{ border: "none", background: "transparent", color: C.muted, display: "grid", placeItems: "center", width: 16, height: 16, borderRadius: 8, fontSize: 13, lineHeight: 1 }}>×</button>
+                  style={{ border: "none", background: "transparent", color: C.muted, display: "grid", placeItems: "center", width: 16, height: 16, borderRadius: 8, fontSize: 14, lineHeight: 1 }}>×</button>
               </span>
             ))}
           </div>
         )}
         <div style={{ marginTop: 9 }}>
           <button className="hd-btn" onClick={() => { hint.split(",").map((s) => s.trim()).filter(Boolean).forEach((w) => addKeyword(axisId, w)); }}
-            style={{ fontSize: 12, fontWeight: 700, color: C.navy, background: "transparent", border: `1.5px dashed ${C.line}`, borderRadius: 9, padding: "7px 11px", display: "inline-flex", alignItems: "center", gap: 5 }}>
+            style={{ fontSize: 14, fontWeight: 700, color: C.navy, background: "transparent", border: `1.5px dashed ${C.line}`, borderRadius: 9, padding: "7px 11px", display: "inline-flex", alignItems: "center", gap: 5 }}>
             + 지금 입력한 키워드를 기본으로 저장
           </button>
         </div>
@@ -2996,7 +3039,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
             : <><Sparkles size={18} /> 초안 생성</>}
         </button>
         {!ready && !loading && (
-          <div style={{ fontSize: 12, color: "#C0392B", fontWeight: 700, textAlign: "center", marginTop: 9 }}>
+          <div style={{ fontSize: 14, color: "#C0392B", fontWeight: 700, textAlign: "center", marginTop: 9 }}>
             {axis.food ? "식당명·먹은 메뉴·코멘트를 채워야 생성할 수 있습니다." : "현장 메모를 채워야 생성할 수 있습니다."}
           </div>
         )}
@@ -3005,7 +3048,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
 
       {draft && (
         <div className="hd-fade" style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10, lineHeight: 1.5 }}>이 초안은 <b>자동 임시저장</b>됩니다(새로고침·탭 이동에도 안 사라짐). 보관하려면 아래 <b>[검수 큐에 담기]</b>를 누르세요. — 단, 폰↔PC는 저장소가 달라 서로 안 보입니다.</div>
+          <div style={{ fontSize: 14.5, color: C.muted, marginBottom: 10, lineHeight: 1.5 }}>이 초안은 <b>자동 임시저장</b>됩니다(새로고침·탭 이동에도 안 사라짐). 보관하려면 아래 <b>[검수 큐에 담기]</b>를 누르세요. — 단, 폰↔PC는 저장소가 달라 서로 안 보입니다.</div>
           <DraftView draft={draft} axis={axis} />
           <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
             <button className="hd-btn" onClick={save}
@@ -3028,7 +3071,7 @@ function DraftView({ draft, axis }) {
     <Panel>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <span style={{ width: 9, height: 9, borderRadius: 9, background: axis.color }} />
-        <span style={{ fontWeight: 800, fontSize: 13, color: axis.color }}>{axis.name}</span>
+        <span style={{ fontWeight: 800, fontSize: 14, color: axis.color }}>{axis.name}</span>
         {draft.keyword && <Chip><Tag size={12} /> {draft.keyword}</Chip>}
       </div>
 
@@ -3045,7 +3088,7 @@ function DraftView({ draft, axis }) {
 
       <Divider />
       <SectionTitle icon={Instagram}>인스타 캡션</SectionTitle>
-      <div style={{ fontSize: 13.5, lineHeight: 1.75, marginTop: 8, whiteSpace: "pre-wrap" }}>{draft.instaCaption}</div>
+      <div style={{ fontSize: 14.5, lineHeight: 1.75, marginTop: 8, whiteSpace: "pre-wrap" }}>{draft.instaCaption}</div>
       <TagRow tags={draft.hashtags} />
 
       {draft.fieldNote && (
@@ -3074,12 +3117,15 @@ function Queue({ queue, update, remove, go, sendTo, reload, syncMsg }) {
     <div className="hd-fade">
       <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, flexWrap: "wrap" }}>
         <button className="hd-btn" onClick={reload}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 800, color: "#fff", background: C.navy, border: "none", borderRadius: 10, padding: "10px 14px" }}>
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 800, color: "#fff", background: C.navy, border: "none", borderRadius: 10, padding: "10px 14px" }}>
           <RefreshCw size={15} /> 다른 기기 것 불러오기
         </button>
-        <span style={{ fontSize: 12, color: syncMsg ? "#1E7A6B" : C.muted, fontWeight: 700 }}>
+        <span style={{ fontSize: 14, color: syncMsg ? "#1E7A6B" : C.muted, fontWeight: 700 }}>
           {syncMsg || "폰에서 만든 글은 이 버튼을 눌러야 여기 나옵니다"}
         </span>
+      </div>
+      <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.6 }}>
+        고친 내용은 <b>따로 저장 버튼을 누르지 않아도 자동으로 저장</b>됩니다. 손을 멈추면 1~2초 뒤 위에 <b>[모든 기기에 저장됨]</b>이 뜹니다.
       </div>
       <TodayTasks queue={queue} update={update} remove={remove} />
       <div style={{ display: "flex", gap: 7, marginBottom: 14, flexWrap: "wrap" }}>
@@ -3089,7 +3135,7 @@ function Queue({ queue, update, remove, go, sendTo, reload, syncMsg }) {
           return (
             <button key={f} className="hd-btn" onClick={() => setFilter(f)}
               style={{
-                padding: "7px 13px", borderRadius: 999, fontSize: 13, fontWeight: 700,
+                padding: "7px 13px", borderRadius: 999, fontSize: 14, fontWeight: 700,
                 border: `1.5px solid ${on ? C.navy : C.line}`,
                 background: on ? C.navy : "#fff", color: on ? "#fff" : C.muted,
               }}>
@@ -3113,7 +3159,7 @@ function TodayTasks({ queue, update, remove }) {
     <div style={{ background: "#FFF6F4", border: `1.5px solid ${C.coral}`, borderRadius: 16, padding: "15px 16px", marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 11 }}>
         <span style={{ fontSize: 14.5, fontWeight: 800, color: C.coralDark }}>오늘 올릴 글</span>
-        <span style={{ fontSize: 12, fontWeight: 800, color: "#fff", background: C.coral, borderRadius: 999, padding: "2px 9px" }}>{due.length}</span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", background: C.coral, borderRadius: 999, padding: "2px 9px" }}>{due.length}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
         {due.map((d) => {
@@ -3121,16 +3167,16 @@ function TodayTasks({ queue, update, remove }) {
           return (
             <div key={d.id} style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 11, padding: "10px 12px" }}>
               <span style={{ width: 8, height: 8, borderRadius: 8, background: a.color, flexShrink: 0 }} />
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.blogTitle}</span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.blogTitle}</span>
               <button className="hd-btn" onClick={async () => { await copyText(toNaverText(d.blogTitle, d.blogBody)); update(d.id, { status: "완료", publishedAt: today }); }}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 800, color: "#fff", background: C.coral, border: "none", borderRadius: 9, padding: "8px 12px", whiteSpace: "nowrap" }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 800, color: "#fff", background: C.coral, border: "none", borderRadius: 9, padding: "8px 12px", whiteSpace: "nowrap" }}>
                 <Send size={14} /> 복사·발행
               </button>
             </div>
           );
         })}
       </div>
-      <div style={{ fontSize: 11, color: C.coralDark, marginTop: 9, lineHeight: 1.5 }}>복사·발행을 누르면 본문이 복사됩니다 → 네이버 앱에 붙여넣고 사진 넣어 올리세요.</div>
+      <div style={{ fontSize: 14, color: C.coralDark, marginTop: 9, lineHeight: 1.5 }}>복사·발행을 누르면 본문이 복사됩니다 → 네이버 앱에 붙여넣고 사진 넣어 올리세요.</div>
     </div>
   );
 }
@@ -3208,20 +3254,20 @@ function QueueCard({ d, update, remove, sendTo }) {
         style={{ width: "100%", textAlign: "left", border: "none", background: "transparent", padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, color: axis.color }}>{axis.name}</span>
-            {d.keyword && <span style={{ fontSize: 11, color: C.muted }}>· {d.keyword}</span>}
-            {d.createdAt && <span style={{ fontSize: 11, color: C.muted }}>· 작성 {String(d.createdAt).slice(5)}</span>}
+            <span style={{ fontSize: 14, fontWeight: 800, color: axis.color }}>{axis.name}</span>
+            {d.keyword && <span style={{ fontSize: 14, color: C.muted }}>· {d.keyword}</span>}
+            {d.createdAt && <span style={{ fontSize: 14, color: C.muted }}>· 작성 {String(d.createdAt).slice(5)}</span>}
             {d.srcLabel && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10.5, fontWeight: 800, color: "#1E7A6B", background: "#E7F6F1", border: "1px solid #9AD8C7", borderRadius: 5, padding: "2px 7px", whiteSpace: "nowrap" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 14, fontWeight: 800, color: "#1E7A6B", background: "#E7F6F1", border: "1px solid #9AD8C7", borderRadius: 5, padding: "2px 7px", whiteSpace: "nowrap" }}>
                 <Star size={10} /> {d.srcLabel}
               </span>
             )}
           </div>
           <div style={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{d.blogTitle}</div>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 800, color: readyCount === checks.length ? "#1E7A6B" : "#B7791F", whiteSpace: "nowrap" }}>기준 {readyCount}/{checks.length}</span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: readyCount === checks.length ? "#1E7A6B" : "#B7791F", whiteSpace: "nowrap" }}>기준 {readyCount}/{checks.length}</span>
         <StatusPill st={st} />
-        {d.scheduledDate && <span style={{ fontSize: 12, color: C.muted, whiteSpace: "nowrap" }}>{d.scheduledDate.slice(5)}</span>}
+        {d.scheduledDate && <span style={{ fontSize: 14, color: C.muted, whiteSpace: "nowrap" }}>{d.scheduledDate.slice(5)}</span>}
       </button>
 
       {open && (
@@ -3242,7 +3288,27 @@ function QueueCard({ d, update, remove, sendTo }) {
             <SectionTitle icon={FileText}>본문 고치기 <span style={{ fontWeight: 500, color: C.muted }}>— ## 소제목 · &gt; 강조 · [사진: 라벨]</span></SectionTitle>
             <textarea value={d.blogBody || ""} onChange={(e) => update(d.id, { blogBody: e.target.value })} rows={7}
               placeholder="줄바꿈으로 문단을 나눕니다. 직접 느낀 점·맛 평가를 보태세요."
-              style={{ width: "100%", marginTop: 8, padding: "11px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 13, lineHeight: 1.7, fontFamily: "ui-monospace,monospace" }} />
+              style={{ width: "100%", marginTop: 8, padding: "11px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.7, fontFamily: "ui-monospace,monospace" }} />
+            <div style={{ marginTop: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 15, fontWeight: 800, color: bodyLen >= minLen ? "#1E7A6B" : "#B7791F" }}>
+                  {bodyLen.toLocaleString()}자
+                </span>
+                <span style={{ fontSize: 14, color: C.muted }}>
+                  / 기준 {minLen.toLocaleString()}자
+                  {bodyLen >= minLen ? " · 넘었습니다" : ` · ${(minLen - bodyLen).toLocaleString()}자 더 필요`}
+                </span>
+                <span style={{ marginLeft: "auto", fontSize: 14, fontWeight: 800, color: readyCount === checks.length ? "#1E7A6B" : "#B7791F" }}>
+                  발행 기준 {readyCount}/{checks.length}
+                </span>
+              </div>
+              <div style={{ marginTop: 6, height: 8, borderRadius: 99, background: "#E4E8EE", overflow: "hidden" }}>
+                <div style={{ width: Math.min(100, Math.round(bodyLen / minLen * 100)) + "%", height: "100%", background: bodyLen >= minLen ? "#1D9E75" : "#E0A93C", transition: "width .25s" }} />
+              </div>
+              <div style={{ marginTop: 6, fontSize: 13, color: C.muted, lineHeight: 1.6 }}>
+                <b>고치는 즉시 다시 계산됩니다.</b> 따로 저장 버튼은 없습니다.
+              </div>
+            </div>
           </div>
           <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
             <CopyButton getText={() => d.blogTitle} label="제목 복사" />
@@ -3253,28 +3319,28 @@ function QueueCard({ d, update, remove, sendTo }) {
           {/* 발행 기준 체크리스트 */}
           <div style={{ marginTop: 12, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 12, padding: "13px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 11, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 12.5, fontWeight: 800, color: C.navy }}>발행 기준</span>
-              <span style={{ fontSize: 11.5, fontWeight: 800, color: readyCount === checks.length ? "#1E7A6B" : "#B7791F" }}>{readyCount}/{checks.length} 충족</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>발행 기준</span>
+              <span style={{ fontSize: 14.5, fontWeight: 800, color: readyCount === checks.length ? "#1E7A6B" : "#B7791F" }}>{readyCount}/{checks.length} 충족</span>
               <div style={{ flex: 1 }} />
-              <span style={{ fontSize: 11.5, color: C.muted, display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 14.5, color: C.muted, display: "flex", alignItems: "center", gap: 6 }}>
                 원본 사진
                 <input type="number" min={0} value={d.imageCount ?? ""} onChange={(e) => update(d.id, { imageCount: e.target.value === "" ? 0 : Math.max(0, parseInt(e.target.value) || 0) })}
-                  style={{ width: 50, padding: "5px 6px", borderRadius: 7, border: `1.5px solid ${C.line}`, fontSize: 12.5, textAlign: "center" }} />
+                  style={{ width: 50, padding: "5px 6px", borderRadius: 7, border: `1.5px solid ${C.line}`, fontSize: 14, textAlign: "center" }} />
                 장
               </span>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {checks.map((c, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 12.5 }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 14 }}>
                   <span style={{ width: 19, height: 19, borderRadius: 6, flexShrink: 0, display: "grid", placeItems: "center", background: c.ok ? "#E7F6F1" : "#FDECEA", color: c.ok ? "#1E7A6B" : "#C0392B" }}>
-                    {c.ok ? <Check size={13} /> : <span style={{ fontSize: 12, fontWeight: 800 }}>!</span>}
+                    {c.ok ? <Check size={13} /> : <span style={{ fontSize: 14, fontWeight: 800 }}>!</span>}
                   </span>
                   <span style={{ color: c.ok ? C.text : "#B23A2E", fontWeight: c.ok ? 600 : 700 }}>{c.label}</span>
-                  <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 700, color: c.ok ? "#1E7A6B" : C.muted }}>{c.now}</span>
+                  <span style={{ marginLeft: "auto", fontSize: 14.5, fontWeight: 700, color: c.ok ? "#1E7A6B" : C.muted }}>{c.now}</span>
                 </div>
               ))}
             </div>
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 10, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 14, color: C.muted, marginTop: 10, lineHeight: 1.5 }}>
               {minLen.toLocaleString()}자는 최소 바닥선입니다(목표 아님). 사진은 인터넷·펌이 아닌 <b>직접 촬영한 원본</b>이어야 점수가 오릅니다. <b>고객 후기는 반드시 업체 화자로 쓰고, 고객 말은 큰따옴표로 인용</b>하세요(고객인 척 1인칭 금지).
             </div>
           </div>
@@ -3282,14 +3348,14 @@ function QueueCard({ d, update, remove, sendTo }) {
           <Divider />
           <SectionTitle icon={Instagram}>인스타 캡션</SectionTitle>
           <textarea value={d.instaCaption} onChange={(e) => update(d.id, { instaCaption: e.target.value })} rows={3}
-            style={{ width: "100%", marginTop: 8, padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 13.5, lineHeight: 1.6 }} />
+            style={{ width: "100%", marginTop: 8, padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14.5, lineHeight: 1.6 }} />
           <TagRow tags={d.hashtags} />
           <div style={{ marginTop: 10 }}>
             <CopyButton getText={() => `${d.instaCaption}\n\n${(d.hashtags || []).map((h) => (h.startsWith("#") ? h : "#" + h)).join(" ")}`} label="캡션 복사 (인스타 앱에 붙여넣기)" full />
           </div>
           <div style={{ marginTop: 8 }}>
             <button className="hd-btn" onClick={() => setCards((v) => !v)}
-              style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "11px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 13.5 }}>
+              style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "11px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 14.5 }}>
               <ImageIcon size={16} /> {cards ? "카드뉴스 닫기" : "카드뉴스 만들기 (사진 없는 날)"}
             </button>
           </div>
@@ -3297,21 +3363,21 @@ function QueueCard({ d, update, remove, sendTo }) {
 
           {sendTo && d.blogBody && (
             <div style={{ marginTop: 12, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 12, padding: "12px 13px" }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: C.navy, marginBottom: 3 }}>이 글로 다른 채널 만들기</div>
-              <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.6, marginBottom: 9 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 3 }}>이 글로 다른 채널 만들기</div>
+              <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, marginBottom: 9 }}>
                 <b>이미 검수한 글이라 다시 검수하지 않아도 됩니다.</b> 이 글 안의 사실만 써서 채널 문법에 맞게 다시 짭니다.
               </div>
               <div style={{ display: "flex", gap: 7 }}>
                 <button className="hd-btn" onClick={() => sendTo("cards", d)}
-                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px", borderRadius: 10, border: "none", background: "#7C4DBE", color: "#fff", fontWeight: 800, fontSize: 12.5 }}>
+                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px", borderRadius: 10, border: "none", background: "#7C4DBE", color: "#fff", fontWeight: 800, fontSize: 14 }}>
                   <ImageIcon size={15} /> 카드
                 </button>
                 <button className="hd-btn" onClick={() => sendTo("reels", d)}
-                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px", borderRadius: 10, border: "none", background: C.coral, color: "#fff", fontWeight: 800, fontSize: 12.5 }}>
+                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px", borderRadius: 10, border: "none", background: C.coral, color: "#fff", fontWeight: 800, fontSize: 14 }}>
                   <Video size={15} /> 릴스
                 </button>
                 <button className="hd-btn" onClick={() => sendTo("threads", d)}
-                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px", borderRadius: 10, border: "none", background: "#2E9E8F", color: "#fff", fontWeight: 800, fontSize: 12.5 }}>
+                  style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "10px", borderRadius: 10, border: "none", background: "#2E9E8F", color: "#fff", fontWeight: 800, fontSize: 14 }}>
                   <MessageSquare size={15} /> 스레드
                 </button>
               </div>
@@ -3323,10 +3389,10 @@ function QueueCard({ d, update, remove, sendTo }) {
           <SectionTitle icon={Send}>발행 센터 <span style={{ fontWeight: 600, color: C.muted }}>· 밤에 탭 몇 번</span></SectionTitle>
           {d.covers && d.covers.length > 0 && (
             <div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 6 }}>인스타 카드뉴스 표지 문구 (3개 중 하나 고르기)</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 6 }}>인스타 카드뉴스 표지 문구 (3개 중 하나 고르기)</div>
               {d.covers.map((cv, i) => (
                 <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 6 }}>
-                  <div style={{ flex: 1, fontSize: 13, color: C.text, background: "#F4F7FB", border: `1px solid ${C.line}`, borderRadius: 9, padding: "8px 11px" }}>{cv}</div>
+                  <div style={{ flex: 1, fontSize: 14, color: C.text, background: "#F4F7FB", border: `1px solid ${C.line}`, borderRadius: 9, padding: "8px 11px" }}>{cv}</div>
                   <CopyButton getText={() => cv} label="복사" />
                 </div>
               ))}
@@ -3334,34 +3400,34 @@ function QueueCard({ d, update, remove, sendTo }) {
           )}
           {d.thread && (
             <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 6 }}>스레드 글</div>
-              <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.6, background: "#F4F7FB", border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px", whiteSpace: "pre-wrap" }}>{d.thread}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 6 }}>스레드 글</div>
+              <div style={{ fontSize: 14.5, color: C.text, lineHeight: 1.6, background: "#F4F7FB", border: `1px solid ${C.line}`, borderRadius: 10, padding: "10px 12px", whiteSpace: "pre-wrap" }}>{d.thread}</div>
               <div style={{ marginTop: 8 }}><CopyButton getText={() => d.thread} label="스레드 글 복사" full /></div>
             </div>
           )}
-          <div style={{ marginTop: 13, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>앱 열기 (위에서 복사 → 여기서 열기 → 붙여넣기)</div>
+          <div style={{ marginTop: 13, fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 7 }}>앱 열기 (위에서 복사 → 여기서 열기 → 붙여넣기)</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <a href="https://blog.naver.com/happyday2424?Redirect=Write" target="_blank" rel="noreferrer" style={pubBtn()}>📗 네이버 글쓰기</a>
             <a href="https://www.instagram.com/" target="_blank" rel="noreferrer" style={pubBtn()}>📸 인스타 열기</a>
             <a href="https://www.threads.net/" target="_blank" rel="noreferrer" style={pubBtn()}>🧵 스레드 열기</a>
             <a href="https://www.instagram.com/reels/" target="_blank" rel="noreferrer" style={pubBtn()}>🎬 릴스(영상 첨부)</a>
           </div>
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 14, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
             블로그·인스타·스레드는 <b>복사→열기→붙여넣기</b>면 끝. 인스타는 카드뉴스(위)나 후기 카드 이미지를, 릴스는 폰으로 찍은 영상을 올린 뒤 캡션을 붙여넣으세요.
           </div>
-          <div style={{ marginTop: 14, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>올린 채널 기록 <span style={{ fontWeight: 600, color: C.muted }}>· 발행 히스토리에 저장(주제 안 겹치게)</span></div>
+          <div style={{ marginTop: 14, fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 7 }}>올린 채널 기록 <span style={{ fontWeight: 600, color: C.muted }}>· 발행 히스토리에 저장(주제 안 겹치게)</span></div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {["블로그", "인스타", "릴스", "스레드"].map((ch) => {
               const on = logged.includes(ch);
               return (
                 <button key={ch} className="hd-btn" onClick={() => { logPublish({ title: d.blogTitle || "(제목 없음)", region: d.region || "", axis: AXIS_LABEL[d.axis] || d.axis || "", channel: ch }); setLogged((v) => v.includes(ch) ? v : [...v, ch]); }}
-                  style={{ padding: "8px 14px", borderRadius: 999, border: `1.5px solid ${on ? "#2E9E8F" : C.line}`, background: on ? "#E7F6F1" : "#fff", color: on ? "#1E7A6B" : C.navy, fontWeight: 800, fontSize: 12.5 }}>
+                  style={{ padding: "8px 14px", borderRadius: 999, border: `1.5px solid ${on ? "#2E9E8F" : C.line}`, background: on ? "#E7F6F1" : "#fff", color: on ? "#1E7A6B" : C.navy, fontWeight: 800, fontSize: 14 }}>
                   {on ? "✓ " : "+ "}{ch}
                 </button>
               );
             })}
           </div>
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 7 }}>올린 채널을 눌러두면 <b>발행 캘린더 → 발행 히스토리</b>에 제목·지역·축과 함께 남습니다.</div>
+          <div style={{ fontSize: 14, color: C.muted, marginTop: 7 }}>올린 채널을 눌러두면 <b>발행 캘린더 → 발행 히스토리</b>에 제목·지역·축과 함께 남습니다.</div>
 
           {d.fieldNote && <Note tone="tip"><Lightbulb size={15} style={{ flexShrink: 0, marginTop: 1 }} /> <span><b>현장 추가 포인트</b> — {d.fieldNote}</span></Note>}
 
@@ -3378,7 +3444,7 @@ function QueueCard({ d, update, remove, sendTo }) {
                   style={{ width: "100%", padding: "14px", borderRadius: 12, border: "none", background: C.coral, color: "#fff", fontWeight: 800, fontSize: 14.5, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                   <Send size={17} /> 지금 발행 — 본문 복사 + 완료
                 </button>
-                <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center", marginTop: 7, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 14.5, color: C.muted, textAlign: "center", marginTop: 7, lineHeight: 1.5 }}>
                   현장에서 바로 올릴 때. 누르면 본문이 복사되고 완료로 기록됩니다.
                 </div>
 
@@ -3389,7 +3455,7 @@ function QueueCard({ d, update, remove, sendTo }) {
                       style={{ width: "100%", marginTop: 10, padding: "13px", borderRadius: 12, border: `1.5px solid ${C.navy}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, opacity: wpBusy ? 0.6 : 1 }}>
                       {wpBusy ? <><Loader2 size={17} style={{ animation: "hdspin .9s linear infinite" }} /> 올리는 중…</> : <><Globe size={17} /> 워드프레스로 자동발행 (임시글)</>}
                     </button>
-                    <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center", marginTop: 7, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 14.5, color: C.muted, textAlign: "center", marginTop: 7, lineHeight: 1.5 }}>
                       복사 없이 사이트에 바로 올라갑니다. 안전하게 <b>임시글</b>로 올라가니, 사이트 관리자에서 확인 후 공개하세요.
                     </div>
                   </>
@@ -3397,9 +3463,9 @@ function QueueCard({ d, update, remove, sendTo }) {
 
                 {/* 예약 — 보조 */}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginTop: 14 }}>
-                  <span style={{ fontSize: 12, color: C.muted }}>또는 예약</span>
+                  <span style={{ fontSize: 14, color: C.muted }}>또는 예약</span>
                   <input type="date" value={d.scheduledDate || ""} onChange={(e) => update(d.id, { scheduledDate: e.target.value })}
-                    style={{ padding: "7px 10px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 13 }} />
+                    style={{ padding: "7px 10px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14 }} />
                   <Act onClick={() => { if (!d.scheduledDate) { alert("예약일을 먼저 선택해 주세요."); return; } update(d.id, { status: "발행대기" }); }} color="#2563A8" bg="#E8F3FF"><CalendarDays size={15} /> 예약 걸기</Act>
                   <div style={{ flex: 1 }} />
                   {d.status !== "보류" && <Act onClick={() => update(d.id, { status: "보류" })} color="#6C7A8C" bg="#F1F3F6"><Pause size={15} /> 보류</Act>}
@@ -3408,8 +3474,8 @@ function QueueCard({ d, update, remove, sendTo }) {
               </>
             ) : (
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#1E7A6B", display: "flex", alignItems: "center", gap: 6 }}><Check size={16} /> 발행완료</span>
-                {d.wpLink && <a href={d.wpLink} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: C.navy, textDecoration: "underline" }}>워드프레스 글 보기</a>}
+                <span style={{ fontSize: 14, fontWeight: 700, color: "#1E7A6B", display: "flex", alignItems: "center", gap: 6 }}><Check size={16} /> 발행완료</span>
+                {d.wpLink && <a href={d.wpLink} target="_blank" rel="noreferrer" style={{ fontSize: 14, fontWeight: 700, color: C.navy, textDecoration: "underline" }}>워드프레스 글 보기</a>}
                 <div style={{ flex: 1 }} />
                 <Act onClick={() => update(d.id, { status: "검수중" })} color="#6C7A8C" bg="#F1F3F6"><RefreshCw size={14} /> 되돌리기</Act>
                 <Act onClick={() => remove(d.id)} color="#C0392B" bg="#FDECEA"><Trash2 size={15} /></Act>
@@ -3508,17 +3574,17 @@ function Calendar({ queue, go }) {
       {/* 자동 편성 */}
       <Panel>
         <SectionTitle icon={CalendarDays}>발행 계획 세우기</SectionTitle>
-        <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.65, marginTop: 6 }}>
+        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.65, marginTop: 6 }}>
           누르면 <b>한 주치가 채널별로 자동 편성</b>됩니다. 스레드 매일 · 카드 월수금 · 릴스 화목 · 블로그 화금.
           <b> 목·금에는 블루오션 지역</b>이 우선 배치됩니다.
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button className="hd-btn" onClick={() => autoWeek(0)}
-            style={{ flex: 1, padding: "12px", borderRadius: 11, border: "none", background: C.navy, color: "#fff", fontWeight: 800, fontSize: 13.5 }}>
+            style={{ flex: 1, padding: "12px", borderRadius: 11, border: "none", background: C.navy, color: "#fff", fontWeight: 800, fontSize: 14.5 }}>
             이번 주 자동 편성
           </button>
           <button className="hd-btn" onClick={() => autoWeek(1)}
-            style={{ flex: 1, padding: "12px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 13.5 }}>
+            style={{ flex: 1, padding: "12px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 14.5 }}>
             다음 주 자동 편성
           </button>
         </div>
@@ -3529,17 +3595,17 @@ function Calendar({ queue, go }) {
         <Panel>
           <div style={{ display: "flex", alignItems: "center", marginBottom: 4 }}>
             <div style={{ fontSize: 17, fontWeight: 800 }}>{cur.y}년 {cur.m + 1}월</div>
-            <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 700, color: C.muted }}>{monthCount}건</span>
+            <span style={{ marginLeft: 8, fontSize: 14, fontWeight: 700, color: C.muted }}>{monthCount}건</span>
             <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
               <IconBtn onClick={() => move(-1)}><ChevronLeft size={18} /></IconBtn>
               <IconBtn onClick={() => move(1)}><ChevronRight size={18} /></IconBtn>
             </div>
           </div>
-          <div style={{ fontSize: 11.5, color: C.muted, marginBottom: 10 }}>날짜를 누르면 아래에 그 날 발행 목록이 펼쳐집니다.</div>
+          <div style={{ fontSize: 14.5, color: C.muted, marginBottom: 10 }}>날짜를 누르면 아래에 그 날 발행 목록이 펼쳐집니다.</div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 5 }}>
             {WD.map((w, i) => (
-              <div key={w} style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: i === 0 ? C.coral : i === 6 ? "#2F6FB0" : C.muted, paddingBottom: 4 }}>{w}</div>
+              <div key={w} style={{ textAlign: "center", fontSize: 14, fontWeight: 700, color: i === 0 ? C.coral : i === 6 ? "#2F6FB0" : C.muted, paddingBottom: 4 }}>{w}</div>
             ))}
             {cells.map((d, i) => {
               if (!d) return <div key={i} />;
@@ -3554,7 +3620,7 @@ function Calendar({ queue, go }) {
                     background: on ? C.navy : (today ? "#FFF4F2" : "#FAFBFD"),
                     border: `1.5px solid ${on ? C.navy : (today ? C.coral : C.line)}`,
                   }}>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: on ? "#fff" : (today ? C.coralDark : C.muted) }}>{d}</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: on ? "#fff" : (today ? C.coralDark : C.muted) }}>{d}</div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 2, justifyContent: "center", marginTop: 4 }}>
                     {items.slice(0, 6).map((it, j) => (
                       <span key={j} style={{
@@ -3570,7 +3636,7 @@ function Calendar({ queue, go }) {
 
           <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap", justifyContent: "center" }}>
             {PUB_CHANNELS.map((c) => (
-              <span key={c.id} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11.5, color: C.muted }}>
+              <span key={c.id} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 14.5, color: C.muted }}>
                 <span style={{ width: 8, height: 8, borderRadius: 99, background: c.color }} /> {c.name}
               </span>
             ))}
@@ -3585,10 +3651,10 @@ function Calendar({ queue, go }) {
             <span style={{ fontSize: 16, fontWeight: 800, color: C.navy }}>
               {selDate.getMonth() + 1}월 {selDate.getDate()}일 ({WD[selDate.getDay()]})
             </span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>{selList.length}건</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: C.muted }}>{selList.length}건</span>
             <div style={{ flex: 1 }} />
             <button className="hd-btn" onClick={() => setAdding((v) => !v)}
-              style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 800, color: "#fff", background: C.coral, border: "none", borderRadius: 9, padding: "7px 12px" }}>
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 14, fontWeight: 800, color: "#fff", background: C.coral, border: "none", borderRadius: 9, padding: "7px 12px" }}>
               <Plus size={14} /> 추가
             </button>
           </div>
@@ -3598,25 +3664,25 @@ function Calendar({ queue, go }) {
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {PUB_CHANNELS.map((c) => (
                   <button key={c.id} className="hd-btn" onClick={() => setNCh(c.id)}
-                    style={{ fontSize: 12.5, fontWeight: 700, padding: "7px 12px", borderRadius: 99, border: `1.5px solid ${nCh === c.id ? c.color : C.line}`, background: nCh === c.id ? c.color : "#fff", color: nCh === c.id ? "#fff" : C.text }}>
+                    style={{ fontSize: 14, fontWeight: 700, padding: "7px 12px", borderRadius: 99, border: `1.5px solid ${nCh === c.id ? c.color : C.line}`, background: nCh === c.id ? c.color : "#fff", color: nCh === c.id ? "#fff" : C.text }}>
                     {c.name}
                   </button>
                 ))}
               </div>
               <input value={nTopic} onChange={(e) => setNTopic(e.target.value)} placeholder="주제 (예: 청소 전후 · 비포애프터 분할)"
-                style={{ width: "100%", marginTop: 9, padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 13.5 }} />
+                style={{ width: "100%", marginTop: 9, padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14.5 }} />
               {nCh !== "sms" && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 9 }}>
                   {MOVING_REGIONS.map((rg) => (
                     <button key={rg} className="hd-btn" onClick={() => setNRegion(rg)}
-                      style={{ fontSize: 12, fontWeight: 700, padding: "6px 11px", borderRadius: 99, border: `1.5px solid ${nRegion === rg ? C.navy : (isBlueOcean(rg) ? "#2E9E8F" : C.line)}`, background: nRegion === rg ? C.navy : "#fff", color: nRegion === rg ? "#fff" : C.text }}>
+                      style={{ fontSize: 14, fontWeight: 700, padding: "6px 11px", borderRadius: 99, border: `1.5px solid ${nRegion === rg ? C.navy : (isBlueOcean(rg) ? "#2E9E8F" : C.line)}`, background: nRegion === rg ? C.navy : "#fff", color: nRegion === rg ? "#fff" : C.text }}>
                       {rg}
                     </button>
                   ))}
                 </div>
               )}
               <button className="hd-btn" onClick={addOne}
-                style={{ marginTop: 10, width: "100%", padding: "11px", borderRadius: 10, border: "none", background: C.navy, color: "#fff", fontWeight: 800, fontSize: 13.5 }}>
+                style={{ marginTop: 10, width: "100%", padding: "11px", borderRadius: 10, border: "none", background: C.navy, color: "#fff", fontWeight: 800, fontSize: 14.5 }}>
                 이 날짜에 넣기
               </button>
             </div>
@@ -3624,7 +3690,7 @@ function Calendar({ queue, go }) {
 
           <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
             {selList.length === 0 && (
-              <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "18px 0", lineHeight: 1.6 }}>
+              <div style={{ fontSize: 14, color: C.muted, textAlign: "center", padding: "18px 0", lineHeight: 1.6 }}>
                 이 날짜에 잡힌 발행이 없습니다.<br />위 <b>[자동 편성]</b> 또는 <b>[추가]</b>로 넣으세요.
               </div>
             )}
@@ -3638,18 +3704,18 @@ function Calendar({ queue, go }) {
                   </button>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                      <span style={{ fontSize: 10.5, fontWeight: 800, color: "#fff", background: c.color, borderRadius: 5, padding: "2px 7px" }}>{c.name}</span>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", background: c.color, borderRadius: 5, padding: "2px 7px" }}>{c.name}</span>
                       {it.region && (
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: isBlueOcean(it.region) ? "#1E7A6B" : C.muted, background: isBlueOcean(it.region) ? "#E7F6F1" : "#F1F3F6", borderRadius: 5, padding: "2px 7px" }}>{it.region}</span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: isBlueOcean(it.region) ? "#1E7A6B" : C.muted, background: isBlueOcean(it.region) ? "#E7F6F1" : "#F1F3F6", borderRadius: 5, padding: "2px 7px" }}>{it.region}</span>
                       )}
-                      {it.kind === "draft" && <span style={{ fontSize: 10.5, fontWeight: 700, color: C.muted }}>초안 예약</span>}
+                      {it.kind === "draft" && <span style={{ fontSize: 14, fontWeight: 700, color: C.muted }}>초안 예약</span>}
                     </div>
-                    <div style={{ fontSize: 13.5, fontWeight: 700, color: it.done ? C.muted : C.text, textDecoration: it.done ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: it.done ? C.muted : C.text, textDecoration: it.done ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {it.topic}
                     </div>
                   </div>
                   <button className="hd-btn" onClick={() => go && go(it.kind === "draft" ? "queue" : c.tab, it.kind === "draft" ? null : { at: Date.now(), plan: true, ch: it.ch, topic: it.topic, region: it.region })}
-                    style={{ fontSize: 11.5, fontWeight: 800, color: c.color, background: "#fff", border: `1.5px solid ${c.color}55`, borderRadius: 8, padding: "6px 10px", flexShrink: 0 }}>
+                    style={{ fontSize: 14.5, fontWeight: 800, color: c.color, background: "#fff", border: `1.5px solid ${c.color}55`, borderRadius: 8, padding: "6px 10px", flexShrink: 0 }}>
                     만들기
                   </button>
                   {it.kind === "plan" && (
@@ -3669,13 +3735,13 @@ function Calendar({ queue, go }) {
         <div style={{ marginTop: 14 }}>
           <Panel>
             <div style={{ fontSize: 16, fontWeight: 800, marginBottom: 4 }}>발행 히스토리</div>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>지금까지 발행한 주제 — 다음 주제를 겹치지 않게 정할 때 참고하세요.</div>
+            <div style={{ fontSize: 14, color: C.muted, marginBottom: 12 }}>지금까지 발행한 주제 — 다음 주제를 겹치지 않게 정할 때 참고하세요.</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {history.slice(0, 30).map((h) => (
                 <div key={h.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", background: "#FAFBFD", border: `1px solid ${C.line}`, borderRadius: 11 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: C.navy, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>{h.at}{h.region ? " · " + h.region : ""}{h.axis ? " · " + h.axis : ""}{h.channel ? " · " + h.channel : ""}</div>
+                    <div style={{ fontSize: 14.5, fontWeight: 800, color: C.navy, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{h.title}</div>
+                    <div style={{ fontSize: 14.5, color: C.muted, marginTop: 3 }}>{h.at}{h.region ? " · " + h.region : ""}{h.axis ? " · " + h.axis : ""}{h.channel ? " · " + h.channel : ""}</div>
                   </div>
                   <button className="hd-btn" onClick={() => delHist(h.id)} style={{ border: "none", background: "transparent", color: C.muted, padding: 4 }}><Trash2 size={15} /></button>
                 </div>
@@ -3699,13 +3765,13 @@ function SourcePick({ queue, src, setSrc, memo, setMemo, hint }) {
     <div>
       <div style={{ display: "flex", gap: 7, marginTop: 8, marginBottom: 10 }}>
         <button className="hd-btn" onClick={() => setSrc(null)}
-          style={{ flex: 1, padding: "10px 12px", borderRadius: 10, fontSize: 12.5, fontWeight: 800,
+          style={{ flex: 1, padding: "10px 12px", borderRadius: 10, fontSize: 14, fontWeight: 800,
             border: `1.5px solid ${!useDraft ? C.navy : C.line}`, background: !useDraft ? C.navy : "#fff", color: !useDraft ? "#fff" : C.text }}>
           현장 메모로 만들기
         </button>
         <button className="hd-btn" onClick={() => { if (drafts.length) setSrc({ id: drafts[0].id, title: drafts[0].blogTitle, body: drafts[0].blogBody }); }}
           disabled={!drafts.length}
-          style={{ flex: 1, padding: "10px 12px", borderRadius: 10, fontSize: 12.5, fontWeight: 800,
+          style={{ flex: 1, padding: "10px 12px", borderRadius: 10, fontSize: 14, fontWeight: 800,
             border: `1.5px solid ${useDraft ? "#2E9E8F" : C.line}`, background: useDraft ? "#2E9E8F" : "#fff",
             color: useDraft ? "#fff" : (drafts.length ? C.text : "#AEB7C2") }}>
           검수한 블로그에서 가져오기
@@ -3718,7 +3784,7 @@ function SourcePick({ queue, src, setSrc, memo, setMemo, hint }) {
             placeholder={hint || "예: 오늘 현장에서 있었던 일"}
             style={{ width: "100%", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6 }} />
           {!drafts.length && (
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 14, color: C.muted, marginTop: 6, lineHeight: 1.6 }}>
               <b>[초안 생성]</b>에서 블로그를 먼저 만들어 두면, 그 글을 그대로 재료로 쓸 수 있습니다. 사실 확인을 한 번만 하면 됩니다.
             </div>
           )}
@@ -3727,7 +3793,7 @@ function SourcePick({ queue, src, setSrc, memo, setMemo, hint }) {
 
       {useDraft && (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "#1E7A6B", marginBottom: 6 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: "#1E7A6B", marginBottom: 6 }}>
             어느 글로 만들까요 <span style={{ fontWeight: 500, color: C.muted }}>({drafts.length}개)</span>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 210, overflowY: "auto" }}>
@@ -3740,16 +3806,16 @@ function SourcePick({ queue, src, setSrc, memo, setMemo, hint }) {
                     border: `1.5px solid ${on ? "#2E9E8F" : C.line}`, background: on ? "#E7F6F1" : "#fff" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
                     <span style={{ width: 7, height: 7, borderRadius: 99, background: a.color, display: "inline-block" }} />
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: C.muted }}>{a.name}{d.region ? " · " + d.region : ""}{d.status ? " · " + d.status : ""}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: C.muted }}>{a.name}{d.region ? " · " + d.region : ""}{d.status ? " · " + d.status : ""}</span>
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {d.blogTitle || "(제목 없음)"}
                   </div>
                 </button>
               );
             })}
           </div>
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 7, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 14, color: C.muted, marginTop: 7, lineHeight: 1.6 }}>
             <b>이 글 안의 사실만 씁니다.</b> 없는 숫자·시점을 새로 만들지 않으므로, <b>한 번 검수한 글은 다시 검수하지 않아도 됩니다.</b>
           </div>
         </div>
@@ -3768,7 +3834,7 @@ function FactCheck({ parts }) {
       <div style={{ background: "#E7F6F1", border: "1.5px solid #2E9E8F", borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <Check size={16} color="#1E7A6B" />
-          <div style={{ fontSize: 12.5, color: "#1E7A6B", fontWeight: 700 }}>
+          <div style={{ fontSize: 14, color: "#1E7A6B", fontWeight: 700 }}>
             숫자·시점·법규 문구가 없습니다. 사실 오류 위험이 낮은 결과물입니다.
           </div>
         </div>
@@ -3782,18 +3848,18 @@ function FactCheck({ parts }) {
     <div style={{ background: done ? "#E7F6F1" : "#FFF7ED", border: `1.5px solid ${done ? "#2E9E8F" : "#E0A93C"}`, borderRadius: 12, padding: "13px 15px", marginBottom: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <ListChecks size={16} color={done ? "#1E7A6B" : "#B7791F"} />
-        <span style={{ fontSize: 13.5, fontWeight: 800, color: done ? "#1E7A6B" : "#B7791F" }}>
+        <span style={{ fontSize: 14.5, fontWeight: 800, color: done ? "#1E7A6B" : "#B7791F" }}>
           {done ? "확인 완료 — 발행해도 됩니다" : `발행 전 확인 ${ok.length}/${items.length}`}
         </span>
       </div>
       {!done && (
-        <div style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.65, marginBottom: 9 }}>
+        <div style={{ fontSize: 14.5, color: C.muted, lineHeight: 1.65, marginBottom: 9 }}>
           <b>AI는 자기가 틀린 걸 모릅니다.</b> 아래 문구는 틀리면 대표님 이름으로 잘못된 정보가 나가는 것들입니다.
           하나씩 눌러 확인하세요. <b>확신이 없으면 그 문장을 지우는 쪽이 항상 안전합니다.</b>
         </div>
       )}
       {hard.length > 0 && (
-        <div style={{ background: "#FDECEA", border: "1px solid #E8654A", borderRadius: 9, padding: "9px 11px", marginBottom: 9, fontSize: 12, color: "#8A2A1C", lineHeight: 1.6 }}>
+        <div style={{ background: "#FDECEA", border: "1px solid #E8654A", borderRadius: 9, padding: "9px 11px", marginBottom: 9, fontSize: 14, color: "#8A2A1C", lineHeight: 1.6 }}>
           <b>⚠ 금지 표현이 들어 있습니다 — 그대로 발행하지 마세요.</b>
         </div>
       )}
@@ -3813,9 +3879,9 @@ function FactCheck({ parts }) {
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: "inline-block", fontSize: 10, fontWeight: 800, color: "#fff",
                   background: it.hard ? "#D9534F" : C.navy, borderRadius: 4, padding: "1px 6px", marginRight: 6 }}>{it.label}</span>
-                <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>{it.hit}</span>
-                <span style={{ display: "block", fontSize: 11.5, color: C.muted, marginTop: 3, lineHeight: 1.55 }}>{it.line}</span>
-                {!on && <span style={{ display: "block", fontSize: 11, color: it.hard ? "#8A2A1C" : "#B7791F", marginTop: 3 }}>{it.why}</span>}
+                <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{it.hit}</span>
+                <span style={{ display: "block", fontSize: 14.5, color: C.muted, marginTop: 3, lineHeight: 1.55 }}>{it.line}</span>
+                {!on && <span style={{ display: "block", fontSize: 14, color: it.hard ? "#8A2A1C" : "#B7791F", marginTop: 3 }}>{it.why}</span>}
               </span>
             </button>
           );
@@ -3832,17 +3898,17 @@ function HookPicks({ hooks, whys, bare }) {
   const pick = async (h, i) => { await copyText(h); setCopied(i); setTimeout(() => setCopied(-1), 1600); };
   return (
     <div style={{ marginTop: bare ? 8 : 12 }}>
-      {!bare && <div style={{ fontSize: 11.5, fontWeight: 800, color: C.muted, marginBottom: 6 }}>훅 후보 (10개 중 고른 3개 · 눌러서 복사)</div>}
+      {!bare && <div style={{ fontSize: 14.5, fontWeight: 800, color: C.muted, marginBottom: 6 }}>훅 후보 (10개 중 고른 3개 · 눌러서 복사)</div>}
       <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
         {hooks.map((h, i) => (
           <button key={i} className="hd-btn" onClick={() => pick(h, i)}
             style={{ textAlign: "left", background: copied === i ? "#E7F6F1" : "#fff", border: `1.5px solid ${copied === i ? "#2E9E8F" : C.line}`, borderRadius: 10, padding: "10px 12px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-              <span style={{ fontSize: 10.5, fontWeight: 800, color: "#fff", background: C.coral, borderRadius: 5, padding: "2px 7px", flexShrink: 0 }}>{i + 1}안</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: "#fff", background: C.coral, borderRadius: 5, padding: "2px 7px", flexShrink: 0 }}>{i + 1}안</span>
               <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{h}</span>
-              {copied === i && <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 800, color: "#1E7A6B" }}>복사됨</span>}
+              {copied === i && <span style={{ marginLeft: "auto", fontSize: 14, fontWeight: 800, color: "#1E7A6B" }}>복사됨</span>}
             </div>
-            {whys && whys[i] && <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4, lineHeight: 1.55 }}>{whys[i]}</div>}
+            {whys && whys[i] && <div style={{ fontSize: 14.5, color: C.muted, marginTop: 4, lineHeight: 1.55 }}>{whys[i]}</div>}
           </button>
         ))}
       </div>
@@ -3856,7 +3922,7 @@ function MixNote({ channel }) {
     <div style={{ background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 13px", marginBottom: 14 }}>
       <div style={{ display: "flex", gap: 7, alignItems: "flex-start" }}>
         <Clock size={14} color={C.navy} style={{ marginTop: 2, flexShrink: 0 }} />
-        <div style={{ fontSize: 11.5, color: C.text, lineHeight: 1.65 }}>
+        <div style={{ fontSize: 14.5, color: C.text, lineHeight: 1.65 }}>
           <b>올리기 좋은 시간</b> · {BEST_TIME[channel]}
           <div style={{ color: C.muted, marginTop: 3 }}>{SEARCH_PEAK}</div>
           <div style={{ color: C.muted, marginTop: 3 }}><b>콘텐츠 비율</b> · {MIX_RULE}</div>
@@ -3906,7 +3972,7 @@ function Reels({ queue, seed }) {
           <Video size={18} color={C.coral} />
           <span style={{ fontSize: 16, fontWeight: 800 }}>릴스 · 숏폼 만들기</span>
         </div>
-        <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
+        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
           영상은 폰으로 찍으세요. 여기서는 <b>첫 프레임 지시·화면 자막·멘트·캡션·고정댓글·촬영 가이드</b>를 만들어 드립니다.
         </div>
         <MixNote channel="reels" />
@@ -3922,7 +3988,7 @@ function Reels({ queue, seed }) {
                   <span style={{ width: 9, height: 9, borderRadius: 99, background: t.color, display: "inline-block" }} />
                   <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{t.name}</span>
                 </div>
-                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>{t.desc}</div>
+                <div style={{ fontSize: 14.5, color: C.muted, marginTop: 4 }}>{t.desc}</div>
               </button>
             );
           })}
@@ -3937,9 +4003,9 @@ function Reels({ queue, seed }) {
                 style={{ textAlign: "left", padding: "12px 14px", borderRadius: 12, border: `1.5px solid ${on ? h.color : C.line}`, background: on ? h.color + "10" : "#fff" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                   <span style={{ width: 9, height: 9, borderRadius: 99, background: h.color, display: "inline-block" }} />
-                  <span style={{ fontSize: 13.5, fontWeight: 800, color: C.navy }}>{h.name}</span>
+                  <span style={{ fontSize: 14.5, fontWeight: 800, color: C.navy }}>{h.name}</span>
                 </div>
-                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>{h.desc}</div>
+                <div style={{ fontSize: 14.5, color: C.muted, marginTop: 4 }}>{h.desc}</div>
               </button>
             );
           })}
@@ -3952,7 +4018,7 @@ function Reels({ queue, seed }) {
             const blue = isBlueOcean(rg);
             return (
               <button key={rg} className="hd-btn" onClick={() => setRegion(rg)}
-                style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, padding: "8px 13px", borderRadius: 99, border: `1.5px solid ${on ? C.navy : (blue ? "#2E9E8F" : C.line)}`, background: on ? C.navy : "#fff", color: on ? "#fff" : C.text }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 14, fontWeight: 700, padding: "8px 13px", borderRadius: 99, border: `1.5px solid ${on ? C.navy : (blue ? "#2E9E8F" : C.line)}`, background: on ? C.navy : "#fff", color: on ? "#fff" : C.text }}>
                 {rg}
                 {blue && <span style={{ fontSize: 9.5, fontWeight: 800, color: on ? "#7FE0CE" : "#2E9E8F", background: on ? "rgba(46,158,143,.22)" : "#E7F6F1", borderRadius: 4, padding: "1px 4px" }}>블루</span>}
               </button>
@@ -3979,7 +4045,7 @@ function Reels({ queue, seed }) {
               <div style={{ marginTop: 10, background: "#FFF1EE", border: `1.5px solid ${C.coral}`, borderRadius: 11, padding: "13px 15px", fontSize: 14, fontWeight: 700, color: C.text, lineHeight: 1.6 }}>
                 {reel.firstFrame}
               </div>
-              <div style={{ marginTop: 8, fontSize: 11.5, color: C.muted, lineHeight: 1.6 }}>
+              <div style={{ marginTop: 8, fontSize: 14.5, color: C.muted, lineHeight: 1.6 }}>
                 인사·로고·인트로 넣지 마세요. 이 장면으로 바로 시작합니다.
               </div>
             </Panel>
@@ -3990,7 +4056,7 @@ function Reels({ queue, seed }) {
               <SectionTitle icon={Video}>화면 자막 (영상에 얹기)</SectionTitle>
               {reel.hook && (
                 <div style={{ marginTop: 10, background: C.navy, color: "#fff", borderRadius: 11, padding: "14px 16px" }}>
-                  <div style={{ fontSize: 11, color: "#9DB0C9", fontWeight: 700, marginBottom: 4 }}>첫 2초 훅</div>
+                  <div style={{ fontSize: 14, color: "#9DB0C9", fontWeight: 700, marginBottom: 4 }}>첫 2초 훅</div>
                   <div style={{ fontSize: 17, fontWeight: 800 }}>{reel.hook}</div>
                 </div>
               )}
@@ -3998,18 +4064,18 @@ function Reels({ queue, seed }) {
               <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 7 }}>
                 {reel.captions.map((c, i) => (
                   <div key={i} style={{ display: "flex", gap: 9, alignItems: "center", background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: C.coral, minWidth: 18 }}>{i + 1}</span>
-                    <span style={{ fontSize: 13.5, color: C.text, fontWeight: 600 }}>{c}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: C.coral, minWidth: 18 }}>{i + 1}</span>
+                    <span style={{ fontSize: 14.5, color: C.text, fontWeight: 600 }}>{c}</span>
                   </div>
                 ))}
               </div>
               {reel.endcard && (
                 <div style={{ marginTop: 10, background: "#F1F3F6", borderRadius: 9, padding: "10px 12px" }}>
-                  <div style={{ fontSize: 11, color: C.muted, fontWeight: 700, marginBottom: 3 }}>마지막 0.5초 정지 프레임</div>
-                  <div style={{ fontSize: 13.5, color: C.text, fontWeight: 700 }}>{reel.endcard}</div>
+                  <div style={{ fontSize: 14, color: C.muted, fontWeight: 700, marginBottom: 3 }}>마지막 0.5초 정지 프레임</div>
+                  <div style={{ fontSize: 14.5, color: C.text, fontWeight: 700 }}>{reel.endcard}</div>
                 </div>
               )}
-              <div style={{ marginTop: 8, fontSize: 11.5, color: C.muted, lineHeight: 1.6 }}>
+              <div style={{ marginTop: 8, fontSize: 14.5, color: C.muted, lineHeight: 1.6 }}>
                 자막은 화면 <b>상단 1/3</b>에 배치 · 안전영역 상단 220px / 하단 420px 비우기
               </div>
               <div style={{ marginTop: 10 }}>
@@ -4043,7 +4109,7 @@ function Reels({ queue, seed }) {
                         <span style={{ width: 22, height: 22, borderRadius: 6, border: `2px solid ${on ? "#2E9E8F" : C.line}`, background: on ? "#2E9E8F" : "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                           {on && <Check size={14} color="#fff" />}
                         </span>
-                        <span style={{ fontSize: 13.5, color: C.text, textDecoration: on ? "line-through" : "none" }}>{g}</span>
+                        <span style={{ fontSize: 14.5, color: C.text, textDecoration: on ? "line-through" : "none" }}>{g}</span>
                       </button>
                     );
                   })}
@@ -4058,7 +4124,7 @@ function Reels({ queue, seed }) {
               <div style={{ marginTop: 8, fontSize: 14, color: C.text, lineHeight: 1.7 }}>{reel.caption}</div>
               <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {reel.hashtags.map((h, i) => (
-                  <span key={i} style={{ fontSize: 12, color: "#2563A8", background: "#EAF2FB", borderRadius: 99, padding: "4px 10px", fontWeight: 600 }}>{h.startsWith("#") ? h : "#" + h}</span>
+                  <span key={i} style={{ fontSize: 14, color: "#2563A8", background: "#EAF2FB", borderRadius: 99, padding: "4px 10px", fontWeight: 600 }}>{h.startsWith("#") ? h : "#" + h}</span>
                 ))}
               </div>
               <div style={{ marginTop: 10 }}>
@@ -4067,8 +4133,8 @@ function Reels({ queue, seed }) {
 
               {reel.pinned && (
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.line}` }}>
-                  <div style={{ fontSize: 11.5, color: C.muted, fontWeight: 700, marginBottom: 6 }}>고정 댓글 (여기에만 링크)</div>
-                  <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.7, background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>{reel.pinned}</div>
+                  <div style={{ fontSize: 14.5, color: C.muted, fontWeight: 700, marginBottom: 6 }}>고정 댓글 (여기에만 링크)</div>
+                  <div style={{ fontSize: 14.5, color: C.text, lineHeight: 1.7, background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>{reel.pinned}</div>
                   <div style={{ marginTop: 8 }}>
                     <CopyButton getText={() => reel.pinned} label="고정 댓글 복사" full />
                   </div>
@@ -4083,7 +4149,7 @@ function Reels({ queue, seed }) {
                 <SectionTitle icon={MessageSquare}>스레드에 함께 올릴 한 줄</SectionTitle>
                 <div style={{ marginTop: 8, fontSize: 14, color: C.text, lineHeight: 1.7 }}>{reel.cross}</div>
                 {reel.bestTime && (
-                  <div style={{ marginTop: 10, fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>
+                  <div style={{ marginTop: 10, fontSize: 14, color: C.muted, lineHeight: 1.6 }}>
                     <b style={{ color: C.navy }}>추천 발행 시간</b> · {reel.bestTime}
                   </div>
                 )}
@@ -4140,7 +4206,7 @@ function Threads({ queue, seed }) {
           <MessageSquare size={18} color={C.coral} />
           <span style={{ fontSize: 16, fontWeight: 800 }}>스레드 글 만들기</span>
         </div>
-        <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
+        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
           스레드는 <b>첫 두 줄</b>과 <b>답글 수</b>로 승부합니다. 1번 글을 올린 뒤 답글로 본문을 이어 붙이세요.
         </div>
         <MixNote channel="threads" />
@@ -4156,7 +4222,7 @@ function Threads({ queue, seed }) {
                   <span style={{ width: 9, height: 9, borderRadius: 99, background: t.color, display: "inline-block" }} />
                   <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{t.name}</span>
                 </div>
-                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>{t.desc}</div>
+                <div style={{ fontSize: 14.5, color: C.muted, marginTop: 4 }}>{t.desc}</div>
               </button>
             );
           })}
@@ -4169,7 +4235,7 @@ function Threads({ queue, seed }) {
             const blue = isBlueOcean(rg);
             return (
               <button key={rg} className="hd-btn" onClick={() => setRegion(rg)}
-                style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, padding: "8px 13px", borderRadius: 99, border: `1.5px solid ${on ? C.navy : (blue ? "#2E9E8F" : C.line)}`, background: on ? C.navy : "#fff", color: on ? "#fff" : C.text }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 14, fontWeight: 700, padding: "8px 13px", borderRadius: 99, border: `1.5px solid ${on ? C.navy : (blue ? "#2E9E8F" : C.line)}`, background: on ? C.navy : "#fff", color: on ? "#fff" : C.text }}>
                 {rg}
                 {blue && <span style={{ fontSize: 9.5, fontWeight: 800, color: on ? "#7FE0CE" : "#2E9E8F", background: on ? "rgba(46,158,143,.22)" : "#E7F6F1", borderRadius: 4, padding: "1px 4px" }}>블루</span>}
               </button>
@@ -4208,8 +4274,8 @@ function Threads({ queue, seed }) {
                 <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 9 }}>
                   {th.replies.map((r, i) => (
                     <div key={i} style={{ background: "#F7F9FC", borderRadius: 10, padding: "12px 13px" }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: C.coral, marginBottom: 5 }}>답글 {i + 1}</div>
-                      <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.75 }}>{r}</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: C.coral, marginBottom: 5 }}>답글 {i + 1}</div>
+                      <div style={{ fontSize: 14.5, color: C.text, lineHeight: 1.75 }}>{r}</div>
                       <div style={{ marginTop: 8 }}>
                         <CopyButton getText={() => r} label="복사" />
                       </div>
@@ -4217,8 +4283,8 @@ function Threads({ queue, seed }) {
                   ))}
                   {th.closer && (
                     <div style={{ background: "#FFF1EE", border: `1.5px solid ${C.coral}`, borderRadius: 10, padding: "12px 13px" }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: C.coral, marginBottom: 5 }}>마무리 질문 (답글을 부르는 줄)</div>
-                      <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.75, fontWeight: 700 }}>{th.closer}</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: C.coral, marginBottom: 5 }}>마무리 질문 (답글을 부르는 줄)</div>
+                      <div style={{ fontSize: 14.5, color: C.text, lineHeight: 1.75, fontWeight: 700 }}>{th.closer}</div>
                       <div style={{ marginTop: 8 }}>
                         <CopyButton getText={() => th.closer} label="복사" />
                       </div>
@@ -4234,18 +4300,18 @@ function Threads({ queue, seed }) {
               <SectionTitle icon={Tag}>태그 · 운영 메모</SectionTitle>
               {th.tag && (
                 <div style={{ marginTop: 8 }}>
-                  <span style={{ fontSize: 12, color: "#2563A8", background: "#EAF2FB", borderRadius: 99, padding: "4px 10px", fontWeight: 600 }}>
+                  <span style={{ fontSize: 14, color: "#2563A8", background: "#EAF2FB", borderRadius: 99, padding: "4px 10px", fontWeight: 600 }}>
                     {th.tag.startsWith("#") ? th.tag : "#" + th.tag}
                   </span>
                 </div>
               )}
               {th.bestTime && (
-                <div style={{ marginTop: 12, fontSize: 13, color: C.text, lineHeight: 1.7 }}>
+                <div style={{ marginTop: 12, fontSize: 14, color: C.text, lineHeight: 1.7 }}>
                   <b>올릴 시간</b> · {th.bestTime}
                 </div>
               )}
               {th.replyPlan && (
-                <div style={{ marginTop: 8, fontSize: 13, color: C.text, lineHeight: 1.7 }}>
+                <div style={{ marginTop: 8, fontSize: 14, color: C.text, lineHeight: 1.7 }}>
                   <b>댓글 대응</b> · {th.replyPlan}
                 </div>
               )}
@@ -4297,7 +4363,7 @@ function Cards({ queue, seed }) {
           <ImageIcon size={18} color={C.coral} />
           <span style={{ fontSize: 16, fontWeight: 800 }}>인스타 카드 만들기</span>
         </div>
-        <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
+        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
           <b>사진을 못 찍은 날의 주력 포맷</b>입니다. 캐러셀은 조회수가 아니라 <b>저장</b>으로 퍼집니다.
           표지 1 + 본문 {count - 3} + 요약 1 + 마무리 1 = <b>{count}장</b>이 한 번에 만들어집니다.
         </div>
@@ -4314,7 +4380,7 @@ function Cards({ queue, seed }) {
                   <span style={{ width: 9, height: 9, borderRadius: 99, background: t.color, display: "inline-block" }} />
                   <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{t.name}</span>
                 </div>
-                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>{t.desc}</div>
+                <div style={{ fontSize: 14.5, color: C.muted, marginTop: 4 }}>{t.desc}</div>
               </button>
             );
           })}
@@ -4322,9 +4388,9 @@ function Cards({ queue, seed }) {
 
         {topic.preview && (
           <div style={{ marginTop: 10, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 13px" }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: C.coral, marginBottom: 4 }}>이렇게 7장이 나옵니다</div>
-            <div style={{ fontSize: 12.5, color: C.text, lineHeight: 1.7 }}>{topic.preview}</div>
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.6 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: C.coral, marginBottom: 4 }}>이렇게 7장이 나옵니다</div>
+            <div style={{ fontSize: 14, color: C.text, lineHeight: 1.7 }}>{topic.preview}</div>
+            <div style={{ fontSize: 14, color: C.muted, marginTop: 6, lineHeight: 1.6 }}>
               칸의 <b>구성</b>만 정해져 있습니다. <b>안에 들어갈 내용은 아래 현장 메모와 [설정]의 회사 사실에서 나옵니다.</b>
               둘 다 비어 있으면 카드도 얕아집니다.
             </div>
@@ -4337,14 +4403,14 @@ function Cards({ queue, seed }) {
             const on = v === count;
             return (
               <button key={v} className="hd-btn" onClick={() => setCount(v)}
-                style={{ flex: 1, padding: "11px 0", borderRadius: 10, fontSize: 13.5, fontWeight: 800,
+                style={{ flex: 1, padding: "11px 0", borderRadius: 10, fontSize: 14.5, fontWeight: 800,
                   border: `1.5px solid ${on ? C.navy : C.line}`, background: on ? C.navy : "#fff", color: on ? "#fff" : C.text }}>
                 {v}장
               </button>
             );
           })}
         </div>
-        <div style={{ fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 14, color: C.muted, marginTop: 6, lineHeight: 1.6 }}>
           본문이 <b>{count - 3}장</b>이 됩니다. 인스타 캐러셀은 <b>끝까지 넘기는 비율</b>이 중요해서,
           내용이 얕으면 장수를 늘리지 않는 편이 낫습니다. <b>블로그를 재료로 쓰면 9~10장</b>도 충분히 채워집니다.
         </div>
@@ -4356,7 +4422,7 @@ function Cards({ queue, seed }) {
             const blue = isBlueOcean(rg);
             return (
               <button key={rg} className="hd-btn" onClick={() => setRegion(rg)}
-                style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 700, padding: "8px 13px", borderRadius: 99, border: `1.5px solid ${on ? C.navy : (blue ? "#2E9E8F" : C.line)}`, background: on ? C.navy : "#fff", color: on ? "#fff" : C.text }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 14, fontWeight: 700, padding: "8px 13px", borderRadius: 99, border: `1.5px solid ${on ? C.navy : (blue ? "#2E9E8F" : C.line)}`, background: on ? C.navy : "#fff", color: on ? "#fff" : C.text }}>
                 {rg}
                 {blue && <span style={{ fontSize: 9.5, fontWeight: 800, color: on ? "#7FE0CE" : "#2E9E8F", background: on ? "rgba(46,158,143,.22)" : "#E7F6F1", borderRadius: 4, padding: "1px 4px" }}>블루</span>}
               </button>
@@ -4393,7 +4459,7 @@ function Cards({ queue, seed }) {
               <div style={{ marginTop: 8, fontSize: 14, color: C.text, lineHeight: 1.7 }}>{card.caption}</div>
               <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {card.hashtags.map((h, i) => (
-                  <span key={i} style={{ fontSize: 12, color: "#2563A8", background: "#EAF2FB", borderRadius: 99, padding: "4px 10px", fontWeight: 600 }}>{h.startsWith("#") ? h : "#" + h}</span>
+                  <span key={i} style={{ fontSize: 14, color: "#2563A8", background: "#EAF2FB", borderRadius: 99, padding: "4px 10px", fontWeight: 600 }}>{h.startsWith("#") ? h : "#" + h}</span>
                 ))}
               </div>
               <div style={{ marginTop: 10 }}>
@@ -4402,8 +4468,8 @@ function Cards({ queue, seed }) {
 
               {card.pinned && (
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.line}` }}>
-                  <div style={{ fontSize: 11.5, color: C.muted, fontWeight: 700, marginBottom: 6 }}>고정 댓글 (여기에만 링크)</div>
-                  <div style={{ fontSize: 13.5, color: C.text, lineHeight: 1.7, background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>{card.pinned}</div>
+                  <div style={{ fontSize: 14.5, color: C.muted, fontWeight: 700, marginBottom: 6 }}>고정 댓글 (여기에만 링크)</div>
+                  <div style={{ fontSize: 14.5, color: C.text, lineHeight: 1.7, background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>{card.pinned}</div>
                   <div style={{ marginTop: 8 }}>
                     <CopyButton getText={() => card.pinned} label="고정 댓글 복사" full />
                   </div>
@@ -4418,7 +4484,7 @@ function Cards({ queue, seed }) {
                 <SectionTitle icon={MessageSquare}>스레드에 함께 올릴 한 줄</SectionTitle>
                 <div style={{ marginTop: 8, fontSize: 14, color: C.text, lineHeight: 1.7 }}>{card.cross}</div>
                 {card.bestTime && (
-                  <div style={{ marginTop: 10, fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>
+                  <div style={{ marginTop: 10, fontSize: 14, color: C.muted, lineHeight: 1.6 }}>
                     <b style={{ color: C.navy }}>추천 발행 시간</b> · {card.bestTime}
                   </div>
                 )}
@@ -4511,7 +4577,7 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
           <Star size={18} color={C.gold} />
           <span style={{ fontSize: 16, fontWeight: 800 }}>고객 평가</span>
         </div>
-        <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.7 }}>
+        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.7 }}>
           후기 <b>요청 문자 발송은 [달력] 탭</b>에서 합니다(모든 문자 발송을 한 곳에서). 여기 [평가]에서는 <b>손님이 답장한 점수를 입력</b>하고, 통계를 보고, <b>그 평가로 후기 글쓰기</b>를 합니다.
         </div>
       </Panel>
@@ -4522,13 +4588,13 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
             <Users size={18} color={C.teal} />
             <span style={{ fontSize: 16, fontWeight: 800 }}>후기 대상 · 응답 현황</span>
-            {weekTargets.length > 0 && <span style={{ fontSize: 13, fontWeight: 800, color: C.teal }}>{weekTargets.length}명 중 {respondedCount}명 응답 ({Math.round((respondedCount / weekTargets.length) * 100)}%)</span>}
+            {weekTargets.length > 0 && <span style={{ fontSize: 14, fontWeight: 800, color: C.teal }}>{weekTargets.length}명 중 {respondedCount}명 응답 ({Math.round((respondedCount / weekTargets.length) * 100)}%)</span>}
           </div>
-          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 12 }}>
+          <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, marginBottom: 12 }}>
             이사 후 <b>3~10일</b> 지난 계약 고객(달력에서 후기 문자 보낸 대상)입니다. 점수를 입력하면 <b>완료</b>로 바뀝니다. 누가 답했고 누가 아직인지 한눈에 보세요.
           </div>
           {weekTargets.length === 0
-            ? <div style={{ fontSize: 13, color: C.muted, padding: "8px 0" }}>이번 주 후기 대상이 없습니다. (최신 DB를 넣으면 최근 이사 고객이 잡힙니다.)</div>
+            ? <div style={{ fontSize: 14, color: C.muted, padding: "8px 0" }}>이번 주 후기 대상이 없습니다. (최신 DB를 넣으면 최근 이사 고객이 잡힙니다.)</div>
             : <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 340, overflowY: "auto" }}>
                 {targetsWithStatus.slice(0, 100).map(({ c, done, score }) => {
                   const r = routeOf(c);
@@ -4539,14 +4605,14 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
                         <span style={{ fontSize: 14, fontWeight: 700 }}>📞 {c.phone || "(번호없음)"}</span>
                         <div style={{ flex: 1 }} />
                         {done
-                          ? <span style={{ fontSize: 12.5, fontWeight: 800, color: "#0F6E56", background: "#E1F5EE", borderRadius: 999, padding: "3px 11px" }}>완료 ✓ {score.toFixed(1)}점</span>
-                          : <span style={{ fontSize: 12.5, fontWeight: 700, color: C.muted, background: "#F1F3F6", borderRadius: 999, padding: "3px 11px" }}>대기중</span>}
+                          ? <span style={{ fontSize: 14, fontWeight: 800, color: "#0F6E56", background: "#E1F5EE", borderRadius: 999, padding: "3px 11px" }}>완료 ✓ {score.toFixed(1)}점</span>
+                          : <span style={{ fontSize: 14, fontWeight: 700, color: C.muted, background: "#F1F3F6", borderRadius: 999, padding: "3px 11px" }}>대기중</span>}
                       </div>
-                      <div style={{ fontSize: 12.5, color: C.muted, marginTop: 4, lineHeight: 1.5, wordBreak: "break-all" }}>📍 {r.from || "(출발지 미상)"} → {r.to || "(도착지 미정)"}</div>
+                      <div style={{ fontSize: 14, color: C.muted, marginTop: 4, lineHeight: 1.5, wordBreak: "break-all" }}>📍 {r.from || "(출발지 미상)"} → {r.to || "(도착지 미정)"}</div>
                     </div>
                   );
                 })}
-                {targetsWithStatus.length > 100 && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center" }}>… 외 {targetsWithStatus.length - 100}명</div>}
+                {targetsWithStatus.length > 100 && <div style={{ fontSize: 14.5, color: C.muted, textAlign: "center" }}>… 외 {targetsWithStatus.length - 100}명</div>}
               </div>}
         </Panel>
       </div>
@@ -4558,20 +4624,20 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
             <Star size={18} color={C.gold} />
             <span style={{ fontSize: 16, fontWeight: 800 }}>받은 점수 입력</span>
           </div>
-          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
+          <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
             손님이 "5 5 4 5 5 5 5" 답장하면, <b>그 손님 전화번호</b>와 점수를 입력해 저장하세요. (위 [이번 주 후기 대상]에서 번호를 보고 넣으면 됩니다.)
           </div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, marginBottom: 6 }}>전화번호 <span style={{ fontWeight: 500, color: C.muted }}>(숫자만 눌러도 자동 정리)</span></div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 6 }}>전화번호 <span style={{ fontWeight: 500, color: C.muted }}>(숫자만 눌러도 자동 정리)</span></div>
           <input value={name} inputMode="numeric" maxLength={13} onChange={(e) => setName(formatPhoneLive(e.target.value))} placeholder="010-0000-1234"
             style={{ width: "100%", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 15, fontWeight: 600, marginBottom: 6 }} />
-          <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.55, marginBottom: 14 }}>
+          <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.55, marginBottom: 14 }}>
             전화번호로 저장하면 손님이 문자·전화로 답할 때 바로 매칭됩니다. 같은 번호로 여러 번 평가해도 각각 한 건씩 쌓여 통계는 정확합니다.
           </div>
 
           {REVIEW_Q.map((q, i) => (
             <div key={i} style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                {i + 1}. {q}{(i === 3 || i === 4) && <span style={{ fontSize: 11, fontWeight: 500, color: C.muted }}>{i === 3 ? " · 여직원 파트" : " · 남직원 파트"}</span>}
+              <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                {i + 1}. {q}{(i === 3 || i === 4) && <span style={{ fontSize: 14, fontWeight: 500, color: C.muted }}>{i === 3 ? " · 여직원 파트" : " · 남직원 파트"}</span>}
               </div>
               <div style={{ display: "flex", gap: 7 }}>
                 {[1, 2, 3, 4, 5].map((v) => {
@@ -4587,17 +4653,17 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
             </div>
           ))}
 
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, margin: "4px 0 6px" }}>메모 <span style={{ fontWeight: 500, color: C.muted }}>(손님이 남긴 말 · 선택)</span></div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, margin: "4px 0 6px" }}>메모 <span style={{ fontWeight: 500, color: C.muted }}>(손님이 남긴 말 · 선택)</span></div>
           <textarea value={memo} onChange={(e) => setMemo(e.target.value)} rows={2} placeholder="예: 청소가 새집 같다고 매우 만족하심"
-            style={{ width: "100%", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 13.5, lineHeight: 1.6 }} />
+            style={{ width: "100%", padding: "11px 13px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14.5, lineHeight: 1.6 }} />
 
-          <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, margin: "14px 0 6px" }}>작업 지역 <span style={{ fontWeight: 500, color: C.muted }}>(후기 글쓰기 때 이 지역으로 씁니다 · 선택)</span></div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.navy, margin: "14px 0 6px" }}>작업 지역 <span style={{ fontWeight: 500, color: C.muted }}>(후기 글쓰기 때 이 지역으로 씁니다 · 선택)</span></div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {MOVING_REGIONS.map((r) => {
               const on = rvRegion === r;
               return (
                 <button key={r} className="hd-btn" onClick={() => setRvRegion(on ? "" : r)}
-                  style={{ padding: "6px 12px", borderRadius: 999, border: `1.5px solid ${on ? C.coral : C.line}`, background: on ? C.coral : "#fff", color: on ? "#fff" : C.navy, fontWeight: 700, fontSize: 12.5 }}>
+                  style={{ padding: "6px 12px", borderRadius: 999, border: `1.5px solid ${on ? C.coral : C.line}`, background: on ? C.coral : "#fff", color: on ? "#fff" : C.navy, fontWeight: 700, fontSize: 14 }}>
                   {r}
                 </button>
               );
@@ -4608,7 +4674,7 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
             style={{ marginTop: 14, width: "100%", padding: "13px", borderRadius: 11, border: "none", background: canSave ? C.coral : "#C7CED7", color: "#fff", fontWeight: 800, fontSize: 14.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, cursor: canSave ? "pointer" : "default" }}>
             <Check size={17} /> 평가 저장
           </button>
-          {!canSave && <div style={{ fontSize: 11.5, color: C.muted, textAlign: "center", marginTop: 8 }}>전화번호와 7개 항목 점수를 모두 입력하세요.</div>}
+          {!canSave && <div style={{ fontSize: 14.5, color: C.muted, textAlign: "center", marginTop: 8 }}>전화번호와 7개 항목 점수를 모두 입력하세요.</div>}
         </Panel>
       </div>
 
@@ -4618,22 +4684,22 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <BarChart3 size={18} color={C.navy} />
             <span style={{ fontSize: 16, fontWeight: 800 }}>통계</span>
-            <span style={{ fontSize: 12, color: C.muted }}>· 응답 {n}건</span>
+            <span style={{ fontSize: 14, color: C.muted }}>· 응답 {n}건</span>
             <div style={{ flex: 1 }} />
             {n > 0 && (
               <button className="hd-btn" onClick={exportCSV}
-                style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 700, color: C.navy, background: "#fff", border: `1.5px solid ${C.line}`, borderRadius: 8, padding: "6px 10px" }}>
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 14, fontWeight: 700, color: C.navy, background: "#fff", border: `1.5px solid ${C.line}`, borderRadius: 8, padding: "6px 10px" }}>
                 <Download size={14} /> 엑셀
               </button>
             )}
           </div>
 
           {n === 0 ? (
-            <div style={{ fontSize: 13, color: C.muted, textAlign: "center", padding: "18px 0" }}>아직 저장된 평가가 없습니다. 위에서 점수를 입력하면 통계가 나옵니다.</div>
+            <div style={{ fontSize: 14, color: C.muted, textAlign: "center", padding: "18px 0" }}>아직 저장된 평가가 없습니다. 위에서 점수를 입력하면 통계가 나옵니다.</div>
           ) : (
             <>
               <div style={{ textAlign: "center", marginBottom: 16 }}>
-                <div style={{ fontSize: 12, color: C.muted, fontWeight: 700 }}>전체 평균</div>
+                <div style={{ fontSize: 14, color: C.muted, fontWeight: 700 }}>전체 평균</div>
                 <div style={{ fontSize: 34, fontWeight: 800, color: C.navy }}>{overall.toFixed(2)}<span style={{ fontSize: 16, color: C.muted }}> / 5</span></div>
               </div>
               {REVIEW_Q.map((q, i) => {
@@ -4642,7 +4708,7 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
                 const col = REVIEW_COLORS[i % REVIEW_COLORS.length];
                 return (
                   <div key={i} style={{ marginBottom: 11 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, marginBottom: 4 }}>
                       <span style={{ fontWeight: 700, color: C.text }}>{q}</span>
                       <span style={{ fontWeight: 800, color: low ? REVIEW_LOW : col }}>{a.toFixed(2)}{low && " ⚠"}</span>
                     </div>
@@ -4652,15 +4718,15 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
                   </div>
                 );
               })}
-              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 12, lineHeight: 1.6, background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>
+              <div style={{ fontSize: 14.5, color: C.muted, marginTop: 12, lineHeight: 1.6, background: "#F7F9FC", borderRadius: 9, padding: "10px 12px" }}>
                 <b>주방 정리 {avg(3).toFixed(2)}</b> vs <b>방 정리 {avg(4).toFixed(2)}</b> — 낮은 쪽 팀을 집중 교육하세요. ⚠ 표시는 3.5점 미만(개선 필요).
               </div>
 
               {/* 분야별 점수 공개 문구 (실제 점수 · N건 기준 · 최소 건수 안전장치) */}
               <div style={{ marginTop: 14, borderTop: `1px solid ${C.line}`, paddingTop: 14 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: C.navy, marginBottom: 6 }}>분야별 점수 공개 문구</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 6 }}>분야별 점수 공개 문구</div>
                 {n < MIN_PUBLIC ? (
-                  <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.6, background: "#FDF3E2", border: "1px solid #EBD3A8", borderRadius: 9, padding: "10px 12px" }}>
+                  <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, background: "#FDF3E2", border: "1px solid #EBD3A8", borderRadius: 9, padding: "10px 12px" }}>
                     지금 <b>{n}건</b> — 표본이 적어 공개는 과장으로 보일 수 있습니다. <b>{MIN_PUBLIC}건</b> 이상 모이면 공개 문구가 켜집니다. (앞으로 <b>{MIN_PUBLIC - n}건</b>)
                   </div>
                 ) : (() => {
@@ -4669,12 +4735,12 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
                     `\n(5점 만점 · ${brand.name})`;
                   return (
                     <>
-                      <div style={{ background: "#F7F9FC", border: `1.5px solid ${C.line}`, borderRadius: 10, padding: "12px 14px", fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap", color: C.text }}>{pub}</div>
-                      <div style={{ fontSize: 11, color: C.muted, margin: "7px 0 9px", lineHeight: 1.5 }}>
+                      <div style={{ background: "#F7F9FC", border: `1.5px solid ${C.line}`, borderRadius: 10, padding: "12px 14px", fontSize: 14, lineHeight: 1.7, whiteSpace: "pre-wrap", color: C.text }}>{pub}</div>
+                      <div style={{ fontSize: 14, color: C.muted, margin: "7px 0 9px", lineHeight: 1.5 }}>
                         블로그·카드뉴스에 넣는 <b>실제 점수 기반 공개 문구</b>입니다. 항상 <b>“{n}건 기준”</b>을 함께 노출해 과장이 아님을 밝힙니다.
                       </div>
                       <button className="hd-btn" onClick={async () => { if (await copyText(pub)) { setCopiedPub(true); setTimeout(() => setCopiedPub(false), 1600); } }}
-                        style={{ width: "100%", padding: "11px", borderRadius: 10, border: "none", background: copiedPub ? "#1E7A6B" : C.navy, color: "#fff", fontWeight: 800, fontSize: 13, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+                        style={{ width: "100%", padding: "11px", borderRadius: 10, border: "none", background: copiedPub ? "#1E7A6B" : C.navy, color: "#fff", fontWeight: 800, fontSize: 14, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
                         {copiedPub ? <><Check size={15} /> 복사됨</> : <><Copy size={15} /> 공개 문구 복사</>}
                       </button>
                     </>
@@ -4697,25 +4763,25 @@ function Reviews({ reviews, addReview, removeReview, writeFromReview, brand, crm
                 <div key={r.id} style={{ background: "#fff", border: `1px solid ${C.line}`, borderRadius: 11, padding: "12px 14px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <span style={{ fontWeight: 800, fontSize: 14, color: C.navy }}>{r.name}</span>
-                    {r.fromSheet && <span style={{ fontSize: 10.5, fontWeight: 800, color: "#0F6E56", background: "#E1F5EE", borderRadius: 999, padding: "2px 8px" }}>고객 직접입력</span>}
-                    <span style={{ fontSize: 11.5, color: C.muted }}>{r.date}</span>
-                    <span style={{ fontSize: 12.5, fontWeight: 800, color: C.coral }}>★ {a}</span>
-                    {r.recommend === "Y" && <span style={{ fontSize: 11, fontWeight: 800, color: "#0F6E56" }}>👍 추천</span>}
-                    {r.recommend === "N" && <span style={{ fontSize: 11, fontWeight: 800, color: REVIEW_LOW }}>추천 안 함</span>}
+                    {r.fromSheet && <span style={{ fontSize: 14, fontWeight: 800, color: "#0F6E56", background: "#E1F5EE", borderRadius: 999, padding: "2px 8px" }}>고객 직접입력</span>}
+                    <span style={{ fontSize: 14.5, color: C.muted }}>{r.date}</span>
+                    <span style={{ fontSize: 14, fontWeight: 800, color: C.coral }}>★ {a}</span>
+                    {r.recommend === "Y" && <span style={{ fontSize: 14, fontWeight: 800, color: "#0F6E56" }}>👍 추천</span>}
+                    {r.recommend === "N" && <span style={{ fontSize: 14, fontWeight: 800, color: REVIEW_LOW }}>추천 안 함</span>}
                     <div style={{ flex: 1 }} />
                     {!r.fromSheet && <button className="hd-btn" onClick={() => removeReview(r.id)} style={{ border: "none", background: "transparent", color: C.muted, padding: 4 }}><Trash2 size={15} /></button>}
                   </div>
-                  <div style={{ fontSize: 11.5, color: C.muted, marginTop: 6 }}>
+                  <div style={{ fontSize: 14.5, color: C.muted, marginTop: 6 }}>
                     {REVIEW_SHORT.map((s, i) => `${s} ${r.scores[i] >= 1 ? r.scores[i] : "-"}`).join(" · ")}
                   </div>
-                  {r.memo && <div style={{ fontSize: 12.5, color: C.text, marginTop: 6, lineHeight: 1.5 }}>“{r.memo}”</div>}
+                  {r.memo && <div style={{ fontSize: 14, color: C.text, marginTop: 6, lineHeight: 1.5 }}>“{r.memo}”</div>}
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                     <button className="hd-btn" onClick={() => writeFromReview(r)}
-                      style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${C.coral}`, background: "#fff", color: C.coralDark, fontWeight: 800, fontSize: 12.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                      style={{ flex: 1, padding: "9px", borderRadius: 9, border: `1.5px solid ${C.coral}`, background: "#fff", color: C.coralDark, fontWeight: 800, fontSize: 14, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                       <Sparkles size={14} /> 이 평가로 후기 글쓰기
                     </button>
                     <button className="hd-btn" onClick={() => downloadReviewCard(r)}
-                      style={{ flex: "0 0 auto", padding: "9px 14px", borderRadius: 9, border: `1.5px solid ${C.line}`, background: C.navy, color: "#fff", fontWeight: 800, fontSize: 12.5, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                      style={{ flex: "0 0 auto", padding: "9px 14px", borderRadius: 9, border: `1.5px solid ${C.line}`, background: C.navy, color: "#fff", fontWeight: 800, fontSize: 14, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
                       title="사진 없는 날 — 이 후기를 이미지 카드 한 장으로 저장">
                       <ImageIcon size={14} /> 후기 카드
                     </button>
@@ -4763,7 +4829,7 @@ function BackupRestore() {
         <Download size={18} color={C.navy} />
         <span style={{ fontSize: 16, fontWeight: 800 }}>데이터 백업 · 복원</span>
       </div>
-      <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
+      <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, marginBottom: 14 }}>
         고객·평가·초안 데이터는 <b>이 기기 안에 저장</b>됩니다. 기기 변경·캐시 삭제·앱 삭제 시 사라질 수 있으니, <b>주기적으로 백업</b>해 안전한 곳에 보관하세요. 다른 기기에서 <b>복원</b>하면 그대로 옮겨집니다.
       </div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -4777,8 +4843,8 @@ function BackupRestore() {
         </button>
         <input ref={fileRef} type="file" accept="*/*" style={{ display: "none" }} onChange={onFile} />
       </div>
-      {msg && <div style={{ fontSize: 12, color: "#1E7A6B", marginTop: 12, fontWeight: 700 }}>{msg}</div>}
-      <div style={{ fontSize: 11, color: C.muted, marginTop: 12, lineHeight: 1.5 }}>
+      {msg && <div style={{ fontSize: 14, color: "#1E7A6B", marginTop: 12, fontWeight: 700 }}>{msg}</div>}
+      <div style={{ fontSize: 14, color: C.muted, marginTop: 12, lineHeight: 1.5 }}>
         ※ 아이폰은 앱을 오래(약 1~2주) 안 열면 시스템이 저장 데이터를 지울 수 있습니다. <b>가끔 앱을 열어주고, 큰 변경 뒤엔 꼭 백업</b>하세요. (클라우드 자동저장은 ERP 백엔드 연결 시 지원)
       </div>
     </Panel>
@@ -4795,7 +4861,7 @@ function BrandSettings({ brand, updateBrand }) {
 
   const field = (key, label, Icon, placeholder) => (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
         <Icon size={15} /> {label}
       </div>
       <input value={form[key] || ""} onChange={(e) => set(key, e.target.value)}
@@ -4810,27 +4876,27 @@ function BrandSettings({ brand, updateBrand }) {
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <Settings size={18} color={C.navy} />
           <span style={{ fontSize: 16, fontWeight: 800 }}>업체 기본 정보</span>
-          {dirty && <span style={{ fontSize: 12, fontWeight: 800, color: C.coralDark, background: "#FFF1EE", borderRadius: 999, padding: "2px 9px" }}>변경됨 · 저장 안 함</span>}
-          {!dirty && saved && <span style={{ fontSize: 12, fontWeight: 800, color: "#1E7A6B", display: "inline-flex", alignItems: "center", gap: 4 }}><Check size={14} /> 저장됨</span>}
+          {dirty && <span style={{ fontSize: 14, fontWeight: 800, color: C.coralDark, background: "#FFF1EE", borderRadius: 999, padding: "2px 9px" }}>변경됨 · 저장 안 함</span>}
+          {!dirty && saved && <span style={{ fontSize: 14, fontWeight: 800, color: "#1E7A6B", display: "inline-flex", alignItems: "center", gap: 4 }}><Check size={14} /> 저장됨</span>}
         </div>
-        <div style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, marginBottom: 18 }}>
+        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.6, marginBottom: 18 }}>
           고친 뒤 아래 <b>[저장하기]</b>를 눌러야 반영됩니다. 저장하면 카드뉴스·헤더·글 생성에 전부 적용됩니다.
         </div>
 
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
             <CalendarDays size={15} /> 이사 준비 타임라인 <span style={{ fontWeight: 500, color: C.muted }}>(비워두면 AI가 시점을 말하지 않습니다)</span>
           </div>
-          <div style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.65, marginBottom: 7 }}>
+          <div style={{ fontSize: 14.5, color: C.muted, lineHeight: 1.65, marginBottom: 7 }}>
             <b>인터넷에 도는 이사 체크리스트는 현장과 다릅니다.</b> 대표님이 아는 <b>실제 시점</b>을 여기 적어두면,
             체크리스트 카드·블로그가 그 시점으로만 씁니다. 비워두면 <b>AI가 시점 숫자를 아예 쓰지 않습니다.</b>
           </div>
           <textarea value={form.timeline || ""} onChange={(e) => set("timeline", e.target.value)} rows={6}
             placeholder={"예)\n- 이사업체 예약: 성수기(봄·가을·손없는날)는 이사 O개월 전, 비수기는 O주 전\n- 견적 방문: 예약 확정 전, 최소 O곳 비교\n- 사이청소: 이사 1~2일 전\n- 당일청소: 이사 당일 앞 세대가 빠진 뒤\n- 폐기물 신고: O일 전까지 주민센터\n- 인터넷·정수기 이전 신청: O주 전"}
-            style={{ width: "100%", padding: "12px 14px", borderRadius: 11, border: `1.5px solid ${dirty ? C.coral + "66" : C.line}`, fontSize: 13.5, lineHeight: 1.7 }} />
+            style={{ width: "100%", padding: "12px 14px", borderRadius: 11, border: `1.5px solid ${dirty ? C.coral + "66" : C.line}`, fontSize: 14.5, lineHeight: 1.7 }} />
         </div>
         <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
             <Truck size={15} /> 업종 <span style={{ fontWeight: 500, color: C.muted }}>(고르면 초안 축이 업종에 맞게 바뀝니다)</span>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
@@ -4838,7 +4904,7 @@ function BrandSettings({ brand, updateBrand }) {
               const on = (form.industry || "moving") === k;
               return (
                 <button key={k} className="hd-btn" onClick={() => set("industry", k)}
-                  style={{ padding: "9px 14px", borderRadius: 999, border: `1.5px solid ${on ? C.coral : C.line}`, background: on ? C.coral : "#fff", color: on ? "#fff" : C.navy, fontWeight: 700, fontSize: 13 }}>
+                  style={{ padding: "9px 14px", borderRadius: 999, border: `1.5px solid ${on ? C.coral : C.line}`, background: on ? C.coral : "#fff", color: on ? "#fff" : C.navy, fontWeight: 700, fontSize: 14 }}>
                   {INDUSTRY_LABELS[k]}
                 </button>
               );
@@ -4847,8 +4913,8 @@ function BrandSettings({ brand, updateBrand }) {
         </div>
 
         <div style={{ marginBottom: 16, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 12, padding: "13px" }}>
-          <div style={{ fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 4 }}>초안 축 이름 바꾸기 <span style={{ fontWeight: 500, color: C.muted }}>(주력에 맞게 · 선택)</span></div>
-          <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.5, marginBottom: 10 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 4 }}>초안 축 이름 바꾸기 <span style={{ fontWeight: 500, color: C.muted }}>(주력에 맞게 · 선택)</span></div>
+          <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.5, marginBottom: 10 }}>
             예: 행정사면 "업무 정보"를 "비자 정보"나 "토지보상 정보"로. 비우면 기본 이름을 씁니다.
           </div>
           {(INDUSTRIES[form.industry || "moving"]).map((a) => {
@@ -4865,10 +4931,10 @@ function BrandSettings({ brand, updateBrand }) {
               <div key={a.id} style={{ marginBottom: 9 }}>
                 <input value={ov.name || ""} onChange={(e) => { setAxis("name", e.target.value); setSaved(false); }}
                   placeholder={`${a.name} (기본)`}
-                  style={{ width: "100%", padding: "9px 11px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 13.5, fontWeight: 700, marginBottom: 5 }} />
+                  style={{ width: "100%", padding: "9px 11px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14.5, fontWeight: 700, marginBottom: 5 }} />
                 <input value={ov.note || ""} onChange={(e) => { setAxis("note", e.target.value); setSaved(false); }}
                   placeholder="이 축 설명·주력 (예: 외국인 비자·체류·귀화 전문)"
-                  style={{ width: "100%", padding: "8px 11px", borderRadius: 9, border: `1px solid ${C.line}`, fontSize: 12, color: C.text }} />
+                  style={{ width: "100%", padding: "8px 11px", borderRadius: 9, border: `1px solid ${C.line}`, fontSize: 14, color: C.text }} />
               </div>
             );
           })}
@@ -4883,22 +4949,22 @@ function BrandSettings({ brand, updateBrand }) {
         <Note tone="tip"><Sparkles size={15} style={{ flexShrink: 0, marginTop: 1 }} /> <span>화면 글씨가 작으면 <b>맨 위 오른쪽 [ㄱ ㄱ] 버튼</b>으로 키우세요. <b>폰과 PC가 각각 따로 기억</b>됩니다.</span></Note>
 
         <div style={{ marginTop: 4 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
             <FileText size={15} /> 회사 사실 정보 <span style={{ fontWeight: 500, color: C.muted }}>(AI가 모든 글을 이 사실대로 씁니다)</span>
           </div>
-          <div style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, marginBottom: 8 }}>
+          <div style={{ fontSize: 14.5, color: C.muted, lineHeight: 1.55, marginBottom: 8 }}>
             여기 적은 사실만 AI가 사용합니다. 서비스·경력·강점·가격 정책·하지 말 표현 등을 적어두면, 글이 현장과 맞고 정확해집니다.
           </div>
           <textarea value={form.facts || ""} onChange={(e) => set("facts", e.target.value)} rows={8}
             placeholder={"- 하는 일: 포장이사 + 새집 입주청소 무료 (이사 맡기면 입주청소 공짜)\n- 청소는 '이사 후 헌집'이 아니라 '새로 들어갈 집 입주청소'\n- 경력: 이사 15년, 입주청소 무료 9년\n- 강점: 보양 꼼꼼, 가전 테스트, 직원 직접 시공\n- 금지: '업계 1위' 과장, 거짓 할인, '이사 후 청소' 표현"}
-            style={{ width: "100%", padding: "12px 14px", borderRadius: 11, border: `1.5px solid ${dirty ? C.coral + "66" : C.line}`, fontSize: 13.5, lineHeight: 1.7 }} />
+            style={{ width: "100%", padding: "12px 14px", borderRadius: 11, border: `1.5px solid ${dirty ? C.coral + "66" : C.line}`, fontSize: 14.5, lineHeight: 1.7 }} />
         </div>
 
         <div style={{ marginBottom: 4 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
-            <FileText size={15} /> 발행 채널 <span style={{ fontWeight: 700, color: "#B8791C", background: "#FDF3E2", borderRadius: 6, padding: "2px 7px", fontSize: 11 }}>클라우드에서 작동</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 7 }}>
+            <FileText size={15} /> 발행 채널 <span style={{ fontWeight: 700, color: "#B8791C", background: "#FDF3E2", borderRadius: 6, padding: "2px 7px", fontSize: 14 }}>클라우드에서 작동</span>
           </div>
-          <div style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, marginBottom: 9 }}>
+          <div style={{ fontSize: 14.5, color: C.muted, lineHeight: 1.55, marginBottom: 9 }}>
             네이버는 복사·붙여넣기(반자동)입니다. <b>워드프레스는 [발행]이 자동</b>으로 올라갑니다. 워드프레스 자동발행은 서버(클라우드) 배포 후 켜집니다 — 지금은 설정만 저장됩니다.
           </div>
           <div style={{ display: "flex", gap: 7, marginBottom: 10 }}>
@@ -4906,7 +4972,7 @@ function BrandSettings({ brand, updateBrand }) {
               const on = (form.channel || "naver") === k;
               return (
                 <button key={k} className="hd-btn" onClick={() => set("channel", k)}
-                  style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1.5px solid ${on ? C.coral : C.line}`, background: on ? C.coral : "#fff", color: on ? "#fff" : C.navy, fontWeight: 700, fontSize: 12.5 }}>
+                  style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1.5px solid ${on ? C.coral : C.line}`, background: on ? C.coral : "#fff", color: on ? "#fff" : C.navy, fontWeight: 700, fontSize: 14 }}>
                   {label}
                 </button>
               );
@@ -4914,15 +4980,15 @@ function BrandSettings({ brand, updateBrand }) {
           </div>
           {(form.channel || "naver") === "wordpress" && (
             <div style={{ background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 11, padding: "12px" }}>
-              <div style={{ fontSize: 11, color: C.muted, marginBottom: 8, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 14, color: C.muted, marginBottom: 8, lineHeight: 1.5 }}>
                 워드프레스 사이트 정보 (앱 비밀번호는 워드프레스 &gt; 사용자 &gt; 프로필에서 발급). 서버 배포 후 이 정보로 자동발행합니다.
               </div>
               <input value={form.wpUrl || ""} onChange={(e) => set("wpUrl", e.target.value)} placeholder="사이트 주소 (예: https://myshop.com)"
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 13, marginBottom: 7 }} />
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14, marginBottom: 7 }} />
               <input value={form.wpUser || ""} onChange={(e) => set("wpUser", e.target.value)} placeholder="사용자명"
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 13, marginBottom: 7 }} />
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14, marginBottom: 7 }} />
               <input value={form.wpAppPw || ""} onChange={(e) => set("wpAppPw", e.target.value)} placeholder="애플리케이션 비밀번호"
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 13 }} />
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14 }} />
             </div>
           )}
         </div>
@@ -4931,7 +4997,7 @@ function BrandSettings({ brand, updateBrand }) {
           style={{ marginTop: 18, width: "100%", padding: "14px", borderRadius: 12, border: "none", background: dirty ? C.coral : "#C7CED7", color: "#fff", fontWeight: 800, fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: dirty ? "pointer" : "default" }}>
           {!dirty && saved ? <><Check size={18} /> 저장됐습니다</> : <><Check size={18} /> 저장하기</>}
         </button>
-        {dirty && <div style={{ fontSize: 11.5, color: C.coralDark, textAlign: "center", marginTop: 8 }}>아직 저장 안 된 변경이 있습니다.</div>}
+        {dirty && <div style={{ fontSize: 14.5, color: C.coralDark, textAlign: "center", marginTop: 8 }}>아직 저장 안 된 변경이 있습니다.</div>}
       </Panel>
 
       {/* 미리보기 — 카드뉴스 하단 띠에 어떻게 박히는지 (입력 즉시 반영) */}
@@ -4940,7 +5006,7 @@ function BrandSettings({ brand, updateBrand }) {
         <div style={{ marginTop: 8, background: "#0F1B2E", borderRadius: 12, padding: "16px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: C.coral, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{form.slogan}</div>
-            <div style={{ fontSize: 12, color: "#9DB0C9", marginTop: 3 }}>{form.name}</div>
+            <div style={{ fontSize: 14, color: "#9DB0C9", marginTop: 3 }}>{form.name}</div>
           </div>
           <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", whiteSpace: "nowrap" }}>📞 {form.phone}</div>
         </div>
@@ -4962,7 +5028,7 @@ function roundRect(ctx, x, y, w, h, r) {
 
 // 발행 센터 '앱 열기' 버튼 공통 스타일
 function pubBtn() {
-  return { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px 8px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 13, textDecoration: "none", cursor: "pointer" };
+  return { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px 8px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 14, textDecoration: "none", cursor: "pointer" };
 }
 
 // 후기 카드 1080x1080 — 고객 별점·항목·한 줄 후기를 이미지 한 장으로 (사진 없는 날 시각 자료)
@@ -5178,11 +5244,11 @@ function CardNews({ title, body }) {
   return (
     <div style={{ marginTop: 12, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 12, padding: "13px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 800, color: C.navy }}>카드뉴스 {slides.length}장</span>
-        <span style={{ fontSize: 11.5, color: C.muted }}>· 인스타 정사각(1:1)</span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>카드뉴스 {slides.length}장</span>
+        <span style={{ fontSize: 14.5, color: C.muted }}>· 인스타 정사각(1:1)</span>
         <div style={{ flex: 1 }} />
         <button className="hd-btn" onClick={saveAll}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 800, color: "#fff", background: C.navy, border: "none", borderRadius: 9, padding: "8px 12px" }}>
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 800, color: "#fff", background: C.navy, border: "none", borderRadius: 9, padding: "8px 12px" }}>
           <Download size={15} /> 전체 저장
         </button>
       </div>
@@ -5192,13 +5258,13 @@ function CardNews({ title, body }) {
             <canvas ref={(el) => (refs.current[i] = el)} width={1080} height={1080}
               style={{ width: 168, height: 168, borderRadius: 12, border: `1px solid ${C.line}`, background: "#fff", display: "block" }} />
             <button className="hd-btn" onClick={() => saveOne(i)}
-              style={{ marginTop: 6, fontSize: 11.5, fontWeight: 700, color: C.navy, background: "#fff", border: `1.5px solid ${C.line}`, borderRadius: 8, padding: "4px 10px" }}>
+              style={{ marginTop: 6, fontSize: 14.5, fontWeight: 700, color: C.navy, background: "#fff", border: `1.5px solid ${C.line}`, borderRadius: 8, padding: "4px 10px" }}>
               저장
             </button>
           </div>
         ))}
       </div>
-      <div style={{ fontSize: 11, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 14, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
         저장하면 폰 갤러리에 들어갑니다 → 인스타에 여러 장으로 올리세요. 모든 카드에 슬로건·전화번호가 자동으로 박힙니다.
       </div>
     </div>
@@ -5405,10 +5471,10 @@ function InstaCards({ card }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
         <ImageIcon size={17} color={C.coral} />
         <span style={{ fontSize: 14.5, fontWeight: 800, color: C.navy }}>카드 {slides.length}장</span>
-        <span style={{ fontSize: 11.5, color: C.muted }}>· 1080×1080 (1:1)</span>
+        <span style={{ fontSize: 14.5, color: C.muted }}>· 1080×1080 (1:1)</span>
         <div style={{ flex: 1 }} />
         <button className="hd-btn" onClick={saveAll}
-          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 800, color: "#fff", background: C.navy, border: "none", borderRadius: 9, padding: "9px 13px" }}>
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 800, color: "#fff", background: C.navy, border: "none", borderRadius: 9, padding: "9px 13px" }}>
           <Download size={15} /> 전체 저장
         </button>
       </div>
@@ -5418,13 +5484,13 @@ function InstaCards({ card }) {
             <canvas ref={(el) => (refs.current[i] = el)} width={1080} height={1080}
               style={{ width: 178, height: 178, borderRadius: 12, border: `1px solid ${C.line}`, background: "#fff", display: "block" }} />
             <button className="hd-btn" onClick={() => saveOne(i)}
-              style={{ marginTop: 6, fontSize: 11.5, fontWeight: 700, color: C.navy, background: "#fff", border: `1.5px solid ${C.line}`, borderRadius: 8, padding: "4px 12px" }}>
+              style={{ marginTop: 6, fontSize: 14.5, fontWeight: 700, color: C.navy, background: "#fff", border: `1.5px solid ${C.line}`, borderRadius: 8, padding: "4px 12px" }}>
               {i + 1}장 저장
             </button>
           </div>
         ))}
       </div>
-      <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 14.5, color: C.muted, marginTop: 10, lineHeight: 1.6 }}>
         저장하면 폰 갤러리에 들어갑니다 → 인스타에서 <b>순서대로 선택</b>해 여러 장으로 올리세요.
         모든 카드에 슬로건·전화번호가 자동으로 박힙니다.
       </div>
@@ -5437,7 +5503,7 @@ function KeywordManager({ keywords, addKeyword, removeKeyword, noteKeyword }) {
   return (
     <div className="hd-fade" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 14, padding: "14px 15px" }}>
-        <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6, marginBottom: 10 }}>
+        <div style={{ fontSize: 14, color: C.text, lineHeight: 1.6, marginBottom: 10 }}>
           <b>실제 검색량·경쟁도를 보고</b> 키워드를 고르세요. 아래 지역 키워드를 복사해 도구에 붙여넣으면 <b>월 검색량·문서수·포화도</b>가 보입니다. (검색량 많고 문서수 적은 = 블루오션)
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 7, marginBottom: 12 }}>
@@ -5451,7 +5517,7 @@ function KeywordManager({ keywords, addKeyword, removeKeyword, noteKeyword }) {
           <a href="https://datalab.naver.com/keyword/trendSearch.naver" target="_blank" rel="noreferrer" style={pubBtn()}>📈 네이버 데이터랩</a>
           <a href="https://searchad.naver.com" target="_blank" rel="noreferrer" style={pubBtn()}>🟢 네이버 키워드도구</a>
         </div>
-        <div style={{ fontSize: 11, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 14, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
           위 지역 키워드를 <b>복사</b> → 도구 열고 <b>붙여넣기</b>. 블랙키위·키워드마스터는 무료 조회 횟수 제한이 있어요. 좋은 키워드는 아래 축별로 저장하면 초안 생성에서 바로 쓸 수 있습니다.
         </div>
       </div>
@@ -5470,18 +5536,18 @@ function AxisKeywords({ axis, list, addKeyword, removeKeyword, noteKeyword }) {
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <span style={{ width: 9, height: 9, borderRadius: 9, background: axis.color }} />
         <span style={{ fontWeight: 800, fontSize: 15 }}>{axis.name}</span>
-        <span style={{ fontSize: 11.5, color: C.muted }}>· {list.length}개</span>
+        <span style={{ fontSize: 14.5, color: C.muted }}>· {list.length}개</span>
       </div>
 
       {list.length === 0 ? (
-        <div style={{ fontSize: 12.5, color: C.muted, padding: "4px 0 12px" }}>아직 저장된 키워드가 없습니다. 아래에서 추가하세요.</div>
+        <div style={{ fontSize: 14, color: C.muted, padding: "4px 0 12px" }}>아직 저장된 키워드가 없습니다. 아래에서 추가하세요.</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
           {list.map((kw) => (
             <div key={kw.w} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: axis.color, background: `${axis.color}14`, borderRadius: 8, padding: "7px 11px", whiteSpace: "nowrap" }}>{kw.w}</span>
+              <span style={{ fontSize: 14.5, fontWeight: 700, color: axis.color, background: `${axis.color}14`, borderRadius: 8, padding: "7px 11px", whiteSpace: "nowrap" }}>{kw.w}</span>
               <input value={kw.note} onChange={(e) => noteKeyword(axis.id, kw.w, e.target.value)} placeholder="메모 (예: 검색량 많음)"
-                style={{ flex: 1, minWidth: 0, padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${C.line}`, fontSize: 12.5 }} />
+                style={{ flex: 1, minWidth: 0, padding: "7px 10px", borderRadius: 8, border: `1.5px solid ${C.line}`, fontSize: 14 }} />
               <button className="hd-btn" onClick={() => removeKeyword(axis.id, kw.w)} title="삭제"
                 style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, border: "none", background: "#FDECEA", color: "#C0392B", display: "grid", placeItems: "center" }}><Trash2 size={15} /></button>
             </div>
@@ -5492,9 +5558,9 @@ function AxisKeywords({ axis, list, addKeyword, removeKeyword, noteKeyword }) {
       <div style={{ display: "flex", gap: 8 }}>
         <input value={val} onChange={(e) => setVal(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") add(); }}
           placeholder="키워드 추가 (쉼표로 여러 개)"
-          style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 13.5 }} />
+          style={{ flex: 1, padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14.5 }} />
         <button className="hd-btn" onClick={add}
-          style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: axis.color, color: "#fff", fontWeight: 800, fontSize: 13.5, whiteSpace: "nowrap" }}>추가</button>
+          style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: axis.color, color: "#fff", fontWeight: 800, fontSize: 14.5, whiteSpace: "nowrap" }}>추가</button>
       </div>
     </div>
   );
@@ -5513,7 +5579,7 @@ function BlogPreview({ title, body }) {
           return <div key={i} style={{ fontSize: 14.5, fontWeight: 700, color: C.coralDark, background: "#FFF1EE", borderLeft: `3px solid ${C.coral}`, borderRadius: "0 8px 8px 0", padding: "9px 12px", margin: "10px 0", lineHeight: 1.6 }}>{b.text}</div>;
         if (b.t === "img")
           return (
-            <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 12.5, fontWeight: 700, color: C.muted, background: "#F4F6F9", border: `1.5px dashed ${C.line}`, borderRadius: 10, padding: "16px 12px", margin: "11px 0" }}>
+            <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 14, fontWeight: 700, color: C.muted, background: "#F4F6F9", border: `1.5px dashed ${C.line}`, borderRadius: 10, padding: "16px 12px", margin: "11px 0" }}>
               <ImageIcon size={16} /> 여기에 「{b.text}」 사진
             </div>
           );
@@ -5532,7 +5598,7 @@ function CopyButton({ getText, label = "본문 복사", full }) {
   };
   return (
     <button className="hd-btn" onClick={onClick}
-      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, width: full ? "100%" : "auto", padding: "11px 14px", borderRadius: 11, border: "none", background: done ? "#1E7A6B" : C.navy, color: "#fff", fontWeight: 800, fontSize: 13.5 }}>
+      style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, width: full ? "100%" : "auto", padding: "11px 14px", borderRadius: 11, border: "none", background: done ? "#1E7A6B" : C.navy, color: "#fff", fontWeight: 800, fontSize: 14.5 }}>
       {done ? <><Check size={16} /> 복사됨</> : <><Copy size={16} /> {label}</>}
     </button>
   );
@@ -5544,17 +5610,17 @@ function ManualCopy({ title, body }) {
   return (
     <div style={{ marginTop: 8 }}>
       <button className="hd-btn" onClick={() => setOpen((v) => !v)}
-        style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 10, border: `1.5px solid ${C.line}`, background: "#fff", color: C.muted, fontWeight: 700, fontSize: 12 }}>
+        style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px", borderRadius: 10, border: `1.5px solid ${C.line}`, background: "#fff", color: C.muted, fontWeight: 700, fontSize: 14 }}>
         {open ? "직접 복사 닫기" : "복사가 안 되면? 직접 복사 열기"}
       </button>
       {open && (
         <div style={{ marginTop: 8 }}>
-          <div style={{ fontSize: 11, color: C.muted, marginBottom: 5 }}>제목 (길게 눌러 전체 선택 → 복사)</div>
+          <div style={{ fontSize: 14, color: C.muted, marginBottom: 5 }}>제목 (길게 눌러 전체 선택 → 복사)</div>
           <textarea readOnly value={title} rows={2} onFocus={(e) => e.target.select()}
-            style={{ width: "100%", padding: "9px 11px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 13, marginBottom: 8 }} />
-          <div style={{ fontSize: 11, color: C.muted, marginBottom: 5 }}>본문 (길게 눌러 전체 선택 → 복사)</div>
+            style={{ width: "100%", padding: "9px 11px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14, marginBottom: 8 }} />
+          <div style={{ fontSize: 14, color: C.muted, marginBottom: 5 }}>본문 (길게 눌러 전체 선택 → 복사)</div>
           <textarea readOnly value={body} rows={10} onFocus={(e) => e.target.select()}
-            style={{ width: "100%", padding: "10px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 13, lineHeight: 1.6 }} />
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6 }} />
         </div>
       )}
     </div>
@@ -5582,10 +5648,10 @@ function PublishBoard() {
       <Panel>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
           <div style={{ fontSize: 17, fontWeight: 800 }}>발행 대장</div>
-          <span style={{ fontSize: 12, color: C.muted, marginLeft: 10 }}>시트 저장 · 폰·PC 공유</span>
+          <span style={{ fontSize: 14, color: C.muted, marginLeft: 10 }}>시트 저장 · 폰·PC 공유</span>
           <button className="hd-btn" onClick={reload} style={{ marginLeft: "auto", ...pubBtn(), padding: "8px 12px" }}><RefreshCw size={15} /> 새로고침</button>
         </div>
-        <div style={{ fontSize: 12, color: C.muted, marginBottom: 14, lineHeight: 1.5 }}>초안을 만들어 <b>[검수 큐에 담기]</b>를 누르면 여기(구글 시트)에 저장됩니다. 어느 기기에서 만들었든 같은 목록이 보이고, 여기서 모든 채널로 발행합니다.</div>
+        <div style={{ fontSize: 14, color: C.muted, marginBottom: 14, lineHeight: 1.5 }}>초안을 만들어 <b>[검수 큐에 담기]</b>를 누르면 여기(구글 시트)에 저장됩니다. 어느 기기에서 만들었든 같은 목록이 보이고, 여기서 모든 채널로 발행합니다.</div>
         {loading ? (
           <div style={{ textAlign: "center", color: C.muted, padding: 30 }}>불러오는 중…</div>
         ) : posts.length === 0 ? (
@@ -5599,7 +5665,7 @@ function PublishBoard() {
                 <div key={p.id} style={{ border: `1px solid ${C.line}`, borderRadius: 12, overflow: "hidden" }}>
                   <button className="hd-btn" onClick={() => setOpenId(open ? "" : p.id)} style={{ width: "100%", textAlign: "left", background: "#fff", border: "none", padding: "12px 14px", cursor: "pointer" }}>
                     <div style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>{p.title || "(제목 없음)"}</div>
-                    <div style={{ fontSize: 11.5, color: C.muted, marginTop: 4 }}>
+                    <div style={{ fontSize: 14.5, color: C.muted, marginTop: 4 }}>
                       {(p.created_at || "").slice(0, 10)}{p.region ? " · " + p.region : ""}{p.axis ? " · " + p.axis : ""}{"   "}
                       {done("ch_blog") ? "📗" : ""}{done("ch_insta") ? "📸" : ""}{done("ch_reels") ? "🎬" : ""}{done("ch_thread") ? "🧵" : ""}
                     </div>
@@ -5614,10 +5680,10 @@ function PublishBoard() {
                       </div>
                       {splitPipe(p.covers).length > 0 && (
                         <div style={{ marginTop: 10 }}>
-                          <div style={{ fontSize: 12, fontWeight: 800, color: C.navy, marginBottom: 5 }}>카드뉴스 표지 문구</div>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 5 }}>카드뉴스 표지 문구</div>
                           {splitPipe(p.covers).map((cv, i) => (
                             <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 5 }}>
-                              <div style={{ flex: 1, fontSize: 12.5, background: "#F4F7FB", border: `1px solid ${C.line}`, borderRadius: 8, padding: "7px 10px" }}>{cv}</div>
+                              <div style={{ flex: 1, fontSize: 14, background: "#F4F7FB", border: `1px solid ${C.line}`, borderRadius: 8, padding: "7px 10px" }}>{cv}</div>
                               <CopyButton getText={() => cv} label="복사" />
                             </div>
                           ))}
@@ -5629,11 +5695,11 @@ function PublishBoard() {
                         <a href="https://www.threads.net/" target="_blank" rel="noreferrer" style={pubBtn()}>🧵 스레드 열기</a>
                         <a href="https://www.instagram.com/reels/" target="_blank" rel="noreferrer" style={pubBtn()}>🎬 릴스</a>
                       </div>
-                      <div style={{ marginTop: 12, fontSize: 12, fontWeight: 800, color: C.navy, marginBottom: 6 }}>올린 채널 체크 (시트에 기록)</div>
+                      <div style={{ marginTop: 12, fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 6 }}>올린 채널 체크 (시트에 기록)</div>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                         {[["블로그", "ch_blog"], ["인스타", "ch_insta"], ["릴스", "ch_reels"], ["스레드", "ch_thread"]].map((pair) => (
                           <button key={pair[1]} className="hd-btn" onClick={() => markCh(p, pair[0])}
-                            style={{ padding: "8px 14px", borderRadius: 999, border: `1.5px solid ${done(pair[1]) ? "#2E9E8F" : C.line}`, background: done(pair[1]) ? "#E7F6F1" : "#fff", color: done(pair[1]) ? "#1E7A6B" : C.navy, fontWeight: 800, fontSize: 12.5 }}>
+                            style={{ padding: "8px 14px", borderRadius: 999, border: `1.5px solid ${done(pair[1]) ? "#2E9E8F" : C.line}`, background: done(pair[1]) ? "#E7F6F1" : "#fff", color: done(pair[1]) ? "#1E7A6B" : C.navy, fontWeight: 800, fontSize: 14 }}>
                             {done(pair[1]) ? "✓ " : "+ "}{pair[0]}
                           </button>
                         ))}
@@ -5654,32 +5720,32 @@ function Panel({ children }) {
   return <div style={{ background: C.card, borderRadius: 18, border: `1px solid ${C.line}`, padding: 20, boxShadow: "0 1px 3px rgba(21,36,59,.04)" }}>{children}</div>;
 }
 function Label({ children, style }) {
-  return <div style={{ fontSize: 12.5, fontWeight: 800, color: C.navy, letterSpacing: ".02em", ...style }}>{children}</div>;
+  return <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, letterSpacing: ".02em", ...style }}>{children}</div>;
 }
 function SectionTitle({ icon: Icon, children, style }) {
-  return <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 800, color: C.muted, ...style }}><Icon size={15} /> {children}</div>;
+  return <div style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 14, fontWeight: 800, color: C.muted, ...style }}><Icon size={15} /> {children}</div>;
 }
 function Divider() { return <div style={{ height: 1, background: C.line, margin: "16px 0" }} />; }
 function Chip({ children }) {
-  return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11.5, fontWeight: 700, color: C.navy2, background: "#EEF2F7", borderRadius: 999, padding: "3px 9px" }}>{children}</span>;
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 14.5, fontWeight: 700, color: C.navy2, background: "#EEF2F7", borderRadius: 999, padding: "3px 9px" }}>{children}</span>;
 }
 function TagRow({ tags }) {
   if (!tags || !tags.length) return null;
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 11 }}>
       {tags.map((t, i) => (
-        <span key={i} style={{ fontSize: 11.5, color: "#5A6B80", background: "#F1F4F8", borderRadius: 7, padding: "3px 8px" }}>{t.startsWith("#") ? t : "#" + t}</span>
+        <span key={i} style={{ fontSize: 14.5, color: "#5A6B80", background: "#F1F4F8", borderRadius: 7, padding: "3px 8px" }}>{t.startsWith("#") ? t : "#" + t}</span>
       ))}
     </div>
   );
 }
 function StatusPill({ st }) {
-  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11.5, fontWeight: 800, color: st.fg, background: st.bg, borderRadius: 999, padding: "4px 10px", whiteSpace: "nowrap" }}>
+  return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 14.5, fontWeight: 800, color: st.fg, background: st.bg, borderRadius: 999, padding: "4px 10px", whiteSpace: "nowrap" }}>
     <span style={{ width: 6, height: 6, borderRadius: 6, background: st.dot }} /> {st.label}
   </span>;
 }
 function Act({ children, onClick, color, bg }) {
-  return <button className="hd-btn" onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color, background: bg, border: "none", borderRadius: 9, padding: "8px 12px" }}>{children}</button>;
+  return <button className="hd-btn" onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 14, fontWeight: 700, color, background: bg, border: "none", borderRadius: 9, padding: "8px 12px" }}>{children}</button>;
 }
 function IconBtn({ children, onClick }) {
   return <button className="hd-btn" onClick={onClick} style={{ width: 34, height: 34, borderRadius: 9, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, display: "grid", placeItems: "center" }}>{children}</button>;
@@ -5687,7 +5753,7 @@ function IconBtn({ children, onClick }) {
 function Note({ children, tone = "tip", center }) {
   const map = { tip: { bg: "#FFF8EC", fg: "#8A6418" }, error: { bg: "#FDECEA", fg: "#B23A2E" }, ok: { bg: "#E7F6F1", fg: "#1E7A6B" } };
   const t = map[tone];
-  return <div style={{ display: "flex", gap: 8, alignItems: center ? "center" : "flex-start", justifyContent: center ? "center" : "flex-start", background: t.bg, color: t.fg, borderRadius: 11, padding: "11px 13px", fontSize: 13, lineHeight: 1.55, marginTop: 14 }}>{children}</div>;
+  return <div style={{ display: "flex", gap: 8, alignItems: center ? "center" : "flex-start", justifyContent: center ? "center" : "flex-start", background: t.bg, color: t.fg, borderRadius: 11, padding: "11px 13px", fontSize: 14, lineHeight: 1.55, marginTop: 14 }}>{children}</div>;
 }
 function Empty({ title, body, action }) {
   return (
@@ -5696,7 +5762,7 @@ function Empty({ title, body, action }) {
         <Inbox size={26} color={C.navy2} />
       </div>
       <div style={{ fontSize: 16, fontWeight: 800 }}>{title}</div>
-      <div style={{ fontSize: 13.5, color: C.muted, marginTop: 6, marginBottom: 18 }}>{body}</div>
+      <div style={{ fontSize: 14.5, color: C.muted, marginTop: 6, marginBottom: 18 }}>{body}</div>
       {action}
     </div>
   );
