@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v4.8 · 0811-0925";
+const APP_VER = "v6 · 0811-1340";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -110,16 +110,24 @@ async function logPublish(rec) {
     await window.storage.set(HISTORY_KEY, JSON.stringify(list.slice(0, 800)));
   } catch {}
 }
-// 발행 대장(초안) — 후기와 같은 GAS 웹앱에 저장/조회 (폰·PC 어디서든 같은 목록)
+// 발행 대장(초안) — 전용 GAS 웹앱에 저장/조회 (폰·PC 어디서든 같은 목록)
+// 주소는 [설정] > 발행대장 주소 에서 넣는다. 비어 있으면 시트 공유가 꺼진 상태로 동작한다.
+function postsUrl() {
+  const u = (BRAND.postsUrl || "").trim();
+  return u || "";
+}
 async function savePostToSheet(post) {
-  try { await fetch(REVIEW_GAS_URL, { method: "POST", body: JSON.stringify({ kind: "post", data: post }) }); } catch {}
+  const u = postsUrl(); if (!u) return;
+  try { await fetch(u, { method: "POST", body: JSON.stringify({ kind: "post", data: post }) }); } catch {}
 }
 async function updatePostOnSheet(patch) {
-  try { await fetch(REVIEW_GAS_URL, { method: "POST", body: JSON.stringify({ kind: "post_update", data: patch }) }); } catch {}
+  const u = postsUrl(); if (!u) return;
+  try { await fetch(u, { method: "POST", body: JSON.stringify({ kind: "post_update", data: patch }) }); } catch {}
 }
 async function fetchPostsFromSheet() {
+  const u = postsUrl(); if (!u) return [];
   try {
-    const r = await fetch(REVIEW_GAS_URL + "?tab=posts&key=" + encodeURIComponent(REVIEW_GAS_KEY));
+    const r = await fetch(u + "?tab=posts&key=" + encodeURIComponent(REVIEW_GAS_KEY));
     const j = await r.json();
     return (j && j.ok && Array.isArray(j.rows)) ? j.rows : [];
   } catch { return []; }
@@ -954,7 +962,10 @@ const SHOOTABLE = "실제 이사 현장, 사다리차, 포장 과정, 트럭 적
 // AI 오류 → 사람이 읽는 문구 (초안 생성과 동일한 규칙)
 function aiErrMsg(e, fallback) {
   const em = e && e.message ? e.message : "";
-  if (em === "CONNECT") return "AI 서버에 연결하지 못했습니다. (미리보기 화면에서는 AI가 원래 작동하지 않습니다. 배포된 주소 marketinglink.vercel.app에서 시도하세요.)";
+  if (em === "CONNECT" || em.indexOf("CONNECT:") === 0) {
+    const why = em.indexOf("CONNECT:") === 0 ? em.slice(8) : "";
+    return "AI 서버에 연결하지 못했습니다." + (why ? " — " + why : "") + " (배포된 주소 marketinglink.vercel.app 에서 시도하세요. 폰에서는 생성 중에 화면을 끄지 마세요.)";
+  }
   if (em.startsWith("SERVER:")) return "서버 응답 오류 — " + em.slice(7) + " (키 미설정이면 'ANTHROPIC_API_KEY' 확인, 크레딧 관련이면 결제 필요)";
   return fallback;
 }
@@ -1087,6 +1098,7 @@ const BRAND = {
   industry: "moving",
   channel: "naver",
   linkUrl: "",
+  postsUrl: "",
   timeline: "",
   wpUrl: "",
   wpUser: "",
@@ -1115,16 +1127,25 @@ function cardSlides(title, body) {
 async function aiComplete({ messages, max_tokens = 2000, system }) {
   // 1) 배포 서버 프록시
   let serverErr = null;
+  let why = "";                       // 폰에서 왜 실패했는지 남긴다
+  const here = (typeof location !== "undefined" ? location.origin : "");
   try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 120000);   // 2분
     const res = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ model: "claude-sonnet-5", max_tokens, system, messages }),
+      signal: ctl.signal,
     });
+    clearTimeout(timer);
     if (res.ok) {
       const d = await res.json();
       if (d && d.content) return d;
-    } else if (res.status !== 404) {
+      why = "서버가 답을 줬는데 내용이 비어 있습니다.";
+    } else if (res.status === 404) {
+      why = "이 주소에 AI 서버(/api/generate)가 없습니다. 접속 주소 확인 필요 — " + here;
+    } else {
       let em = "";
       try {
         const ed = await res.json();
@@ -1132,7 +1153,16 @@ async function aiComplete({ messages, max_tokens = 2000, system }) {
       } catch {}
       serverErr = new Error("SERVER:" + (em || ("HTTP " + res.status)));
     }
-  } catch { /* fetch 실패 → 아래 폴백 */ }
+  } catch (e) {
+    const nm = e && e.name ? e.name : "";
+    if (nm === "AbortError") {
+      why = "2분을 기다렸는데 답이 오지 않아 중단했습니다. 화면을 끄거나 다른 앱으로 넘어가면 요청이 끊깁니다.";
+    } else if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      why = "인터넷이 끊겨 있습니다.";
+    } else {
+      why = "AI 서버에 닿지 못했습니다. (접속 주소: " + here + ")";
+    }
+  }
   // 2) claude.ai 아티팩트(미리보기) 직접 호출 — 키 불필요
   try {
     const res2 = await fetch("https://api.anthropic.com/v1/messages", {
@@ -1145,9 +1175,8 @@ async function aiComplete({ messages, max_tokens = 2000, system }) {
       if (d2 && d2.content) return d2;
     }
   } catch { /* 미리보기 아님 */ }
-  // 서버가 명확한 오류를 준 경우 그 메시지를 우선 노출, 아니면 연결 실패
   if (serverErr) throw serverErr;
-  throw new Error("CONNECT");
+  throw new Error("CONNECT:" + (why || ("접속 주소: " + here)));
 }
 
 async function generateDraft(axis, hint, extra = {}) {
@@ -1845,7 +1874,7 @@ export default function App() {
 
       <footer style={{ maxWidth: 1080, margin: "0 auto", padding: "2px 22px 22px", textAlign: "center" }}>
         <span style={{ fontSize: 11, color: C.muted, letterSpacing: ".02em" }}>
-          마케팅링크 {APP_VER} · 24LINK
+          {APP_VER}
         </span>
       </footer>
     </div>
@@ -2672,8 +2701,8 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
     } catch (e) {
       const em = e && e.message ? e.message : "";
       setError(
-        em === "CONNECT"
-          ? "AI 서버에 연결하지 못했습니다. (미리보기 화면에서는 AI가 원래 작동하지 않습니다. 배포된 주소 marketinglink.vercel.app에서 시도하세요.)"
+        (em === "CONNECT" || em.indexOf("CONNECT:") === 0)
+          ? "AI 서버에 연결하지 못했습니다." + (em.indexOf("CONNECT:") === 0 && em.slice(8) ? " — " + em.slice(8) : "") + " (배포된 주소 marketinglink.vercel.app 에서 시도하세요. 폰에서는 생성 중에 화면을 끄지 마세요.)"
           : em.startsWith("SERVER:")
           ? "서버 응답 오류 — " + em.slice(7) + " (키 미설정이면 'ANTHROPIC_API_KEY' 확인, 크레딧 관련이면 결제 필요)"
           : "초안은 받았는데 형식이 살짝 어긋났습니다. [초안 생성]을 한 번 더 눌러 주세요."
@@ -4763,6 +4792,7 @@ function BrandSettings({ brand, updateBrand }) {
         {field("phone", "전화번호", Phone, "010-6407-2424")}
         {field("region", "사업 지역", MapPin, "대전, 세종, 옥천, 금산, 부여, 계룡")}
         {field("linkUrl", "견적·상담 링크", Globe, "예: https://... (비워두면 '프로필 링크'로 안내합니다)")}
+        {field("postsUrl", "발행대장 주소", Send, "발행대장 GAS 웹앱 주소 — 넣으면 폰·PC 검수 큐가 같아집니다")}
         <Note tone="tip"><Sparkles size={15} style={{ flexShrink: 0, marginTop: 1 }} /> <span>화면 글씨가 작으면 <b>맨 위 오른쪽 [ㄱ ㄱ] 버튼</b>으로 키우세요. <b>폰과 PC가 각각 따로 기억</b>됩니다.</span></Note>
 
         <div style={{ marginTop: 4 }}>
