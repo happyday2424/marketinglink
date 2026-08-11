@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v12 · 0811-1425";
+const APP_VER = "v13 · 0811-1435";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -312,7 +312,7 @@ function mapSheetPost(row) {
   return {
     id: String(row.id),
     axis: ({ "정보": "info", "이사하면서": "story", "후기": "review", "맛집": "food" }[row.axis]) || row.axis || "info",
-    status: row.status || "검수중",
+    status: (row.status === "발행" || row.status === "발행완료") ? "완료" : (row.status || "검수중"),
     createdAt: row.created_at || row.createdAt || todayStr(),
     scheduledDate: row.scheduled_date || row.scheduledDate || "",
     keyword: row.keyword || "",
@@ -3100,9 +3100,9 @@ function DraftView({ draft, axis }) {
 
 /* ---------------------------- QUEUE ------------------------------ */
 function Queue({ queue, update, remove, go, sendTo, reload, syncMsg }) {
-  const [filter, setFilter] = useState("전체");
-  const filters = ["전체", "검수중", "발행대기", "보류", "완료"];
-  const list = filter === "전체" ? queue : queue.filter((d) => d.status === filter);
+  const [filter, setFilter] = useState("검수중");
+  const filters = ["검수중", "발행대기", "보류", "완료"];
+  const list = queue.filter((d) => (d.status || "검수중") === filter);
 
   if (queue.length === 0)
     return (
@@ -3125,6 +3125,7 @@ function Queue({ queue, update, remove, go, sendTo, reload, syncMsg }) {
         </span>
       </div>
       <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.6 }}>
+        여기는 <b>손봐야 할 글만</b> 봅니다. 발행이 끝난 글은 <b>[완료]</b>에, <b>전체 목록은 [발행 대장]</b>에 있습니다.<br />
         고친 내용은 <b>따로 저장 버튼을 누르지 않아도 자동으로 저장</b>됩니다. 손을 멈추면 1~2초 뒤 위에 <b>[모든 기기에 저장됨]</b>이 뜹니다.
       </div>
       <TodayTasks queue={queue} update={update} remove={remove} />
@@ -5639,8 +5640,8 @@ function PublishBoard() {
   const splitPipe = (s) => (s ? String(s).split("|").map((t) => t.trim()).filter(Boolean) : []);
   const markCh = async (post, label) => {
     const field = { "블로그": "ch_blog", "인스타": "ch_insta", "릴스": "ch_reels", "스레드": "ch_thread" }[label];
-    setPosts((v) => v.map((x) => x.id === post.id ? { ...x, [field]: "Y", status: "발행" } : x));
-    await updatePostOnSheet({ id: post.id, [field]: "Y", status: "발행" });
+    setPosts((v) => v.map((x) => x.id === post.id ? { ...x, [field]: "Y", status: "완료" } : x));
+    await updatePostOnSheet({ id: post.id, [field]: "Y", status: "완료" });
     logPublish({ title: post.title || "(제목 없음)", region: post.region || "", axis: post.axis || "", channel: label });
   };
   return (
