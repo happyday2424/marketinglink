@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v13 · 0811-1435";
+const APP_VER = "v14 · 0811-1455";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -302,6 +302,18 @@ function toSheetPatch(patch) {
     out[to] = Array.isArray(v) ? v.join(", ") : (v === undefined || v === null ? "" : v);
   }
   return out;
+}
+
+// 기기에만 있는 글을 시트로 올린다 (시트에 없던 옛 글도 이때 올라간다)
+function queueItemToSheet(d) {
+  return {
+    id: d.id, region: d.region || "", axis: AXIS_LABEL[d.axis] || d.axis || "",
+    keyword: d.keyword || "", title: d.blogTitle || "", body: d.blogBody || "",
+    insta_caption: d.instaCaption || "", hashtags: d.hashtags || [], covers: d.covers || [],
+    thread: d.thread || "", status: d.status || "검수중",
+    scheduled_date: d.scheduledDate || "", src: d.srcLabel || "",
+    created_at: d.createdAt || "",
+  };
 }
 
 // 시트 행 → 검수 큐 항목 (폰·PC 공유용)
@@ -1622,7 +1634,11 @@ export default function App() {
       (async () => {
         try {
           const rows = await fetchPostsFromSheet();
-          const sheetPosts = rows.map(mapSheetPost).filter(Boolean);
+          const onSheet = {};
+          rows.forEach((r) => { if (r && r.id) onSheet[String(r.id)] = 1; });
+          for (const d of q) { if (!onSheet[String(d.id)]) await savePostToSheet(queueItemToSheet(d)); }
+          const fresh = await fetchPostsFromSheet();
+          const sheetPosts = fresh.map(mapSheetPost).filter(Boolean);
           if (sheetPosts.length) setQueue((prev) => mergePosts(sheetPosts, prev));
         } catch { /* 시트를 못 읽으면 기기 저장분만 사용 */ }
       })();
@@ -1780,6 +1796,7 @@ export default function App() {
   const pushBuf = useRef({});
   const pushTimer = useRef({});
   const [syncMsg, setSyncMsg] = useState("");
+  const queueRef = useRef([]);
   const pushToSheet = useCallback((id, patch) => {
     const part = toSheetPatch(patch);
     if (!Object.keys(part).length) return;
@@ -1794,19 +1811,35 @@ export default function App() {
     }, 1500);
   }, []);
 
+  useEffect(() => { queueRef.current = queue; }, [queue]);
+
   const update = useCallback((id, patch) => {
     setQueue((q) => q.map((d) => (d.id === id ? { ...d, ...patch } : d)));
     pushToSheet(id, patch);
   }, [pushToSheet]);
+  // 시트와 양방향으로 맞춘다. 내려받고, 이 기기에만 있던 글은 올린다.
   const reloadFromSheet = useCallback(async () => {
-    setSyncMsg("불러오는 중…");
+    setSyncMsg("맞추는 중…");
     try {
       const rows = await fetchPostsFromSheet();
-      const sheetPosts = rows.map(mapSheetPost).filter(Boolean);
+      const onSheet = {};
+      rows.forEach((r) => { if (r && r.id) onSheet[String(r.id)] = 1; });
+
+      // ① 이 기기에만 있는 글을 시트로 올린다
+      let up = 0;
+      const mine = queueRef.current || [];
+      for (const d of mine) {
+        if (!onSheet[String(d.id)]) { await savePostToSheet(queueItemToSheet(d)); up++; }
+      }
+
+      // ② 시트 것을 내려받아 합친다
+      const fresh = up > 0 ? await fetchPostsFromSheet() : rows;
+      const sheetPosts = fresh.map(mapSheetPost).filter(Boolean);
       if (sheetPosts.length) setQueue((prev) => mergePosts(sheetPosts, prev));
-      setSyncMsg("최신으로 맞췄습니다 · " + sheetPosts.length + "건");
-    } catch { setSyncMsg("불러오지 못했습니다"); }
-    setTimeout(() => setSyncMsg(""), 3000);
+
+      setSyncMsg("맞췄습니다 · 내려받음 " + sheetPosts.length + "건" + (up ? " · 올림 " + up + "건" : ""));
+    } catch { setSyncMsg("맞추지 못했습니다. 인터넷을 확인해 주세요") }
+    setTimeout(() => setSyncMsg(""), 4000);
   }, []);
 
   const remove = useCallback((id) => {
@@ -3118,10 +3151,10 @@ function Queue({ queue, update, remove, go, sendTo, reload, syncMsg }) {
       <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12, flexWrap: "wrap" }}>
         <button className="hd-btn" onClick={reload}
           style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 800, color: "#fff", background: C.navy, border: "none", borderRadius: 10, padding: "10px 14px" }}>
-          <RefreshCw size={15} /> 다른 기기 것 불러오기
+          <RefreshCw size={15} /> 폰·PC 맞추기
         </button>
         <span style={{ fontSize: 14, color: syncMsg ? "#1E7A6B" : C.muted, fontWeight: 700 }}>
-          {syncMsg || "폰에서 만든 글은 이 버튼을 눌러야 여기 나옵니다"}
+          {syncMsg || "누르면 이 기기 글을 올리고, 다른 기기 글을 내려받습니다"}
         </span>
       </div>
       <div style={{ fontSize: 13, color: C.muted, marginBottom: 12, lineHeight: 1.6 }}>
