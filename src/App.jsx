@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v14 · 0811-1455";
+const APP_VER = "v15 · 0820-1545";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -2821,6 +2821,12 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
     setDraft(null);
   };
 
+  const discardDraft = () => {
+    if (!window.confirm("이 초안을 버릴까요?\n검수 큐에 담지 않고 삭제합니다.")) return;
+    try { if (window.storage.delete) window.storage.delete(DRAFT_KEY); else window.storage.set(DRAFT_KEY, ""); } catch {}
+    setDraft(null);
+  };
+
   return (
     <div className="hd-fade">
       {seedNote && (
@@ -3091,6 +3097,10 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
             <button className="hd-btn" onClick={run}
               style={{ padding: "13px 18px", borderRadius: 12, border: `1.5px solid ${C.line}`, background: "#fff", color: C.text, fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", gap: 7 }}>
               <RefreshCw size={16} /> 다시
+            </button>
+            <button className="hd-btn" onClick={discardDraft} title="검수에 담지 않고 이 초안 삭제"
+              style={{ padding: "13px 16px", borderRadius: 12, border: `1.5px solid ${C.line}`, background: "#fff", color: C.muted, fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", gap: 7 }}>
+              <Trash2 size={16} /> 버리기
             </button>
           </div>
         </div>
