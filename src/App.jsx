@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v18 · 0822-1415";
+const APP_VER = "v20 · 0822-1440";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -1642,6 +1642,16 @@ const normKW = (obj) => {
 
 export default function App() {
   const [tab, setTab] = useState("generate");
+  const [todayPlan, setTodayPlan] = useState([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const p = await loadPlan();
+        const t = todayStr();
+        setTodayPlan((p || []).filter((x) => x.date === t && !x.done));
+      } catch {}
+    })();
+  }, [tab]);
   const [queue, setQueue] = useState([]);
   const [keywords, setKeywords] = useState(DEFAULT_KW);
   const [brand, setBrand] = useState({ ...BRAND });
@@ -1961,6 +1971,21 @@ export default function App() {
       </header>
 
       <main style={{ maxWidth: 1180, margin: "0 auto", padding: "22px" }}>
+        {todayPlan.length > 0 && (
+          <div style={{ background: "#EAF3FF", border: "1px solid #B9D3F0", borderRadius: 12, padding: "13px 15px", marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 15, fontWeight: 800, color: C.navy }}>📣 오늘 발행 {todayPlan.length}건</span>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {todayPlan.map((x) => (
+                  <span key={x.id} style={{ fontSize: 12.5, fontWeight: 700, color: "#fff", background: chOf(x.ch).color, borderRadius: 999, padding: "3px 11px" }}>
+                    {chOf(x.ch).name} · {x.topic}{x.region ? " (" + x.region + ")" : ""}
+                  </span>
+                ))}
+              </div>
+              <button className="hd-btn" onClick={() => setTab("calendar")} style={{ marginLeft: "auto", border: "none", background: C.navy, color: "#fff", fontWeight: 800, fontSize: 13, borderRadius: 10, padding: "8px 14px" }}>계획 보기</button>
+            </div>
+          </div>
+        )}
         {saveError === "full" && (
           <div style={{ background: "#FDECEA", border: "1px solid #E8654A", borderRadius: 12, padding: "13px 15px", marginBottom: 16, fontSize: 14.5, color: "#8A2A1C", lineHeight: 1.6 }}>
             <b>⚠ 저장 공간이 가득 차 최근 변경이 저장되지 않았습니다.</b><br />
@@ -3572,6 +3597,7 @@ function Calendar({ queue, go }) {
   const [nTopic, setNTopic] = useState("");
   const [nRegion, setNRegion] = useState(MOVING_REGIONS[0]);
   const [lastImport, setLastImport] = useState([]);
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -3696,15 +3722,31 @@ function Calendar({ queue, go }) {
           <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.55, marginBottom: 10 }}>
             상의해서 만든 <b>발행 계획 CSV</b>를 올리면 기존 계획에 <b>덧붙여집니다</b>(중복은 자동 제외). 형식: <b>날짜,채널,주제,지역</b> · 채널=블로그·릴스·카드·스레드·문자.
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <label className="hd-btn" style={{ padding: "10px 16px", borderRadius: 11, border: "none", background: C.navy, color: "#fff", fontWeight: 800, fontSize: 13.5, cursor: "pointer" }}>
-              CSV 불러오기
-              <input type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={(e) => { importCsv(e.target.files && e.target.files[0]); e.target.value = ""; }} />
-            </label>
-            <button className="hd-btn" onClick={downloadTemplate} style={{ padding: "10px 14px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 13.5 }}>양식 내려받기</button>
-            {lastImport.length > 0 && (
-              <button className="hd-btn" onClick={undoImport} style={{ padding: "10px 14px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.muted, fontWeight: 800, fontSize: 13.5 }}>방금 불러온 {lastImport.length}건 취소</button>
-            )}
+          <div
+            onDragOver={(e) => { e.preventDefault(); if (!dragOver) setDragOver(true); }}
+            onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
+            onDrop={(e) => {
+              e.preventDefault(); setDragOver(false);
+              const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+              if (!f) return;
+              if (/\.csv$/i.test(f.name) || f.type === "text/csv") importCsv(f);
+              else window.alert("CSV 파일만 불러올 수 있습니다.");
+            }}
+            style={{ border: `2px dashed ${dragOver ? C.navy : C.line}`, background: dragOver ? "#EAF0F6" : "#FAFBFD", borderRadius: 12, padding: "15px 14px", textAlign: "center", transition: "background .15s" }}
+          >
+            <div style={{ fontSize: 12.5, color: dragOver ? C.navy : C.muted, fontWeight: dragOver ? 800 : 600, marginBottom: 11 }}>
+              {dragOver ? "여기에 놓으세요 📥" : "여기로 CSV를 끌어다 놓거나, 아래 버튼으로 선택하세요 (폰은 버튼)"}
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", justifyContent: "center" }}>
+              <label className="hd-btn" style={{ padding: "10px 16px", borderRadius: 11, border: "none", background: C.navy, color: "#fff", fontWeight: 800, fontSize: 13.5, cursor: "pointer" }}>
+                CSV 불러오기
+                <input type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={(e) => { importCsv(e.target.files && e.target.files[0]); e.target.value = ""; }} />
+              </label>
+              <button className="hd-btn" onClick={downloadTemplate} style={{ padding: "10px 14px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 13.5 }}>양식 내려받기</button>
+              {lastImport.length > 0 && (
+                <button className="hd-btn" onClick={undoImport} style={{ padding: "10px 14px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.muted, fontWeight: 800, fontSize: 13.5 }}>방금 불러온 {lastImport.length}건 취소</button>
+              )}
+            </div>
           </div>
         </div>
       </Panel>
