@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v20 · 0822-1440";
+const APP_VER = "v21 · 0822-1455";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -3697,6 +3697,19 @@ function Calendar({ queue, go }) {
     return plan.filter((p) => p.date.indexOf(pre) === 0).length + scheduled.filter((x) => x.scheduledDate.indexOf(pre) === 0).length;
   }, [plan, scheduled, cur]);
 
+  // 발행 실행율 — 그 달 계획 대비 완료(체크) 비율 (전체 + 채널별)
+  const execRate = useMemo(() => {
+    const pre = `${cur.y}-${String(cur.m + 1).padStart(2, "0")}`;
+    const items = plan.filter((p) => p.date.indexOf(pre) === 0);
+    const done = items.filter((p) => p.done).length;
+    const byCh = PUB_CHANNELS.map((c) => {
+      const t = items.filter((p) => p.ch === c.id).length;
+      const d = items.filter((p) => p.ch === c.id && p.done).length;
+      return { id: c.id, name: c.name, color: c.color, t, d, pct: t ? Math.round((d / t) * 100) : 0 };
+    }).filter((c) => c.t > 0);
+    return { total: items.length, done, pct: items.length ? Math.round((done / items.length) * 100) : 0, byCh };
+  }, [plan, cur]);
+
   return (
     <div className="hd-fade">
       {/* 자동 편성 */}
@@ -3750,6 +3763,46 @@ function Calendar({ queue, go }) {
           </div>
         </div>
       </Panel>
+
+      {/* 발행 실행율 */}
+      <div style={{ marginTop: 14 }}>
+        <Panel>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: C.navy }}>{cur.y}년 {cur.m + 1}월 발행 실행율</div>
+            {execRate.total > 0 ? (
+              <span style={{ fontSize: 22, fontWeight: 800, color: execRate.pct >= 80 ? "#1E7A6B" : execRate.pct >= 50 ? "#B7791F" : "#C0392B" }}>
+                {execRate.pct}%
+              </span>
+            ) : null}
+            {execRate.total > 0 && <span style={{ fontSize: 13, color: C.muted }}>계획 {execRate.total}건 중 {execRate.done}건 완료</span>}
+          </div>
+          {execRate.total === 0 ? (
+            <div style={{ fontSize: 13, color: C.muted, marginTop: 8 }}>이 달에 잡힌 발행 계획이 없습니다. 자동 편성하거나 CSV를 불러오세요.</div>
+          ) : (
+            <>
+              <div style={{ height: 10, background: "#EEF1F6", borderRadius: 999, overflow: "hidden", marginTop: 12 }}>
+                <div style={{ width: execRate.pct + "%", height: "100%", background: execRate.pct >= 80 ? "#2E9E8F" : execRate.pct >= 50 ? "#E0A32B" : "#D9534F", borderRadius: 999, transition: "width .3s" }} />
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
+                {execRate.byCh.map((c) => (
+                  <div key={c.id} style={{ flex: "1 1 120px", minWidth: 110, border: `1px solid ${C.line}`, borderRadius: 10, padding: "9px 11px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
+                      <span style={{ width: 9, height: 9, borderRadius: 3, background: c.color }} />
+                      <span style={{ fontSize: 12.5, fontWeight: 800, color: C.navy }}>{c.name}</span>
+                      <span style={{ marginLeft: "auto", fontSize: 13, fontWeight: 800, color: c.pct >= 80 ? "#1E7A6B" : c.pct >= 50 ? "#B7791F" : "#C0392B" }}>{c.pct}%</span>
+                    </div>
+                    <div style={{ height: 6, background: "#EEF1F6", borderRadius: 999, overflow: "hidden" }}>
+                      <div style={{ width: c.pct + "%", height: "100%", background: c.color, borderRadius: 999 }} />
+                    </div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{c.d}/{c.t}건</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 10, lineHeight: 1.5 }}>발행하면 아래 날짜별 목록에서 <b>체크박스</b>를 눌러 완료 표시하세요. 그게 실행율에 반영됩니다.</div>
+            </>
+          )}
+        </Panel>
+      </div>
 
       {/* 달력 */}
       <div style={{ marginTop: 14 }}>
