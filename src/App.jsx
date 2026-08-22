@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v15 · 0820-1545";
+const APP_VER = "v18 · 0822-1415";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -230,6 +230,28 @@ async function loadPlan() {
 async function savePlan(p) {
   try { await window.storage.set(PLAN_KEY, JSON.stringify(p)); } catch {}
 }
+// CSV(날짜,채널,주제,지역) → 발행 계획 항목 파싱
+const CH_BY_NAME = { "블로그": "blog", "릴스": "reels", "카드": "cards", "카드뉴스": "cards", "스레드": "threads", "문자": "sms" };
+function parseCsvPlan(text) {
+  const out = [];
+  const lines = String(text).replace(/^\uFEFF/, "").split(/\r?\n/).filter((l) => l.trim());
+  for (let li = 0; li < lines.length; li++) {
+    const s = lines[li]; const cells = []; let cur = "", q = false;
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (q) { if (c === '"') { if (s[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+      else { if (c === '"') q = true; else if (c === ",") { cells.push(cur); cur = ""; } else cur += c; }
+    }
+    cells.push(cur);
+    const date = (cells[0] || "").trim(), chName = (cells[1] || "").trim(), topic = (cells[2] || "").trim(), region = (cells[3] || "").trim();
+    if (li === 0 && /날짜|date/i.test(date)) continue;
+    if (!date || !chName || !topic) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+    const ch = CH_BY_NAME[chName]; if (!ch) continue;
+    out.push({ date, ch, topic, region: ch === "sms" ? "" : region });
+  }
+  return out;
+}
 
 // 요일별 기본 편성 — 스레드 매일 / 카드 월·수·금 / 릴스 화·목 / 블로그 화·금
 // (0=일 … 6=토)  콘텐츠 비율 60:30:10 과 목·금 검색 몰림을 반영한 배치
@@ -254,10 +276,12 @@ function planTopic(ch, i, dow) {
   if (ch === "sms") return "후기 요청 / 재구매 안내";
   return "";
 }
-// 목·금은 블루오션 지역을 우선 배치 (검색이 몰리는 요일)
+// 지역 배분: 대전 30% · 세종 30% · 블루오션 40% (대표 확정 · 문의 많은 대전·세종이 주력)
 function planRegion(i, dow) {
-  const pool = (dow === 4 || dow === 5) ? BLUE_OCEAN : MOVING_REGIONS;
-  return pool[i % pool.length];
+  const slot = i % 10;
+  if (slot < 3) return "대전";                       // 0~2 → 30%
+  if (slot < 6) return "세종";                       // 3~5 → 30%
+  return BLUE_OCEAN[i % BLUE_OCEAN.length];          // 6~9 → 40%, 블루오션 순환
 }
 function ymd(dt) {
   return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
@@ -859,7 +883,10 @@ const CONTENT_RULES = `[반드시 지킬 표현 규칙]
    특히 "이사업체는 며칠 전에 알아본다" 같은 시점은 인터넷 통설이 실제 현장과 크게 다르므로, 근거 없이 절대 쓰지 않는다.
 7. 틀린 정보를 그럴듯하게 쓰느니 항목 수를 줄인다. 정보 전달이 목적이지 칸 채우기가 목적이 아니다.
 8. [항목형 근거 규칙] 체크리스트·주의사항·비교처럼 항목을 나열하는 콘텐츠는, 각 항목이 [회사 사실]·[이사 준비 타임라인]·[현장 메모] 중 하나에 근거가 있어야 한다.
-   일반 상식이나 인터넷에서 본 듯한 항목으로 개수를 채우지 않는다. 근거 있는 항목이 2개뿐이면 2개만 쓴다.`;
+   일반 상식이나 인터넷에서 본 듯한 항목으로 개수를 채우지 않는다. 근거 있는 항목이 2개뿐이면 2개만 쓴다.
+9. [본질 — 이사 중심] 이 회사의 본질은 이사다. 포장·운반·설치·시간 약속·태도가 중심이고, 무료 청소(사이청소·당일청소)는 이사를 잘하는 팀이 주는 보조 혜택으로만 다룬다. 청소를 앞세워 이사 본질을 흐리지 않는다.
+10. [신뢰 소재 — 정성적으로만] 다시 찾아주시는 고객과 소개로 오시는 고객이 많다는 점을 신뢰의 근거로 쓸 수 있다. 단 "재구매율 OO%"·"OO명" 같은 구체 수치·비율은 절대 쓰지 않는다. "오래 다시 찾아주시고 소개해주시는 분들 덕분에"처럼 정성적으로만 표현한다. 재구매(다시 옴)와 소개(남에게 권함)는 성격이 다르니 뭉뚱그리지 않는다.
+11. [업력] 2012년부터 이사를 해온 회사다. 필요할 때 "10년 넘게"·"여러 해 동안"·"오래" 같은 표현으로 경험을 드러낼 수 있다. 특정 연수를 단정하거나 과장하지 않는다.`;
 
 /* ── 재료 블록 ────────────────────────────────────────────
    검수를 마친 블로그가 있으면 그것을 재료로 쓴다. 사실 확인을 한 번만 하면 되도록.
@@ -3544,6 +3571,7 @@ function Calendar({ queue, go }) {
   const [nCh, setNCh] = useState("reels");
   const [nTopic, setNTopic] = useState("");
   const [nRegion, setNRegion] = useState(MOVING_REGIONS[0]);
+  const [lastImport, setLastImport] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -3596,6 +3624,36 @@ function Calendar({ queue, go }) {
     setPlan((p) => [...p, { id: uid(), date: sel, ch: nCh, topic: nTopic.trim(), region: nCh === "sms" ? "" : nRegion, done: false }]);
     setNTopic(""); setAdding(false);
   };
+  const importCsv = (file) => {
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const parsed = parseCsvPlan(String(r.result));
+      if (!parsed.length) { window.alert("불러올 계획이 없습니다.\n형식(날짜,채널,주제,지역)과 채널명(블로그·릴스·카드·스레드·문자)을 확인해 주세요."); return; }
+      const key = (x) => x.date + "|" + x.ch + "|" + x.topic;
+      const have = new Set(plan.map(key));
+      const added = [];
+      parsed.forEach((x) => { if (!have.has(key(x))) { added.push({ id: uid(), ...x, done: false }); have.add(key(x)); } });
+      if (!added.length) { window.alert("모두 이미 있는 계획입니다. (중복 " + parsed.length + "건)"); return; }
+      setPlan((pp) => [...pp, ...added]);
+      setLastImport(added.map((a) => a.id));
+      const dup = parsed.length - added.length;
+      window.alert(added.length + "건을 발행 계획에 추가했습니다." + (dup > 0 ? "\n(중복 " + dup + "건 제외)" : ""));
+    };
+    r.readAsText(file, "utf-8");
+  };
+  const undoImport = () => {
+    if (!lastImport.length) return;
+    setPlan((pp) => pp.filter((x) => lastImport.indexOf(x.id) < 0));
+    setLastImport([]);
+  };
+  const downloadTemplate = () => {
+    const csv = "날짜,채널,주제,지역\n2026-09-01,블로그,다시 찾아주시는 이유,옥천\n2026-09-04,블로그,옥천 원룸 이사 후기,옥천\n2026-09-01,스레드,사이청소 한 줄 후기,세종\n";
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "발행계획_양식.csv"; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
   const toggle = (it) => {
     if (it.kind !== "plan") return;
     setPlan((p) => p.map((x) => x.id === it.id ? { ...x, done: !x.done } : x));
@@ -3620,7 +3678,7 @@ function Calendar({ queue, go }) {
         <SectionTitle icon={CalendarDays}>발행 계획 세우기</SectionTitle>
         <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.65, marginTop: 6 }}>
           누르면 <b>한 주치가 채널별로 자동 편성</b>됩니다. 스레드 매일 · 카드 월수금 · 릴스 화목 · 블로그 화금.
-          <b> 목·금에는 블루오션 지역</b>이 우선 배치됩니다.
+          <b> 지역은 대전·세종 60%, 블루오션 40%</b>로 배분됩니다.
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
           <button className="hd-btn" onClick={() => autoWeek(0)}
@@ -3631,6 +3689,23 @@ function Calendar({ queue, go }) {
             style={{ flex: 1, padding: "12px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 14.5 }}>
             다음 주 자동 편성
           </button>
+        </div>
+
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px dashed ${C.line}` }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: C.navy, marginBottom: 4 }}>계획 파일(CSV) 불러오기</div>
+          <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.55, marginBottom: 10 }}>
+            상의해서 만든 <b>발행 계획 CSV</b>를 올리면 기존 계획에 <b>덧붙여집니다</b>(중복은 자동 제외). 형식: <b>날짜,채널,주제,지역</b> · 채널=블로그·릴스·카드·스레드·문자.
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <label className="hd-btn" style={{ padding: "10px 16px", borderRadius: 11, border: "none", background: C.navy, color: "#fff", fontWeight: 800, fontSize: 13.5, cursor: "pointer" }}>
+              CSV 불러오기
+              <input type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={(e) => { importCsv(e.target.files && e.target.files[0]); e.target.value = ""; }} />
+            </label>
+            <button className="hd-btn" onClick={downloadTemplate} style={{ padding: "10px 14px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 13.5 }}>양식 내려받기</button>
+            {lastImport.length > 0 && (
+              <button className="hd-btn" onClick={undoImport} style={{ padding: "10px 14px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.muted, fontWeight: 800, fontSize: 13.5 }}>방금 불러온 {lastImport.length}건 취소</button>
+            )}
+          </div>
         </div>
       </Panel>
 
