@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v21 · 0822-1455";
+const APP_VER = "v22 · 0822-1500";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -126,6 +126,11 @@ async function savePostToSheet(post) {
 async function updatePostOnSheet(patch) {
   const u = postsUrl(); if (!u) return;
   try { await fetch(u, { method: "POST", body: JSON.stringify({ kind: "post_update", data: patch }) }); } catch {}
+}
+// 발행 계획을 시트에 통째로 동기화 (텔레그램 아침 알림이 이 시트를 읽는다)
+async function syncPlanToSheet(plan) {
+  const u = postsUrl(); if (!u) return;
+  try { await fetch(u, { method: "POST", body: JSON.stringify({ kind: "plan_set", data: plan }) }); } catch {}
 }
 async function fetchPostsFromSheet() {
   const u = postsUrl(); if (!u) return [];
@@ -3606,7 +3611,7 @@ function Calendar({ queue, go }) {
       setReady(true);
     })();
   }, []);
-  useEffect(() => { if (ready) savePlan(plan); }, [plan, ready]);
+  useEffect(() => { if (ready) { savePlan(plan); syncPlanToSheet(plan); } }, [plan, ready]);
 
   const delHist = async (id) => {
     const nx = history.filter((h) => h.id !== id);
