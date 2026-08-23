@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v22 · 0822-1500";
+const APP_VER = "v24 · 0823-2320";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -877,7 +877,15 @@ const CARD_TOPICS = [
 ];
 
 // 전 채널 공통 금지·표현 규칙 (프롬프트에 그대로 주입)
-const CONTENT_RULES = `[반드시 지킬 표현 규칙]
+const COMPANY_FACTS = `[회사 참고 자료 — 배경 지식이다. 아래 사실을 근거로, 주제에 맞는 것만 골라 자연스럽게 녹인다. 전부 나열하지 않는다.]
+· 업체: 해피데이 익스프레스. 대전·세종을 중심으로 계룡·공주·옥천·금산·논산·부여·영동·청주까지 (대전 1시간 반경). 슬로건 "이사를 하면 청소가 공짜!".
+· 업력: 2012년부터 이사를 해왔다(14년째). 대표는 현장에서 직접 뛴 이사 전문가이면서, 이사 통합관리 프로그램을 직접 개발한 사람이다. 표현은 "10년 넘게"·"오래" 같은 정성적 표현으로. 특정 연수를 과장하지 않는다.
+· 신뢰의 근거(정성적으로만): 여러 해 동안 "다시 찾아주시는 고객(재구매)"과 "소개로 오시는 고객"이 꾸준히 많다. 겪어본 분들이 다시 찾고, 주변에 권해주신다. 이것이 이 회사의 핵심 강점이다. 단, "재구매율 OO%"·"OO건" 같은 구체 수치·비율은 글에 절대 쓰지 않는다. 재구매(다시 옴)와 소개(남에게 권함)는 성격이 다르니 뭉뚱그리지 않는다.
+· 본질: 이 회사의 중심은 이사다(포장·운반·설치·시간 약속·태도). 무료 청소(사이청소·당일청소·입주청소)는 이사를 잘하는 팀이 주는 보조 혜택이다. 청소로 이사 본질을 흐리지 않는다.
+· 별점 관점(필요할 때만): 별점은 만족하지 못한 소수가 크게 반영되기도 한다. 최선을 다해도 결이 안 맞는 고객은 있다. 하지만 다시 찾고 소개하는 다수의 행동이 더 정확한 평가다. 한 명의 불만으로 회사 전체를 평가할 수 없다.
+`;
+const CONTENT_RULES = `${COMPANY_FACTS}
+[반드시 지킬 표현 규칙]
 1. "이사 후 청소"라는 말은 절대 쓰지 말 것. 맞는 표현은 "사이청소", "당일청소", "입주청소"다.
 2. "입주청소 포함된 금액"이라고 쓰지 말 것. 제시 금액은 이사비이고, 입주청소는 공짜다.
 3. **볼드** __밑줄__ 같은 마크다운 강조기호를 쓰지 말 것. 그대로 노출된다.
@@ -2886,6 +2894,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
 
   return (
     <div className="hd-fade">
+      <DataCards />
       {seedNote && (
         <div style={{ marginBottom: 14, background: "#E7F6F1", border: "1.5px solid #2E9E8F", borderRadius: 14, padding: "14px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -5248,6 +5257,136 @@ function roundRect(ctx, x, y, w, h, r) {
 // 발행 센터 '앱 열기' 버튼 공통 스타일
 function pubBtn() {
   return { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "12px 8px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 14, textDecoration: "none", cursor: "pointer" };
+}
+
+// ═══ 데이터 카드 — 7년(2019~2025) 실제 계약 기록을 1080x1080 이미지로 (시리즈 블로그·카드뉴스용) ═══
+const DATA_STATS = {
+  years: [2019, 2020, 2021, 2022, 2023, 2024, 2025],
+  re: [87, 101, 104, 100, 102, 103, 118],
+  so: [170, 128, 136, 136, 98, 105, 90],
+  reTotal: 715, soTotal: 863, reRate: 79, soRate: 72, range: "2019~2025",
+};
+function drawDataCard(canvas, kind) {
+  const S = 1080, footerH = 120;
+  const ctx = canvas.getContext("2d");
+  const navy = "#15243B", coral = "#F25C4A", ink = "#12203A", muted = "#3E4C60";
+  const blue = "#2F6FB0", pink = "#C13584", teal = "#2E9E8F";
+  const font = (s, w = 800) => `${w} ${s}px 'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif`;
+  ctx.clearRect(0, 0, S, S);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, S, S);
+  ctx.save(); ctx.globalAlpha = 0.07; ctx.fillStyle = navy; ctx.beginPath(); ctx.arc(S, 0, 260, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+  // 공통 라벨
+  ctx.font = font(28, 800); ctx.fillStyle = coral; ctx.fillText("해피데이 익스프레스 · " + DATA_STATS.range + " 실제 계약 기록", 64, 118);
+  ctx.fillStyle = coral; ctx.fillRect(64, 136, 84, 8);
+
+  if (kind === "summary") {
+    ctx.font = font(46, 800); ctx.fillStyle = ink; ctx.fillText("다시 오고, 소개로 옵니다", 64, 232);
+    // 두 박스
+    const bx = 64, by = 300, bw = (S - 128 - 32) / 2, bh = 260;
+    const box = (x, val, lb, col, bg) => {
+      ctx.fillStyle = bg; roundRect(ctx, x, by, bw, bh, 26); ctx.fill();
+      ctx.textAlign = "center";
+      ctx.font = font(120, 800); ctx.fillStyle = col; ctx.fillText(String(val), x + bw / 2, by + 150);
+      ctx.font = font(36, 800); ctx.fillStyle = muted; ctx.fillText(lb + " 계약", x + bw / 2, by + 210);
+      ctx.textAlign = "left";
+    };
+    box(bx, DATA_STATS.reTotal, "재구매", blue, "#EAF2FA");
+    box(bx + bw + 32, DATA_STATS.soTotal, "소개", pink, "#FBEAF3");
+    // 계약율 막대
+    ctx.font = font(34, 800); ctx.fillStyle = ink; ctx.fillText("다시 문의하면 계약까지", 64, 660);
+    const barY = 690, barW = S - 128, barH = 54;
+    ctx.fillStyle = "#EEF1F6"; roundRect(ctx, 64, barY, barW, barH, 16); ctx.fill();
+    ctx.fillStyle = teal; roundRect(ctx, 64, barY, barW * DATA_STATS.reRate / 100, barH, 16); ctx.fill();
+    ctx.font = font(34, 800); ctx.fillStyle = "#fff"; ctx.textAlign = "right";
+    ctx.fillText(DATA_STATS.reRate + "%", 64 + barW * DATA_STATS.reRate / 100 - 20, barY + 37); ctx.textAlign = "left";
+    ctx.font = font(28, 700); ctx.fillStyle = muted; ctx.fillText("겪어본 분들이 다시 찾습니다", 64, 820);
+  } else if (kind === "trend") {
+    ctx.font = font(46, 800); ctx.fillStyle = ink; ctx.fillText("7년간, 꾸준히", 64, 232);
+    ctx.font = font(30, 700); ctx.fillStyle = muted; ctx.fillText("연도별 재구매 · 소개 계약", 64, 278);
+    const gx = 90, gw = S - 180, gy0 = 720, gh = 380;
+    const maxV = Math.max.apply(null, DATA_STATS.re.concat(DATA_STATS.so));
+    const n = DATA_STATS.years.length, slot = gw / n, bw = slot * 0.30;
+    for (let i = 0; i < n; i++) {
+      const cx = gx + slot * i + slot / 2;
+      const rh = DATA_STATS.re[i] / maxV * gh, sh = DATA_STATS.so[i] / maxV * gh;
+      ctx.fillStyle = blue; roundRect(ctx, cx - bw - 4, gy0 - rh, bw, rh, 6); ctx.fill();
+      ctx.fillStyle = pink; roundRect(ctx, cx + 4, gy0 - sh, bw, sh, 6); ctx.fill();
+      ctx.font = font(24, 700); ctx.fillStyle = muted; ctx.textAlign = "center";
+      ctx.fillText("'" + String(DATA_STATS.years[i]).slice(2), cx, gy0 + 34); ctx.textAlign = "left";
+    }
+    // 범례
+    ctx.fillStyle = blue; roundRect(ctx, 64, 330, 30, 30, 6); ctx.fill();
+    ctx.font = font(30, 800); ctx.fillStyle = ink; ctx.fillText("재구매", 106, 355);
+    ctx.fillStyle = pink; roundRect(ctx, 260, 330, 30, 30, 6); ctx.fill();
+    ctx.fillStyle = ink; ctx.fillText("소개", 302, 355);
+    ctx.font = font(28, 700); ctx.fillStyle = muted; ctx.fillText("반짝이 아니라 쌓인 신뢰입니다", 64, 430);
+  } else { // rate
+    ctx.font = font(46, 800); ctx.fillStyle = ink; ctx.fillText("겪어본 분은 고민하지 않습니다", 64, 232);
+    const rowY = [360, 560];
+    const row = (y, lb, rate, col) => {
+      ctx.font = font(38, 800); ctx.fillStyle = ink; ctx.fillText(lb + " 계약 전환", 64, y - 20);
+      const barW = S - 128, barH = 70;
+      ctx.fillStyle = "#EEF1F6"; roundRect(ctx, 64, y, barW, barH, 18); ctx.fill();
+      ctx.fillStyle = col; roundRect(ctx, 64, y, barW * rate / 100, barH, 18); ctx.fill();
+      ctx.font = font(46, 800); ctx.fillStyle = "#fff"; ctx.textAlign = "right";
+      ctx.fillText(rate + "%", 64 + barW * rate / 100 - 24, y + 50); ctx.textAlign = "left";
+    };
+    row(rowY[0], "재구매", DATA_STATS.reRate, blue);
+    row(rowY[1], "소개", DATA_STATS.soRate, pink);
+    ctx.font = font(30, 700); ctx.fillStyle = muted; ctx.fillText("문의가 많아도 절반만 계약하는 광고와 다릅니다", 64, 760);
+  }
+
+  // 브랜드 띠
+  const fy = S - footerH;
+  ctx.fillStyle = "#F2F4F7"; ctx.fillRect(0, fy, S, footerH);
+  ctx.fillStyle = coral; ctx.fillRect(0, fy, 12, footerH);
+  ctx.textBaseline = "middle"; ctx.textAlign = "left";
+  ctx.font = font(34, 800); ctx.fillStyle = coral; ctx.fillText(BRAND.slogan, 56, fy + footerH / 2 - 14);
+  ctx.font = font(24, 700); ctx.fillStyle = "#465063"; ctx.fillText(BRAND.name, 56, fy + footerH / 2 + 24);
+  ctx.textAlign = "right"; ctx.font = font(40, 800); ctx.fillStyle = navy; ctx.fillText("\uD83D\uDCDE " + BRAND.phone, S - 56, fy + footerH / 2);
+  ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+}
+
+function DataCards() {
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState("summary");
+  const ref = useRef(null);
+  useEffect(() => { if (open && ref.current) drawDataCard(ref.current, kind); }, [open, kind]);
+  const download = () => {
+    if (!ref.current) return;
+    const a = document.createElement("a");
+    a.href = ref.current.toDataURL("image/png");
+    a.download = "데이터카드_" + kind + ".png"; a.click();
+  };
+  const kinds = [["summary", "재구매·소개 건수"], ["trend", "연도별 추이"], ["rate", "계약율"]];
+  return (
+    <div style={{ marginBottom: 14, border: `1px solid ${C.line}`, borderRadius: 14, overflow: "hidden" }}>
+      <button className="hd-btn" onClick={() => setOpen((v) => !v)}
+        style={{ width: "100%", textAlign: "left", background: "#F7F9FC", border: "none", padding: "13px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+        <BarChart3 size={17} color={C.navy} />
+        <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>📊 데이터 카드 만들기</span>
+        <span style={{ fontSize: 12, color: C.muted }}>사진 없는 시리즈 글에 넣을 이미지</span>
+        <span style={{ marginLeft: "auto", fontSize: 12, color: C.muted }}>{open ? "접기" : "열기"}</span>
+      </button>
+      {open && (
+        <div style={{ padding: "14px 16px" }}>
+          <div style={{ fontSize: 12, color: C.muted, marginBottom: 10, lineHeight: 1.5 }}>7년(2019~2025) 실제 계약 기록으로 만든 카드입니다. 블로그 본문 사진 자리나 카드뉴스에 넣으세요.</div>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 12 }}>
+            {kinds.map(([k, lb]) => (
+              <button key={k} className="hd-btn" onClick={() => setKind(k)}
+                style={{ padding: "8px 13px", borderRadius: 999, border: `1.5px solid ${kind === k ? C.navy : C.line}`, background: kind === k ? C.navy : "#fff", color: kind === k ? "#fff" : C.navy, fontWeight: 800, fontSize: 12.5 }}>{lb}</button>
+            ))}
+          </div>
+          <canvas ref={ref} width={1080} height={1080} style={{ width: "100%", maxWidth: 340, borderRadius: 14, border: `1px solid ${C.line}`, display: "block" }} />
+          <button className="hd-btn" onClick={download}
+            style={{ marginTop: 12, padding: "11px 18px", borderRadius: 11, border: "none", background: C.navy, color: "#fff", fontWeight: 800, fontSize: 13.5, display: "inline-flex", alignItems: "center", gap: 7 }}>
+            <ImageIcon size={16} /> 이 카드 이미지 저장
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // 후기 카드 1080x1080 — 고객 별점·항목·한 줄 후기를 이미지 한 장으로 (사진 없는 날 시각 자료)
