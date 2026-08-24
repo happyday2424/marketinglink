@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v24 · 0823-2320";
+const APP_VER = "v25 · 0824-1100";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -129,8 +129,20 @@ async function updatePostOnSheet(patch) {
 }
 // 발행 계획을 시트에 통째로 동기화 (텔레그램 아침 알림이 이 시트를 읽는다)
 async function syncPlanToSheet(plan) {
-  const u = postsUrl(); if (!u) return;
-  try { await fetch(u, { method: "POST", body: JSON.stringify({ kind: "plan_set", data: plan }) }); } catch {}
+  const u = postsUrl(); if (!u) return false;
+  try {
+    const r = await fetch(u, { method: "POST", body: JSON.stringify({ kind: "plan_set", data: plan }) });
+    return !!(r && r.ok);
+  } catch { return false; }
+}
+// 시트에 있는 계획을 거꾸로 읽어온다 (발행대장 GAS v4 이상 필요)
+async function fetchPlanFromSheet() {
+  const u = postsUrl(); if (!u) return null;
+  try {
+    const r = await fetch(u + "?tab=plan&key=" + encodeURIComponent(REVIEW_GAS_KEY));
+    const j = await r.json();
+    return (j && j.ok && Array.isArray(j.rows)) ? j.rows : null;
+  } catch { return null; }
 }
 async function fetchPostsFromSheet() {
   const u = postsUrl(); if (!u) return [];
@@ -3674,7 +3686,17 @@ function Calendar({ queue, go }) {
       const have = new Set(plan.map(key));
       const added = [];
       parsed.forEach((x) => { if (!have.has(key(x))) { added.push({ id: uid(), ...x, done: false }); have.add(key(x)); } });
-      if (!added.length) { window.alert("모두 이미 있는 계획입니다. (중복 " + parsed.length + "건)"); return; }
+      // ★ v25 — 더할 것이 없어도 시트로는 반드시 다시 보낸다.
+      //    v24는 계획이 안 바뀌면 동기화가 일어나지 않아, 시트가 옛 계획을 들고 있었고
+      //    아침 텔레그램 알림이 엉뚱한 계획을 읽거나 아무것도 못 읽었다.
+      if (!added.length) {
+        syncPlanToSheet(plan).then((ok) => {
+          window.alert("모두 이미 있는 계획입니다. (중복 " + parsed.length + "건)\n\n"
+            + (ok ? "현재 계획 " + plan.length + "건을 시트로 다시 보냈습니다.\n아침 알림은 시트를 읽습니다."
+                  : "다만 시트로 보내지 못했습니다. 인터넷 연결을 확인해 주세요."));
+        });
+        return;
+      }
       setPlan((pp) => [...pp, ...added]);
       setLastImport(added.map((a) => a.id));
       const dup = parsed.length - added.length;
@@ -3770,6 +3792,17 @@ function Calendar({ queue, go }) {
                 <input type="file" accept=".csv,text/csv" style={{ display: "none" }} onChange={(e) => { importCsv(e.target.files && e.target.files[0]); e.target.value = ""; }} />
               </label>
               <button className="hd-btn" onClick={downloadTemplate} style={{ padding: "10px 14px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 13.5 }}>양식 내려받기</button>
+              {/* ★ v25 — 이 기기의 계획을 시트로 밀어넣는 손잡이. 폰과 PC 계획이 어긋났을 때 이 기기 것으로 맞춘다. */}
+              <button className="hd-btn"
+                onClick={async () => {
+                  const ok = await syncPlanToSheet(plan);
+                  window.alert(ok
+                    ? "이 기기의 발행 계획 " + plan.length + "건을 시트로 보냈습니다.\n내일 아침 알림은 이 계획을 읽습니다."
+                    : "시트로 보내지 못했습니다. 인터넷 연결을 확인해 주세요.");
+                }}
+                style={{ padding: "10px 14px", borderRadius: 11, border: `1.5px solid ${C.navy}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 13.5 }}>
+                시트로 지금 보내기
+              </button>
               {lastImport.length > 0 && (
                 <button className="hd-btn" onClick={undoImport} style={{ padding: "10px 14px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.muted, fontWeight: 800, fontSize: 13.5 }}>방금 불러온 {lastImport.length}건 취소</button>
               )}
