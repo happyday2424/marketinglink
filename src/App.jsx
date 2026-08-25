@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v25 · 0824-1100";
+const APP_VER = "v28 · 0825-2045";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -240,6 +240,36 @@ const PUB_CHANNELS = [
   { id: "sms",     name: "문자",   color: "#E08A2B", tab: "retarget" },
 ];
 const chOf = (id) => PUB_CHANNELS.find((c) => c.id === id) || PUB_CHANNELS[0];
+
+/* ★ v27 — 발행 계획의 주제 글자로 축을 짐작한다.
+   [매우 중요] '고객 후기' 축은 여기서 절대 자동으로 고르지 않는다.
+   후기 축은 실제 고객이 남긴 말·점수가 있을 때만 쓴다. 자료 없이 후기 축으로 쓰면
+   AI가 있지도 않은 고객 사례를 지어낸다. 후기 축은 [평가] 탭에서 넘어올 때만 켜진다.
+   '다시 찾아주시는 이유' 같은 재구매·소개 이야기는 후기가 아니라 정보(신뢰)글이다. */
+const AXIS_HINTS = [
+  { id: "food",  words: ["맛집", "밥집", "국밥", "점심", "식당", "메뉴"] },
+  { id: "story", words: ["이야기", "현장", "하루", "스케치", "일상", "에피소드"] },
+  { id: "info",  words: ["정보", "체크리스트", "비용", "견적", "방법", "차이", "준비", "안내", "팁", "궁금", "질문",
+                          "이유", "다시 찾", "재이용", "소개", "추천", "고르", "왜"] },
+];
+function axisGuess(topic) {
+  const t = String(topic || "");
+  for (const g of AXIS_HINTS) {
+    if (g.words.some((w) => t.indexOf(w) >= 0)) return g.id;
+  }
+  return "info";
+}
+
+/* ★ v27 — 재구매·소개를 다루는 주제인지 가린다. 이 둘은 증명하는 것이 다르므로 섞으면 안 된다. */
+function loyaltyKind(topic) {
+  const t = String(topic || "");
+  const 재구매 = ["다시 찾", "다시 부르", "재이용", "또 저희", "다시 문의", "단골"].some((w) => t.indexOf(w) >= 0);
+  const 소개 = ["소개", "추천", "지인"].some((w) => t.indexOf(w) >= 0);
+  if (재구매 && 소개) return "both";
+  if (재구매) return "repeat";
+  if (소개) return "refer";
+  return "";
+}
 
 async function loadPlan() {
   try { const r = await window.storage.get(PLAN_KEY); return r ? JSON.parse(r.value) : []; } catch { return []; }
@@ -1275,6 +1305,21 @@ async function generateDraft(axis, hint, extra = {}) {
   const regionLine = extra.region && extra.region.trim()
     ? `\n[이번 글 지역 — 매우 중요] "${extra.region.trim()}". 제목 앞쪽과 본문에 이 지역명을 자연스럽게 넣고, 키워드도 이 지역 기준으로 만들 것. 단, 실제로 겪지 않은 이 지역의 구체 사실(단지명·상호 등)은 지어내지 말 것.`
     : "";
+  /* ★ v26 — 발행 계획에서 넘어온 주제. 있으면 이 주제가 글의 방향을 지배한다.
+     ★ v27 — 재구매/소개를 다루는 주제면 두 가지를 섞지 못하게 못박는다. */
+  const lk = extra.planTopic ? loyaltyKind(extra.planTopic) : "";
+  const loyaltyGuard = lk === "repeat"
+    ? `\n- [재구매 이야기 규칙] 이 글은 '다시 찾아주시는 것(재구매)'을 다룬다. 이는 만족도의 증거다. '소개·추천'과 절대 섞지 말 것. 소개 이야기를 끌어오지 않는다.`
+    : lk === "refer"
+      ? `\n- [소개 이야기 규칙] 이 글은 '소개·추천'을 다룬다. 이는 평판의 증거다. '재구매·단골'과 절대 섞지 말 것.`
+      : "";
+  const topicLine = extra.planTopic && extra.planTopic.trim()
+    ? `\n[오늘 쓸 주제 — 최우선] "${extra.planTopic.trim()}"
+- 이 주제가 이번 글의 중심이다. 제목과 본문 전체가 이 주제에 답하도록 쓴다.
+- 주제에서 벗어난 일반론으로 흐르지 말 것. 다만 주제에 없는 수치·시점·금액은 지어내지 말 것.
+- [매우 중요] 이 주제가 후기 형식이 아니라면, 고객이 남긴 말을 지어내 인용하지 말 것. 실제 후기 자료가 주어지지 않았다면 업체가 스스로 설명하는 글로 쓴다.
+- 건수·비율·연차 같은 수치는 주어지지 않았다면 쓰지 말고, '여러 번', '적지 않은 분들'처럼 정성적으로 표현한다.${loyaltyGuard}`
+    : "";
   const spec = axis.food
     ? `- 식당에서 밥 먹으며 폰으로 바로 올리는 생생한 현장 맛집 글. [분량·필수] 공백 포함 1,400자 이상(공백 제외 1,000자 이상)으로 충실하게 쓴다. 이보다 짧으면 실패한 글이다.
 - '## 소제목' 3~4개를 만들고, 각 소제목 아래 문단을 2개 이상 둔다. 다 썼다고 느끼면 글자 수를 스스로 세어, 공백 제외 1,000자에 못 미치면 문단을 더 추가해 채운 뒤 마무리한다.
@@ -1300,7 +1345,7 @@ async function generateDraft(axis, hint, extra = {}) {
 ${BRAND.facts && BRAND.facts.trim() ? BRAND.facts.trim() : "(미입력)"}${foodFacts}
 ${BRAND.timeline && BRAND.timeline.trim() ? "\n[이사 준비 타임라인 — 시점을 말할 땐 반드시 이 안에서만]\n" + BRAND.timeline.trim() : "\n[이사 준비 타임라인] (미입력 — 이사 준비 시점·기간 숫자를 절대 만들어내지 말 것)"}
 
-[이번 글의 축] ${axis.name} — ${axis.promptRole}${regionLine}
+[이번 글의 축] ${axis.name} — ${axis.promptRole}${regionLine}${topicLine}
 
 [타깃 키워드 힌트] ${hint && hint.trim() ? hint.trim() : (axis.food
     ? "없음 — [식당 정보]의 식당명·지역·메뉴를 조합해 '지역명+메뉴+맛집' 형태의 롱테일 키워드를 직접 만들 것 (예: 성남동 곰탕 맛집, 대전 황태곰탕). 사용자가 키워드를 따로 입력하지 않아도 되게 알아서 정한다."
@@ -2019,7 +2064,12 @@ export default function App() {
         )}
         {tab === "generate" && <Generate seed={genSeed} keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} onSave={(d) => { setQueue((q) => [d, ...q]); setTab("queue"); }} />}
         {tab === "queue" && <Queue queue={queue} update={update} remove={remove} reload={reloadFromSheet} syncMsg={syncMsg} go={() => setTab("generate")} sendTo={(t, d) => { setChSeed({ at: Date.now(), id: d.id, title: d.blogTitle, body: d.blogBody }); setTab(t); }} />}
-        {tab === "calendar" && <Calendar queue={queue} go={(t, seed) => { if (seed) setChSeed(seed); setTab(t); }} />}
+        {tab === "calendar" && <Calendar queue={queue} go={(t, seed) => {
+          /* ★ v26 — v25까지는 무조건 setChSeed 로 보내서, 블로그(초안 생성)로 갈 때
+             씨앗이 통째로 버려졌다. 발행 계획의 [만들기]가 빈 화면을 열던 원인이다. */
+          if (seed) { if (t === "generate") setGenSeed(seed); else setChSeed(seed); }
+          setTab(t);
+        }} />}
         {tab === "publish" && <PublishBoard />}
         {tab === "keywords" && <KeywordManager keywords={keywords} addKeyword={addKeyword} removeKeyword={removeKeyword} noteKeyword={noteKeyword} />}
         {tab === "reels" && <Reels queue={queue} seed={chSeed} />}
@@ -2817,25 +2867,45 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
   const [error, setError] = useState("");
   const [draft, setDraft] = useState(null);
   const [seedNote, setSeedNote] = useState(false);
+  const [planTopic, setPlanTopic] = useState("");   /* ★ v26 — 발행 계획에서 받은 주제 */
+  const [planNote, setPlanNote] = useState(null);   /* ★ v26 — 계획 배너에 쓸 정보 */
   const [seedCust, setSeedCust] = useState("");
   const [srcLabel, setSrcLabel] = useState("");
   const [seedScores, setSeedScores] = useState(null);
   const axis = axisOf(axisId);
 
-  // 평가 탭에서 "이 평가로 글쓰기"로 넘어오면 축·메모·지역·고객코드 자동 세팅
+  // 평가 탭에서 "이 평가로 글쓰기", 발행 계획에서 "만들기"로 넘어오면 자동 세팅
   useEffect(() => {
-    if (seed && seed.at) {
-      setAxisId(seed.axisId || "review");
-      setMemo(seed.memo || "");
+    if (!seed || !seed.at) return;
+
+    /* ★ v26 — 발행 계획에서 넘어온 경우. 주제·지역·축을 채워 넣는다. */
+    if (seed.plan) {
+      const gid = axisGuess(seed.topic);
+      setAxisId(gid);
+      setPlanTopic(seed.topic || "");
+      setPlanNote({ topic: seed.topic || "", region: seed.region || "", axisId: gid });
+      setSeedNote(false);
+      setSeedCust(""); setSrcLabel(""); setSeedScores(null);
       setDraft(null);
-      setSeedNote(true);
-      setSeedCust(seed.custCode || "");
-      setSrcLabel(seed.srcLabel || "");
-      setSeedScores(seed.scores && seed.scores.length ? { scores: seed.scores, date: seed.revDate || "", memo: seed.revMemo || "" } : null);
       if (seed.region) {
         if (MOVING_REGIONS.includes(seed.region)) { setRegion(seed.region); setRegionEtc(""); }
         else { setRegionEtc(seed.region); setRegion(""); }
       }
+      return;
+    }
+
+    /* 평가(고객 후기)에서 넘어온 경우 — v25까지와 같다 */
+    setAxisId(seed.axisId || "review");
+    setMemo(seed.memo || "");
+    setDraft(null);
+    setSeedNote(true);
+    setPlanTopic(""); setPlanNote(null);
+    setSeedCust(seed.custCode || "");
+    setSrcLabel(seed.srcLabel || "");
+    setSeedScores(seed.scores && seed.scores.length ? { scores: seed.scores, date: seed.revDate || "", memo: seed.revMemo || "" } : null);
+    if (seed.region) {
+      if (MOVING_REGIONS.includes(seed.region)) { setRegion(seed.region); setRegionEtc(""); }
+      else { setRegionEtc(seed.region); setRegion(""); }
     }
   }, [seed && seed.at]);
 
@@ -2859,7 +2929,7 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
     if (!ready) return;
     setLoading(true); setError(""); setDraft(null);
     try {
-      const r = await generateDraft(axis, hint, { restaurant, menu, taste, memo, images, region: (regionEtc.trim() || region) });
+      const r = await generateDraft(axis, hint, { restaurant, menu, taste, memo, images, region: (regionEtc.trim() || region), planTopic });
       setDraft({ ...r, axis: axisId });
     } catch (e) {
       const em = e && e.message ? e.message : "";
@@ -2907,6 +2977,48 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
   return (
     <div className="hd-fade">
       <DataCards />
+      {planNote && (
+        <div style={{ marginBottom: 14, background: "#EAF2FB", border: "1.5px solid #2F6FB0", borderRadius: 14, padding: "14px 16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <CalendarDays size={17} color="#1E3A5F" />
+            <span style={{ fontSize: 14, fontWeight: 800, color: "#1E3A5F" }}>발행 계획에서 넘어왔습니다</span>
+            <Chip>블로그</Chip>
+            {planNote.region && <Chip><MapPin size={11} /> {planNote.region}</Chip>}
+          </div>
+          <div style={{ fontSize: 13.5, color: C.muted, margin: "10px 0 5px", fontWeight: 700 }}>오늘 쓸 주제 <span style={{ fontWeight: 500 }}>(고쳐도 됩니다. 이 문장이 글의 방향이 됩니다)</span></div>
+          <input value={planTopic} onChange={(e) => setPlanTopic(e.target.value)}
+            style={{ width: "100%", padding: "11px 13px", borderRadius: 10, border: "1.5px solid #2F6FB0", fontSize: 14.5, fontWeight: 700, color: C.navy, background: "#fff" }} />
+
+          <div style={{ fontSize: 13.5, color: C.muted, margin: "12px 0 6px", fontWeight: 700 }}>축 <span style={{ fontWeight: 500 }}>(주제에 맞게 골라 두었습니다. 다르면 여기서 바꾸세요)</span></div>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+            {AXES.map((a) => (
+              <button key={a.id} className="hd-btn" onClick={() => setAxisId(a.id)}
+                style={{ padding: "7px 12px", borderRadius: 9, fontSize: 13.5, fontWeight: 800,
+                  border: `1.5px solid ${axisId === a.id ? a.color : C.line}`,
+                  background: axisId === a.id ? a.color : "#fff",
+                  color: axisId === a.id ? "#fff" : C.muted }}>
+                {a.name}
+              </button>
+            ))}
+          </div>
+
+          {axisId === "review" && (
+            <div style={{ marginTop: 10, background: "#FFF4E6", border: "1.5px solid #E0A93C", borderRadius: 11, padding: "11px 13px", fontSize: 13.5, lineHeight: 1.65, color: "#8A5A12", fontWeight: 700 }}>
+              고객 후기 축은 <u>실제 고객이 남긴 말·점수가 있을 때만</u> 쓰세요. 자료 없이 쓰면 AI가 없는 사례를 지어냅니다.
+              후기로 쓰시려면 <b>[평가] 탭에서 해당 후기를 골라 「이 후기로 글쓰기」</b>로 들어오는 것이 맞습니다.
+            </div>
+          )}
+          {loyaltyKind(planTopic) === "both" && (
+            <div style={{ marginTop: 10, background: "#FDECEA", border: "1.5px solid #D9534F", borderRadius: 11, padding: "11px 13px", fontSize: 13.5, lineHeight: 1.65, color: "#A33027", fontWeight: 700 }}>
+              주제에 <b>재구매</b>와 <b>소개</b>가 함께 들어 있습니다. 두 가지는 증명하는 것이 다릅니다.
+              한 글에서는 <u>하나만</u> 다루도록 주제를 나눠 주세요.
+            </div>
+          )}
+          <div style={{ fontSize: 13, color: C.muted, marginTop: 9, lineHeight: 1.6 }}>
+            현장 메모를 적으면 훨씬 구체적인 글이 나옵니다.
+          </div>
+        </div>
+      )}
       {seedNote && (
         <div style={{ marginBottom: 14, background: "#E7F6F1", border: "1.5px solid #2E9E8F", borderRadius: 14, padding: "14px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -3187,6 +3299,67 @@ function Generate({ onSave, seed, keywords, addKeyword, removeKeyword }) {
   );
 }
 
+/* ★ v28 — 사진 자리 안내
+   본문의 [사진: 라벨]을 뽑아 목록으로 보여준다.
+   · 찍을 수 있으면 무엇을 찍을지 라벨 그대로 알려준다
+   · 못 찍으면 [이 자리 빼기]로 그 줄만 지운다 (사진 없는 글에서 빈 칸이 남지 않게)
+   · 자리가 하나도 없으면 글이 밋밋해지므로 그 사실을 알려준다 */
+function PhotoSlots({ d, update }) {
+  const body = d.blogBody || "";
+  const slots = parseBody(body).filter((b) => b.t === "img");
+
+  const removeSlot = (label) => {
+    const lines = body.split("\n");
+    let done = false;
+    const kept = lines.filter((ln) => {
+      if (done) return true;
+      const m = ln.match(/^\s*\[사진:\s*([^\]]+)\]\s*$/);
+      if (m && m[1].trim() === label) { done = true; return false; }
+      return true;
+    });
+    update(d.id, { blogBody: kept.join("\n") });
+  };
+
+  if (!slots.length) {
+    return (
+      <div style={{ marginTop: 12, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 12, padding: "13px" }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 5 }}>사진 자리</div>
+        <div style={{ fontSize: 14, color: C.muted, lineHeight: 1.65 }}>
+          이 글에는 사진 자리가 없습니다. 글만 길게 이어지면 읽다가 나갑니다.
+          본문에 <b>[사진: 무엇]</b> 형식으로 직접 넣거나, 강조하고 싶은 문장 앞에 <b>&gt;</b> 를 붙여 인용 상자로 만들어 쉼표를 주세요.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 12, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 12, padding: "13px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>사진 자리</span>
+        <span style={{ fontSize: 14.5, fontWeight: 800, color: C.coral }}>{slots.length}곳</span>
+      </div>
+      <div style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.6, marginBottom: 10 }}>
+        발행할 때 이 자리에 사진을 하나씩 넣습니다. <b>못 찍은 자리는 빼세요.</b> 빈 자리를 그대로 두면 글이 끊깁니다.
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+        {slots.map((s, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 9, background: "#fff", border: `1px solid ${C.line}`, borderRadius: 10, padding: "9px 11px" }}>
+            <span style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, display: "grid", placeItems: "center", background: "#EAF2FB", color: "#2563A8", fontSize: 13, fontWeight: 800 }}>{i + 1}</span>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 14, color: C.text, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.text}</span>
+            <button className="hd-btn" onClick={() => removeSlot(s.text)}
+              style={{ flexShrink: 0, fontSize: 13, fontWeight: 700, color: C.muted, background: "#fff", border: `1.5px solid ${C.line}`, borderRadius: 8, padding: "5px 10px" }}>
+              이 자리 빼기
+            </button>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 13, color: C.muted, marginTop: 9, lineHeight: 1.6 }}>
+        직접 찍은 원본만 씁니다. 인터넷에서 가져온 사진은 발행 기준 점수가 오르지 않습니다.
+      </div>
+    </div>
+  );
+}
+
 function DraftView({ draft, axis }) {
   return (
     <Panel>
@@ -3201,14 +3374,13 @@ function DraftView({ draft, axis }) {
         <BlogPreview title={draft.blogTitle} body={draft.blogBody} />
       </div>
       <TagRow tags={draft.blogTags} />
-      <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-        <CopyButton getText={() => draft.blogTitle} label="제목 복사" />
-        <CopyButton getText={() => toNaverBody(draft.blogBody)} label="본문 복사" full />
-      </div>
-      <ManualCopy title={draft.blogTitle} body={toNaverBody(draft.blogBody)} />
+
+      {/* ★ v28 — 제목·본문 복사를 여기서 뺐다.
+         검수 전에 복사할 수 있으면 검수 큐를 건너뛰고 그대로 발행하게 된다.
+         복사는 검수를 마친 뒤 [검수 큐] 안의 발행 센터에서만 할 수 있다. */}
 
       <Divider />
-      <SectionTitle icon={Instagram}>인스타 캡션</SectionTitle>
+      <SectionTitle icon={Instagram}>인스타 캡션 <span style={{ fontWeight: 500, color: C.muted }}>— 같이 만들어진 것 · 고치기는 검수에서</span></SectionTitle>
       <div style={{ fontSize: 14.5, lineHeight: 1.75, marginTop: 8, whiteSpace: "pre-wrap" }}>{draft.instaCaption}</div>
       <TagRow tags={draft.hashtags} />
 
@@ -3432,11 +3604,8 @@ function QueueCard({ d, update, remove, sendTo }) {
               </div>
             </div>
           </div>
-          <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-            <CopyButton getText={() => d.blogTitle} label="제목 복사" />
-            <CopyButton getText={() => toNaverBody(d.blogBody)} label="본문 복사" full />
-          </div>
-          <ManualCopy title={d.blogTitle} body={toNaverBody(d.blogBody)} />
+          {/* ★ v28 — 제목·본문 복사는 검수를 마친 뒤에 나오도록 [발행 센터]로 옮겼습니다.
+             검사 전에 복사 단추가 먼저 보이면 검수를 건너뛰게 됩니다. */}
 
           {/* 발행 기준 체크리스트 */}
           <div style={{ marginTop: 12, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 12, padding: "13px" }}>
@@ -3467,14 +3636,10 @@ function QueueCard({ d, update, remove, sendTo }) {
             </div>
           </div>
 
-          <Divider />
-          <SectionTitle icon={Instagram}>인스타 캡션</SectionTitle>
-          <textarea value={d.instaCaption} onChange={(e) => update(d.id, { instaCaption: e.target.value })} rows={3}
-            style={{ width: "100%", marginTop: 8, padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14.5, lineHeight: 1.6 }} />
-          <TagRow tags={d.hashtags} />
-          <div style={{ marginTop: 10 }}>
-            <CopyButton getText={() => `${d.instaCaption}\n\n${(d.hashtags || []).map((h) => (h.startsWith("#") ? h : "#" + h)).join(" ")}`} label="캡션 복사 (인스타 앱에 붙여넣기)" full />
-          </div>
+          {/* ★ v28 — 사진 자리 안내. 본문의 [사진: 라벨]을 뽑아 무엇을 찍어 넣을지 알려준다.
+             못 찍는 자리는 눌러서 뺄 수 있게 해, 사진 없이도 글이 끊기지 않게 한다. */}
+          <PhotoSlots d={d} update={update} />
+
           <div style={{ marginTop: 8 }}>
             <button className="hd-btn" onClick={() => setCards((v) => !v)}
               style={{ width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: "11px", borderRadius: 11, border: `1.5px solid ${C.line}`, background: "#fff", color: C.navy, fontWeight: 800, fontSize: 14.5 }}>
@@ -3509,6 +3674,37 @@ function QueueCard({ d, update, remove, sendTo }) {
           {/* ── 발행 센터: 밤에 탭 몇 번으로 4채널 ── */}
           <Divider />
           <SectionTitle icon={Send}>발행 센터 <span style={{ fontWeight: 600, color: C.muted }}>· 밤에 탭 몇 번</span></SectionTitle>
+
+          {/* ★ v28 — 기준 미달이면 알려만 준다. 막지는 않는다. 발행 여부는 사람이 판단한다. */}
+          {readyCount < checks.length && (
+            <div style={{ marginTop: 10, background: "#FFF4E6", border: "1.5px solid #E0A93C", borderRadius: 11, padding: "11px 13px", fontSize: 14, lineHeight: 1.6, color: "#8A5A12", fontWeight: 700 }}>
+              발행 기준 {checks.length - readyCount}개가 아직 안 채워졌습니다. 위에서 확인하고 내려오세요. 그래도 올리시겠다면 그대로 진행하셔도 됩니다.
+            </div>
+          )}
+
+          {/* ★ v28 — 검수를 마친 뒤에 복사가 나온다 */}
+          <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+            <CopyButton getText={() => d.blogTitle} label="제목 복사" />
+            <CopyButton getText={() => toNaverBody(d.blogBody)} label="본문 복사" full />
+          </div>
+          <ManualCopy title={d.blogTitle} body={toNaverBody(d.blogBody)} />
+
+          {/* ★ v28 — 인스타 캡션은 올릴 때 꺼내 쓰는 것이라 이 자리가 맞다 */}
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.line}` }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 3, display: "flex", alignItems: "center", gap: 6 }}>
+              <Instagram size={15} /> 인스타 캡션
+            </div>
+            <div style={{ fontSize: 13.5, color: C.muted, lineHeight: 1.6, marginBottom: 7 }}>
+              카드뉴스나 현장 사진과 <b>함께</b> 올리는 글입니다. 카드를 만들면 이 캡션을 그대로 물려받습니다.
+            </div>
+            <textarea value={d.instaCaption} onChange={(e) => update(d.id, { instaCaption: e.target.value })} rows={3}
+              style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${C.line}`, fontSize: 14.5, lineHeight: 1.6 }} />
+            <TagRow tags={d.hashtags} />
+            <div style={{ marginTop: 10 }}>
+              <CopyButton getText={() => `${d.instaCaption}\n\n${(d.hashtags || []).map((h) => (h.startsWith("#") ? h : "#" + h)).join(" ")}`} label="캡션 복사 (인스타 앱에 붙여넣기)" full />
+            </div>
+          </div>
+
           {d.covers && d.covers.length > 0 && (
             <div style={{ marginTop: 10 }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 6 }}>인스타 카드뉴스 표지 문구 (3개 중 하나 고르기)</div>
