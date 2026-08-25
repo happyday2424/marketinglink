@@ -18,7 +18,7 @@ import {
 
 // ★ 화면 하단에 표시되는 앱 버전 — 새 파일을 올릴 때마다 이 숫자를 올린다.
 //   배포 후 화면 맨 아래에서 이 값이 바뀌면 = 최신본이 올라간 것.
-const APP_VER = "v28 · 0825-2045";
+const APP_VER = "v29 · 0825-2110";
 
 /* ------------------------------------------------------------------ */
 /*  해피데이 익스프레스 — 콘텐츠 발행 데스크                          */
@@ -1594,7 +1594,7 @@ ${BRAND.timeline && BRAND.timeline.trim() ? "\n[이사 준비 타임라인 — �
 
 [카드 유형] ${topic.name} — ${topic.role}
 [타깃 지역] ${region || BRAND.region}${region && isBlueOcean(region) ? " (경쟁이 낮은 블루오션 지역 — 지역명을 더 앞에, 더 자주 노출할 것)" : ""}
-${srcBlock(src, memo)}
+${srcBlock(src, memo)}${src && src.caption ? "\n[블로그에서 이미 검수된 캡션 — 새로 쓰지 말고 이것을 다듬는다]\n" + String(src.caption).trim() + (src.hashtags && src.hashtags.length ? "\n[이미 정한 해시태그] " + src.hashtags.join(" ") : "") : ""}
 
 ${CONTENT_RULES}
 
@@ -1605,12 +1605,21 @@ ${CH_EXCEPTION.insta}
 [카드 제작 규칙]
 6. 총 장수는 표지 1장 + 본문 ${body}장 + 요약 1장 + CTA 1장 = ${total}장 구조다. 본문은 정확히 ${body}장으로 맞춘다.
 7. 1장(표지)은 제목이 아니라 훅이다. 20자 이내로, 넘기지 않으면 손해라는 느낌을 줘야 한다.
+   · 나쁜 예: "세 줄만 보세요" (무엇을 잃는지 없다) · 좋은 예: "견적서 세 장, 하나만 15만원 더 나온다"
 8. 본문 카드 한 장에는 요점 하나만 담는다. 두 개를 넣으면 카드가 죽는다.
-9. 카드는 글이 아니라 판이다. 본문 문장은 한 줄 22자 이내, 한 장에 최대 2문장.
-10. 6장(요약)은 앞 내용을 한 장으로 압축한 것이다. 이 한 장이 저장을 만든다. 각 줄 18자 이내.
-11. 캡션 첫 문장에 CTA 금지. 행동 유도는 마지막 문장에만.
-12. 문체는 광고문이 아니라 현장에서 일하는 사람의 담백한 존댓말.
-13. 고정 댓글(PINNED)에만 링크·연락을 넣는다. ${BRAND.linkUrl && BRAND.linkUrl.trim() ? "안내할 주소: " + BRAND.linkUrl.trim() : "주소가 없으면 '프로필 링크'와 전화번호로 안내한다."}
+9. ★ 본문 한 장에는 반드시 다음 셋 중 최소 둘이 들어간다. 라벨만 있고 결과가 없으면 아무도 저장하지 않는다.
+   ① 확인할 것 (무엇을 봐야 하나) ② 안 하면 생기는 일 (얼마를 더 내나, 무엇이 틀어지나) ③ 우리 기준 (우리는 어떻게 하나)
+10. ★ 판(레이아웃)을 장마다 골라 쓴다. 같은 판이 계속되면 세 장째부터 안 넘긴다. 아래 넷 중 내용에 맞는 것을 고른다.
+   · 기본 — 소제목(14자 이내) + 설명 2줄(각 20자 이내)
+   · 대비 — 남들과 우리를 맞세울 때. 줄1은 "남들: 내용", 줄2는 "저희: 내용" 형식(각 18자 이내)
+   · 숫자 — 금액·시간·개수가 핵심일 때. 소제목 자리에 숫자만 쓴다(예 "15~20만원", "2시간"). 줄1·줄2는 그 숫자가 무엇인지 설명(각 18자 이내)
+   · 확인 — 견적서·현장에서 눈으로 볼 항목을 셀 때. 줄을 3개 쓰고 각 12자 이내
+   같은 판을 세 장 넘게 이어 쓰지 않는다. 숫자 판은 두 장을 넘기지 않는다.
+11. ${total - 1}장(요약)은 앞 내용을 한 장으로 압축한 것이다. 이 한 장이 저장을 만든다. 각 줄 18자 이내.
+12. 캡션 첫 문장에 CTA 금지. 행동 유도는 마지막 문장에만.
+13. 문체는 광고문이 아니라 현장에서 일하는 사람의 담백한 존댓말.
+14. 고정 댓글(PINNED)에만 링크·연락을 넣는다. ${BRAND.linkUrl && BRAND.linkUrl.trim() ? "안내할 주소: " + BRAND.linkUrl.trim() : "주소가 없으면 '프로필 링크'와 전화번호로 안내한다."}
+15. 금액·기간·비율은 위 [회사 사실]에 있는 것만 쓴다. 없는 숫자를 만들지 않는다.
 
 [출력 형식 — 어기면 결과를 쓸 수 없습니다]
 · 첫 줄부터 바로 라벨로 시작한다. 인사말·설명·머리말을 절대 앞에 쓰지 않는다.
@@ -1622,19 +1631,31 @@ HOOKCARD: (1장 표지 훅 · 20자 이내 · 물음표·느낌표 금지 · 단
 HOOK3: 가장 센 표지 훅 3개를 " | "로 구분 (각 20자 이내, 위 HOOKCARD 포함. 나머지 후보는 출력하지 않는다)
 HOOKWHY: 3개를 고른 이유를 각각 한 줄로 " | "로 구분
 HOOKSUB: (표지 훅 아래 보조 한 줄 · 18자 이내)
-CARDS: 본문 ${body}장을 " | "로 구분. 각 장은 "소제목 :: 본문문장1 / 본문문장2" 형식 (소제목 12자 이내, 본문 각 22자 이내). 한 장에 요점 하나만.
+CARDS: 본문 ${body}장을 " | "로 구분. 각 장은 "판 :: 소제목 :: 줄1 / 줄2 / 줄3" 형식.
+  판은 기본·대비·숫자·확인 중 하나를 그대로 적는다. 줄 개수는 판 규칙을 따른다(기본·대비·숫자는 2줄, 확인은 3줄).
 SUMMARY: 요약 카드에 넣을 3~5줄을 " / "로 구분 (각 18자 이내)
 SAVEHOOK: (요약 카드 하단에 넣을 저장 유도 한 줄 · 12자 이내)
-CAPTION: (인스타 캡션 2~3문장. 첫 문장에 검색될 만한 지역 키워드를 자연스럽게 넣고, 마지막은 읽는 사람이 자기 얘기를 하고 싶어지게 닫는다. 물음표·느낌표 금지)
+${src ? "CAPTION: (블로그 캡션이 이미 있습니다. 새로 쓰지 말고 그 뜻을 유지한 채 인스타 카드용으로 다듬기만 하세요. 2~3문장)" : "CAPTION: (인스타 캡션 2~3문장. 첫 문장에 검색될 만한 지역 키워드를 자연스럽게 넣고, 마지막은 읽는 사람이 자기 얘기를 하고 싶어지게 닫는다. 물음표·느낌표 금지)"}
 HASHTAGS: (해시태그 10개. 지역 태그 3개 필수. #으로 시작, 쉼표로 구분)
 PINNED: (고정 댓글 한 줄 · 견적·전화로 자연스럽게 유도)
 THREADCROSS: (이 카드를 알리려고 스레드에 올릴 한 줄)
 BESTTIME: (이 카드를 올리기 좋은 요일·시간 한 줄 · 한국 시간 기준)`;
 
   return await aiLabeled(prompt, 4000 + (body - 4) * 700, ({ get, splitPipe, splitSlash, splitTags }) => {
+    /* ★ v29 — "판 :: 소제목 :: 줄들" 을 읽는다.
+       판이 없는 옛 형식("소제목 :: 줄들")으로 와도 기본 판으로 받아 준다. */
     const bodyCards = splitPipe(get("CARDS")).map((seg) => {
-      const parts = seg.split("::");
-      return { head: (parts[0] || "").trim(), lines: splitSlash((parts[1] || "").trim()).slice(0, 2) };
+      const parts = seg.split("::").map((s) => (s || "").trim());
+      let layout = "basic", head = "", rest = "";
+      if (parts.length >= 3 && CARD_LAYOUTS[parts[0]]) {
+        layout = CARD_LAYOUTS[parts[0]]; head = parts[1]; rest = parts.slice(2).join(" ");
+      } else if (parts.length >= 2) {
+        head = parts[0]; rest = parts.slice(1).join(" ");
+      } else {
+        head = parts[0] || "";
+      }
+      const lines = splitSlash(rest).slice(0, layout === "check" ? 4 : 2);
+      return { layout, head, lines };
     }).filter((c) => c.head || c.lines.length);
 
     const r = {
@@ -1656,14 +1677,31 @@ BESTTIME: (이 카드를 올리기 좋은 요일·시간 한 줄 · 한국 시�
   });
 }
 
+/* ★ v29 — AI가 고르는 판(레이아웃) 이름표.
+   같은 판만 이어지면 세 장째부터 안 넘긴다. 그래서 장마다 판을 바꾼다. */
+const CARD_LAYOUTS = { "기본": "basic", "대비": "vs", "숫자": "num", "확인": "check" };
+const LAYOUT_LABEL = { basic: "기본", vs: "대비", num: "숫자", check: "확인" };
+
 // 생성 결과 → 슬라이드 배열 (표지 + 본문 + 요약 + CTA)
 function instaSlides(card) {
   if (!card) return [];
   const out = [{ type: "hook", head: card.hook, sub: card.hookSub }];
-  card.cards.slice(0, 7).forEach((c) => out.push({ type: "content", head: c.head, lines: c.lines }));
+  card.cards.slice(0, 7).forEach((c) => out.push({ type: "content", layout: c.layout || "basic", head: c.head, lines: c.lines }));
   if (card.summary.length) out.push({ type: "summary", lines: card.summary, saveHook: card.saveHook });
   out.push({ type: "cta" });
   return out;
+}
+
+/* ★ v29 — 만들기 전에 보여줄 장별 설계도. AI를 부르지 않는다. */
+function cardPlanRows(topicName, total) {
+  const body = Math.max(1, total - 3);
+  const rows = [{ n: 1, kind: "표지", what: "넘기지 않으면 손해라는 한 줄" }];
+  for (let i = 0; i < body; i++) {
+    rows.push({ n: i + 2, kind: "본문 " + (i + 1), what: topicName + " — 확인할 것 · 안 하면 생기는 일 · 우리 기준" });
+  }
+  rows.push({ n: total - 1, kind: "요약", what: "앞 내용을 한 장으로 압축 · 저장을 만드는 장" });
+  rows.push({ n: total, kind: "연락", what: "슬로건 · 전화번호" });
+  return rows;
 }
 
 /* --------------------------- Storage ----------------------------- */
@@ -4790,7 +4828,8 @@ function Cards({ queue, seed }) {
   const [region, setRegion] = useState(MOVING_REGIONS[0]);
   const [memo, setMemo] = useState("");
   const [src, setSrc] = useState(null);
-  useEffect(() => { if (seed && seed.body) setSrc({ id: seed.id, title: seed.title, body: seed.body }); }, [seed]);
+  /* ★ v29 — 블로그에서 넘어오면 캡션·해시태그도 함께 물려받는다. 캡션이 두 벌 생기지 않게. */
+  useEffect(() => { if (seed && seed.body) setSrc({ id: seed.id, title: seed.title, body: seed.body, caption: seed.instaCaption || "", hashtags: seed.hashtags || [] }); }, [seed]);
   useEffect(() => {
     if (!seed || !seed.plan) return;
     const t = CARD_TOPICS.find((x) => seed.topic && seed.topic.indexOf(x.name) >= 0);
@@ -4872,6 +4911,24 @@ function Cards({ queue, seed }) {
           내용이 얕으면 장수를 늘리지 않는 편이 낫습니다. <b>블로그를 재료로 쓰면 9~10장</b>도 충분히 채워집니다.
         </div>
 
+        {/* ★ v29 — 만들기 전에 장별 구성이 글로 보인다. AI를 부르지 않는다. */}
+        <div style={{ marginTop: 12, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 12, padding: "13px" }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: C.navy, marginBottom: 8 }}>이렇게 {count}장이 나옵니다</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            {cardPlanRows(topic.name, count).map((r) => (
+              <div key={r.n} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 14 }}>
+                <span style={{ width: 26, flexShrink: 0, textAlign: "right", fontWeight: 800, color: C.muted }}>{r.n}</span>
+                <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 800, color: r.kind === "표지" || r.kind === "요약" || r.kind === "연락" ? "#fff" : C.navy, background: r.kind === "표지" || r.kind === "요약" || r.kind === "연락" ? C.navy : "#E4EAF2", borderRadius: 6, padding: "3px 8px", minWidth: 52, textAlign: "center" }}>{r.kind}</span>
+                <span style={{ flex: 1, minWidth: 0, color: C.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.what}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 13, color: C.muted, marginTop: 9, lineHeight: 1.6 }}>
+            본문 장은 <b>내용에 맞는 판</b>으로 AI가 골라 짭니다 — 대비 · 숫자 · 확인 · 기본.
+            같은 판만 이어지면 세 장째부터 안 넘기기 때문입니다.
+          </div>
+        </div>
+
         <Label style={{ marginTop: 20 }}>3 · 타깃 지역</Label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
           {MOVING_REGIONS.map((rg) => {
@@ -4908,6 +4965,7 @@ function Cards({ queue, seed }) {
               </Panel>
             </div>
           )}
+          <CardEditor card={card} setCard={setCard} />
           <InstaCards card={card} />
 
           <div style={{ marginTop: 14 }}>
@@ -6014,6 +6072,74 @@ function drawInstaSlide(canvas, slide, idx = 0, total = 1) {
 
   const num = String(idx).padStart(2, "0");
   ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+
+  const layout = slide.layout || "basic";
+  const bottom = S - footerH - 150;
+
+  /* ★ v29 — 대비 판 : 남들과 우리를 맞세운다. 차이가 한눈에 보여야 저장한다. */
+  if (layout === "vs") {
+    ctx.font = font(96, 800); ctx.fillStyle = "#FCE6E1"; ctx.fillText(num, 56, 190);
+    ctx.fillStyle = coral; ctx.fillRect(60, 212, 70, 9);
+    let y = 300;
+    if (slide.head) y = drawLines(wrap(slide.head, S - 200, font(58, 800)), 60, y, 74, font(58, 800), navy) + 30;
+
+    const pair = [
+      { lab: "다른 곳", bg: "#FDECEA", fg: "#C0392B", sub: "#B23A2E" },
+      { lab: "저희", bg: "#E7F6F1", fg: "#1E7A6B", sub: "#177562" },
+    ];
+    const boxH = 196;
+    (slide.lines || []).slice(0, 2).forEach((raw, i) => {
+      if (y + boxH > bottom + 120) return;
+      const p = pair[i] || pair[0];
+      const m = String(raw).split(/[:：]/);
+      const lab = m.length > 1 ? m[0].trim() : p.lab;
+      const txt = m.length > 1 ? m.slice(1).join(":").trim() : String(raw);
+      roundRect(ctx, 60, y, S - 120, boxH, 26); ctx.fillStyle = p.bg; ctx.fill();
+      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      ctx.font = font(30, 800); ctx.fillStyle = p.sub; ctx.fillText(lab, 100, y + 60);
+      const tl = wrap(txt, S - 220, font(46, 700));
+      drawLines(tl.slice(0, 2), 100, y + 124, 58, font(46, 700), p.fg, "left");
+      y += boxH + 26;
+    });
+    dots(idx, navy); swipe(false); footer(false);
+    return;
+  }
+
+  /* ★ v29 — 숫자 판 : 금액·시간이 핵심일 때. 숫자 하나가 카드를 끌고 간다. */
+  if (layout === "num") {
+    ctx.font = font(96, 800); ctx.fillStyle = "#FCE6E1"; ctx.fillText(num, 56, 190);
+    ctx.fillStyle = coral; ctx.fillRect(60, 212, 70, 9);
+    const big = wrap(slide.head || "", S - 140, font(150, 800));
+    let y = drawLines(big.slice(0, 2), 60, 430, 168, font(150, 800), coral, "left") + 46;
+    for (const ln of (slide.lines || []).slice(0, 2)) {
+      y = drawLines(wrap(ln, S - 160, font(44, 600)), 60, y, 62, font(44, 600), ink) + 16;
+      if (y > bottom) break;
+    }
+    dots(idx, navy); swipe(false); footer(false);
+    return;
+  }
+
+  /* ★ v29 — 확인 판 : 견적서·현장에서 눈으로 볼 항목. 캡처해서 들고 간다. */
+  if (layout === "check") {
+    ctx.font = font(96, 800); ctx.fillStyle = "#FCE6E1"; ctx.fillText(num, 56, 190);
+    ctx.fillStyle = coral; ctx.fillRect(60, 212, 70, 9);
+    let y = 310;
+    if (slide.head) y = drawLines(wrap(slide.head, S - 200, font(58, 800)), 60, y, 74, font(58, 800), navy) + 40;
+    for (const ln of (slide.lines || []).slice(0, 4)) {
+      if (y + 96 > bottom + 120) break;
+      roundRect(ctx, 60, y, 62, 62, 16); ctx.fillStyle = "#EAF2FB"; ctx.fill();
+      ctx.strokeStyle = "#2F6FB0"; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(76, y + 32); ctx.lineTo(88, y + 45); ctx.lineTo(107, y + 19); ctx.stroke();
+      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      const tl = wrap(ln, S - 260, font(48, 700));
+      drawLines(tl.slice(0, 1), 150, y + 48, 60, font(48, 700), navy, "left");
+      y += 110;
+    }
+    dots(idx, navy); swipe(false); footer(false);
+    return;
+  }
+
+  /* 기본 판 */
   ctx.font = font(130, 800); ctx.fillStyle = "#FCE6E1"; ctx.fillText(num, 56, 240);
   ctx.fillStyle = coral; ctx.fillRect(60, 262, 70, 9);
 
@@ -6028,6 +6154,104 @@ function drawInstaSlide(canvas, slide, idx = 0, total = 1) {
   footer(false);
 }
 
+
+/* ★ v29 — 장별 검수·고치기
+   AI가 만든 문구를 장마다 직접 고친다. 판도 여기서 바꾼다.
+   고치면 아래 카드 이미지가 곧바로 다시 그려진다. AI를 다시 부르지 않으므로 몇 번을 고쳐도 부담이 없다. */
+function CardEditor({ card, setCard }) {
+  if (!card) return null;
+
+  const setHook = (v) => setCard({ ...card, hook: v });
+  const setHookSub = (v) => setCard({ ...card, hookSub: v });
+  const setSaveHook = (v) => setCard({ ...card, saveHook: v });
+
+  const setBody = (i, patch) => {
+    const next = (card.cards || []).map((c, k) => (k === i ? { ...c, ...patch } : c));
+    setCard({ ...card, cards: next });
+  };
+  const setLine = (i, j, v) => {
+    const lines = [...((card.cards[i] || {}).lines || [])];
+    lines[j] = v;
+    setBody(i, { lines });
+  };
+  const addLine = (i) => {
+    const lines = [...((card.cards[i] || {}).lines || []), ""];
+    setBody(i, { lines: lines.slice(0, 4) });
+  };
+  const dropLine = (i, j) => {
+    const lines = ((card.cards[i] || {}).lines || []).filter((_, k) => k !== j);
+    setBody(i, { lines });
+  };
+  const setSummary = (j, v) => {
+    const s = [...(card.summary || [])]; s[j] = v;
+    setCard({ ...card, summary: s });
+  };
+
+  const box = { width: "100%", padding: "9px 11px", borderRadius: 9, border: `1.5px solid ${C.line}`, fontSize: 14, lineHeight: 1.6 };
+
+  return (
+    <Panel>
+      <SectionTitle icon={ListChecks}>장별 검수 <span style={{ fontWeight: 500, color: C.muted }}>— 틀린 곳만 고치세요. 아래 카드가 바로 다시 그려집니다</span></SectionTitle>
+
+      <div style={{ marginTop: 12, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 12px" }}>
+        <div style={{ fontSize: 13.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>1장 · 표지</div>
+        <input value={card.hook || ""} onChange={(e) => setHook(e.target.value)} placeholder="넘기지 않으면 손해라는 한 줄" style={box} />
+        <input value={card.hookSub || ""} onChange={(e) => setHookSub(e.target.value)} placeholder="보조 한 줄" style={{ ...box, marginTop: 6 }} />
+      </div>
+
+      {(card.cards || []).map((c, i) => (
+        <div key={i} style={{ marginTop: 10, background: "#fff", border: `1.5px solid ${C.line}`, borderRadius: 11, padding: "11px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8, flexWrap: "wrap" }}>
+            <span style={{ fontSize: 13.5, fontWeight: 800, color: C.navy }}>{i + 2}장 · 본문 {i + 1}</span>
+            <div style={{ flex: 1 }} />
+            {Object.keys(LAYOUT_LABEL).map((k) => (
+              <button key={k} className="hd-btn" onClick={() => setBody(i, { layout: k })}
+                style={{ fontSize: 12.5, fontWeight: 800, padding: "4px 9px", borderRadius: 7,
+                  border: `1.5px solid ${(c.layout || "basic") === k ? C.coral : C.line}`,
+                  background: (c.layout || "basic") === k ? C.coral : "#fff",
+                  color: (c.layout || "basic") === k ? "#fff" : C.muted }}>
+                {LAYOUT_LABEL[k]}
+              </button>
+            ))}
+          </div>
+          <input value={c.head || ""} onChange={(e) => setBody(i, { head: e.target.value })}
+            placeholder={(c.layout || "basic") === "num" ? "숫자만 (예: 15~20만원)" : "소제목"} style={{ ...box, fontWeight: 700 }} />
+          {(c.lines || []).map((ln, j) => (
+            <div key={j} style={{ display: "flex", gap: 6, marginTop: 6 }}>
+              <input value={ln} onChange={(e) => setLine(i, j, e.target.value)}
+                placeholder={(c.layout || "basic") === "vs" ? (j === 0 ? "다른 곳: 내용" : "저희: 내용") : "설명"} style={box} />
+              <button className="hd-btn" onClick={() => dropLine(i, j)}
+                style={{ flexShrink: 0, border: `1.5px solid ${C.line}`, background: "#fff", color: C.muted, borderRadius: 9, padding: "0 10px" }}>
+                <Trash2 size={14} />
+              </button>
+            </div>
+          ))}
+          {(c.lines || []).length < ((c.layout || "basic") === "check" ? 4 : 2) && (
+            <button className="hd-btn" onClick={() => addLine(i)}
+              style={{ marginTop: 6, fontSize: 13, fontWeight: 700, color: C.muted, background: "#fff", border: `1.5px dashed ${C.line}`, borderRadius: 9, padding: "7px 12px" }}>
+              <Plus size={13} /> 줄 추가
+            </button>
+          )}
+        </div>
+      ))}
+
+      {(card.summary || []).length > 0 && (
+        <div style={{ marginTop: 10, background: "#F7F9FC", border: `1px solid ${C.line}`, borderRadius: 11, padding: "11px 12px" }}>
+          <div style={{ fontSize: 13.5, fontWeight: 800, color: C.navy, marginBottom: 7 }}>요약 장</div>
+          {(card.summary || []).map((s, j) => (
+            <input key={j} value={s} onChange={(e) => setSummary(j, e.target.value)} style={{ ...box, marginTop: j ? 6 : 0 }} />
+          ))}
+          <input value={card.saveHook || ""} onChange={(e) => setSaveHook(e.target.value)} placeholder="저장 유도 한 줄" style={{ ...box, marginTop: 8 }} />
+        </div>
+      )}
+
+      <div style={{ fontSize: 13, color: C.muted, marginTop: 10, lineHeight: 1.6 }}>
+        판을 바꾸면 그 장의 모양이 통째로 바뀝니다. <b>대비</b>는 줄 앞에 <b>다른 곳:</b> · <b>저희:</b> 를 붙이고,
+        <b> 숫자</b>는 소제목 칸에 숫자만 넣습니다.
+      </div>
+    </Panel>
+  );
+}
 
 function InstaCards({ card }) {
   const slides = useMemo(() => instaSlides(card), [card]);
